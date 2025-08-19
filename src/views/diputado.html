@@ -801,6 +801,12 @@
                             <button class="btn btn-success btn-lg" id="btnIniciarSesion" onclick="iniciarSesion()" style="display: none;">
                                 <i class="fas fa-play"></i> Iniciar Sesión Legislativa
                             </button>
+                            <button class="btn btn-warning btn-lg" id="btnPausarSesion" onclick="mostrarModalPausa()" style="display: none;">
+                                <i class="fas fa-pause"></i> Pausar Sesión
+                            </button>
+                            <button class="btn btn-info btn-lg" id="btnReanudarSesion" onclick="reanudarSesion()" style="display: none;">
+                                <i class="fas fa-play-circle"></i> Reanudar Sesión
+                            </button>
                             <button class="btn btn-danger btn-lg" id="btnClausurarSesion" onclick="clausurarSesion()" style="display: none;">
                                 <i class="fas fa-stop"></i> Clausurar Sesión
                             </button>
@@ -1718,6 +1724,8 @@
         function updateSessionControls(data) {
             const statusDiv = document.getElementById('sessionControlStatus');
             const btnIniciar = document.getElementById('btnIniciarSesion');
+            const btnPausar = document.getElementById('btnPausarSesion');
+            const btnReanudar = document.getElementById('btnReanudarSesion');
             const btnClausurar = document.getElementById('btnClausurarSesion');
             const statsDiv = document.getElementById('sessionStats');
             
@@ -1726,10 +1734,26 @@
                     <div class="alert alert-info">
                         <strong>Sesión Activa:</strong> ${data.sesion.nombre}<br>
                         <small>Iniciada: ${new Date(data.sesion.fecha).toLocaleString('es-MX')}</small>
+                        ${data.sesion.pausada ? '<br><span class="badge bg-warning">PAUSADA</span>' : ''}
                     </div>
                 `;
                 
                 btnIniciar.style.display = 'none';
+                
+                // Mostrar botones de pausa/reanudar según estado
+                if (data.puede_pausar) {
+                    if (data.sesion.pausada) {
+                        btnPausar.style.display = 'none';
+                        btnReanudar.style.display = 'block';
+                    } else {
+                        btnPausar.style.display = 'block';
+                        btnReanudar.style.display = 'none';
+                    }
+                } else {
+                    btnPausar.style.display = 'none';
+                    btnReanudar.style.display = 'none';
+                }
+                
                 btnClausurar.style.display = data.puede_clausurar ? 'block' : 'none';
                 
                 // Mostrar botón de recordatorios si es presidente o vicepresidente autorizado
@@ -2624,8 +2648,8 @@
             `;
         }
         
-        async function activarIniciativaPresidente(id) {
-            if (!confirm('¿Activar esta iniciativa para votación?')) return;
+        async function activarIniciativaPresidente(id, force = false) {
+            if (!force && !confirm('¿Activar esta iniciativa para votación?')) return;
             
             try {
                 const response = await fetch(`/api/diputado/activar-iniciativa/${id}`, {
@@ -2633,13 +2657,38 @@
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    body: JSON.stringify({ force })
                 });
                 
                 if (response.ok) {
-                    alert('Iniciativa activada para votación');
+                    const data = await response.json();
+                    
+                    // Mostrar mensaje específico si se cerró otra iniciativa
+                    if (data.iniciativa_cerrada) {
+                        alert(`Se cerró la iniciativa #${data.iniciativa_cerrada.numero} y se activó la #${data.iniciativa.numero}`);
+                    } else {
+                        alert('Iniciativa activada para votación');
+                    }
+                    
                     verListaIniciativas(); // Recargar lista
                     checkActiveInitiative(); // Actualizar panel principal
+                    
+                } else if (response.status === 409) {
+                    // Hay otra iniciativa activa, preguntar confirmación
+                    const data = await response.json();
+                    
+                    const confirmar = confirm(
+                        `${data.mensaje}\n\n` +
+                        `Iniciativa activa actual:\n` +
+                        `#${data.iniciativa_activa.numero}: ${data.iniciativa_activa.titulo}\n\n` +
+                        `¿Desea cerrarla y activar la nueva?`
+                    );
+                    
+                    if (confirmar) {
+                        // Llamar de nuevo con force=true
+                        activarIniciativaPresidente(id, true);
+                    }
                 } else {
                     const data = await response.json();
                     alert(data.error || 'Error al activar iniciativa');
@@ -2690,6 +2739,194 @@
             toggleMenu();
             alert('Función de configuración en desarrollo');
         }
+    </script>
+
+    <!-- Modal de Pausa de Sesión -->
+    <div class="modal fade" id="modalPausa" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="fas fa-pause-circle"></i> Pausar Sesión Legislativa
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Seleccione el tiempo de pausa:</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-warning" onclick="pausarSesion(5)">
+                            <i class="fas fa-clock"></i> 5 minutos
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="pausarSesion(10)">
+                            <i class="fas fa-clock"></i> 10 minutos
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="pausarSesion(15)">
+                            <i class="fas fa-clock"></i> 15 minutos
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="pausarSesion(30)">
+                            <i class="fas fa-clock"></i> 30 minutos
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="pausarSesion(0)">
+                            <i class="fas fa-infinity"></i> Tiempo indefinido
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timer de Pausa Flotante -->
+    <div id="pausaTimer" style="display: none; position: fixed; top: 20px; right: 20px; z-index: 9999; background: rgba(255, 193, 7, 0.95); padding: 15px 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h5 class="mb-2 text-dark">
+            <i class="fas fa-pause-circle"></i> Sesión en Pausa
+        </h5>
+        <div id="timerDisplay" class="text-center">
+            <h2 class="mb-0 text-dark" id="timerCount">00:00</h2>
+            <small class="text-dark" id="timerMessage">Tiempo restante</small>
+        </div>
+    </div>
+
+    <script>
+        let pausaInterval = null;
+        let tiempoRestante = 0;
+
+        function mostrarModalPausa() {
+            const modal = new bootstrap.Modal(document.getElementById('modalPausa'));
+            modal.show();
+        }
+
+        async function pausarSesion(minutos) {
+            // Cerrar modal
+            bootstrap.Modal.getInstance(document.getElementById('modalPausa')).hide();
+            
+            try {
+                const response = await fetch('/api/diputado/pausar-sesion', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ minutos })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Ocultar botón pausar, mostrar reanudar
+                    document.getElementById('btnPausarSesion').style.display = 'none';
+                    document.getElementById('btnReanudarSesion').style.display = 'block';
+                    
+                    // Iniciar timer visual
+                    if (minutos > 0) {
+                        iniciarTimer(minutos * 60);
+                    } else {
+                        mostrarPausaIndefinida();
+                    }
+                    
+                    alert(`Sesión pausada por ${minutos > 0 ? minutos + ' minutos' : 'tiempo indefinido'}`);
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error al pausar la sesión');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al pausar la sesión');
+            }
+        }
+
+        async function reanudarSesion() {
+            if (!confirm('¿Desea reanudar la sesión?')) return;
+            
+            try {
+                const response = await fetch('/api/diputado/reanudar-sesion', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    // Ocultar reanudar, mostrar pausar
+                    document.getElementById('btnReanudarSesion').style.display = 'none';
+                    document.getElementById('btnPausarSesion').style.display = 'block';
+                    
+                    // Detener timer
+                    detenerTimer();
+                    
+                    alert('Sesión reanudada');
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error al reanudar la sesión');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al reanudar la sesión');
+            }
+        }
+
+        function iniciarTimer(segundos) {
+            tiempoRestante = segundos;
+            document.getElementById('pausaTimer').style.display = 'block';
+            
+            actualizarTimer();
+            
+            pausaInterval = setInterval(() => {
+                tiempoRestante--;
+                actualizarTimer();
+                
+                if (tiempoRestante <= 0) {
+                    detenerTimer();
+                    notificarFinPausa();
+                }
+            }, 1000);
+        }
+
+        function actualizarTimer() {
+            const minutos = Math.floor(tiempoRestante / 60);
+            const segundos = tiempoRestante % 60;
+            document.getElementById('timerCount').textContent = 
+                `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+        }
+
+        function mostrarPausaIndefinida() {
+            document.getElementById('pausaTimer').style.display = 'block';
+            document.getElementById('timerCount').textContent = '∞';
+            document.getElementById('timerMessage').textContent = 'Pausa indefinida';
+        }
+
+        function detenerTimer() {
+            if (pausaInterval) {
+                clearInterval(pausaInterval);
+                pausaInterval = null;
+            }
+            document.getElementById('pausaTimer').style.display = 'none';
+        }
+
+        function notificarFinPausa() {
+            // Notificación visual y sonora
+            alert('⏰ El tiempo de pausa ha terminado. La sesión puede continuar.');
+            
+            // Reproducir sonido si es posible
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE');
+            audio.play().catch(e => console.log('No se pudo reproducir sonido'));
+            
+            // Cambiar botones
+            document.getElementById('btnReanudarSesion').style.display = 'none';
+            document.getElementById('btnPausarSesion').style.display = 'block';
+        }
+
+        // Escuchar eventos de WebSocket para sincronización
+        socket.on('sesion-pausada', (data) => {
+            if (data.minutos > 0) {
+                iniciarTimer(data.minutos * 60);
+            } else {
+                mostrarPausaIndefinida();
+            }
+        });
+
+        socket.on('sesion-reanudada', () => {
+            detenerTimer();
+        });
     </script>
 
     <script src="/js/theme-switcher.js"></script>

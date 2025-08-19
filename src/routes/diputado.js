@@ -492,11 +492,16 @@ router.get('/estado-sesion', (req, res) => {
                 (err, stats) => {
                     res.json({
                         sesion_activa: true,
-                        sesion,
+                        sesion: {
+                            ...sesion,
+                            pausada: sesion.pausada === 1
+                        },
                         estadisticas: stats[0],
                         puede_iniciar: false,
+                        puede_pausar: user.cargo_mesa_directiva === 'Presidente de la Mesa Directiva',
                         puede_clausurar: user.cargo_mesa_directiva === 'presidente' || 
                                        user.cargo_mesa_directiva === 'vicepresidente' ||
+                                       user.cargo_mesa_directiva === 'Presidente de la Mesa Directiva' ||
                                        user.role === 'secretario',
                         iniciativas_cargadas: true
                     });
@@ -755,34 +760,199 @@ router.post('/activar-iniciativa/:id', (req, res) => {
                 return res.status(400).json({ error: 'La iniciativa ya está activa' });
             }
             
-            // Desactivar otras iniciativas activas
-            db.run(`
-                UPDATE iniciativas 
-                SET activa = 0 
-                WHERE sesion_id = ? AND id != ?
-            `, [iniciativa.sesion_id, id], (err) => {
+            // VALIDACIÓN CRÍTICA: Verificar si hay otra iniciativa activa
+            db.get(`
+                SELECT id, numero, titulo 
+                FROM iniciativas 
+                WHERE sesion_id = ? AND activa = 1 AND id != ?
+            `, [iniciativa.sesion_id, id], (err, iniciativaActiva) => {
                 if (err) {
-                    return res.status(500).json({ error: 'Error desactivando otras iniciativas' });
+                    return res.status(500).json({ error: 'Error verificando iniciativas activas' });
                 }
                 
-                // Activar la iniciativa seleccionada
-                db.run(`
-                    UPDATE iniciativas 
-                    SET activa = 1 
-                    WHERE id = ?
-                `, [id], (err) => {
-                    if (err) {
-                        return res.status(500).json({ error: 'Error activando iniciativa' });
+                // Si hay otra activa, preguntar confirmación (enviando info de la activa)
+                if (iniciativaActiva) {
+                    // Si el cliente envía force=true, proceder a desactivar
+                    if (!req.body.force) {
+                        return res.status(409).json({ 
+                            error: 'Ya hay otra iniciativa activa',
+                            iniciativa_activa: {
+                                id: iniciativaActiva.id,
+                                numero: iniciativaActiva.numero,
+                                titulo: iniciativaActiva.titulo
+                            },
+                            requiere_confirmacion: true,
+                            mensaje: `La iniciativa #${iniciativaActiva.numero} está activa. ¿Desea cerrarla y activar esta nueva?`
+                        });
                     }
                     
-                    // Emitir evento a todos los clientes
-                    io.emit('iniciativa-activa', iniciativa);
-                    
-                    res.json({ 
-                        success: true, 
-                        message: 'Iniciativa activada para votación',
-                        iniciativa 
+                    // Si confirma, cerrar la anterior
+                    console.log(`Cerrando iniciativa activa #${iniciativaActiva.numero} para activar #${iniciativa.numero}`);
+                }
+                
+                // Desactivar TODAS las iniciativas activas de la sesión
+                db.run(`
+                    UPDATE iniciativas 
+                    SET activa = 0 
+                    WHERE sesion_id = ? AND id != ?
+                `, [iniciativa.sesion_id, id], (err) => {
+                    if (err) {
+                        return res.status(500).json({ error: 'Error desactivando otras iniciativas' });
+                    }
+                
+                    // Activar la iniciativa seleccionada
+                    db.run(`
+                        UPDATE iniciativas 
+                        SET activa = 1 
+                        WHERE id = ?
+                    `, [id], (err) => {
+                        if (err) {
+                            return res.status(500).json({ error: 'Error activando iniciativa' });
+                        }
+                        
+                        // Emitir evento a todos los clientes con información adicional
+                        io.emit('iniciativa-activa', {
+                            ...iniciativa,
+                            mensaje: iniciativaActiva ? 
+                                `Se cerró iniciativa #${iniciativaActiva.numero} y se activó #${iniciativa.numero}` : 
+                                `Iniciativa #${iniciativa.numero} activada para votación`
+                        });
+                        
+                        res.json({ 
+                            success: true, 
+                            message: 'Iniciativa activada para votación',
+                            iniciativa,
+                            iniciativa_cerrada: iniciativaActiva || null
+                        });
                     });
+                });
+            });
+        });
+    });
+});
+
+// Pausar sesión (presidente)
+router.post('/pausar-sesion', (req, res) => {
+    const db = req.db;
+    const io = req.io;
+    const userId = req.user.id;
+    const { minutos } = req.body;
+    
+    // Verificar permisos
+    db.get(`
+        SELECT cargo_mesa_directiva 
+        FROM usuarios 
+        WHERE id = ?
+    `, [userId], (err, usuario) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando permisos' });
+        }
+        
+        const cargoMesa = usuario?.cargo_mesa_directiva || '';
+        const puedePausar = cargoMesa === 'Presidente de la Mesa Directiva';
+        
+        if (!puedePausar) {
+            return res.status(403).json({ error: 'Solo el Presidente puede pausar la sesión' });
+        }
+        
+        // Verificar sesión activa
+        db.get(`SELECT * FROM sesiones WHERE activa = 1`, (err, sesion) => {
+            if (err) {
+                return res.status(500).json({ error: 'Error verificando sesión' });
+            }
+            
+            if (!sesion) {
+                return res.status(400).json({ error: 'No hay sesión activa' });
+            }
+            
+            // Actualizar estado de pausa
+            const tiempoPausa = minutos > 0 ? new Date(Date.now() + minutos * 60000).toISOString() : null;
+            
+            db.run(`
+                UPDATE sesiones 
+                SET pausada = 1,
+                    tiempo_pausa_hasta = ?,
+                    pausada_por = ?,
+                    pausada_en = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `, [tiempoPausa, userId, sesion.id], (err) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error pausando sesión' });
+                }
+                
+                // Emitir evento a todos
+                io.emit('sesion-pausada', {
+                    minutos,
+                    tiempo_hasta: tiempoPausa,
+                    mensaje: minutos > 0 ? 
+                        `Sesión pausada por ${minutos} minutos` : 
+                        'Sesión pausada indefinidamente'
+                });
+                
+                res.json({
+                    success: true,
+                    minutos,
+                    mensaje: `Sesión pausada ${minutos > 0 ? `por ${minutos} minutos` : 'indefinidamente'}`
+                });
+            });
+        });
+    });
+});
+
+// Reanudar sesión (presidente)
+router.post('/reanudar-sesion', (req, res) => {
+    const db = req.db;
+    const io = req.io;
+    const userId = req.user.id;
+    
+    // Verificar permisos
+    db.get(`
+        SELECT cargo_mesa_directiva 
+        FROM usuarios 
+        WHERE id = ?
+    `, [userId], (err, usuario) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando permisos' });
+        }
+        
+        const cargoMesa = usuario?.cargo_mesa_directiva || '';
+        const puedeReanudar = cargoMesa === 'Presidente de la Mesa Directiva';
+        
+        if (!puedeReanudar) {
+            return res.status(403).json({ error: 'Solo el Presidente puede reanudar la sesión' });
+        }
+        
+        // Verificar sesión pausada
+        db.get(`SELECT * FROM sesiones WHERE activa = 1 AND pausada = 1`, (err, sesion) => {
+            if (err) {
+                return res.status(500).json({ error: 'Error verificando sesión' });
+            }
+            
+            if (!sesion) {
+                return res.status(400).json({ error: 'No hay sesión pausada' });
+            }
+            
+            // Reanudar sesión
+            db.run(`
+                UPDATE sesiones 
+                SET pausada = 0,
+                    tiempo_pausa_hasta = NULL,
+                    reanudada_por = ?,
+                    reanudada_en = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `, [userId, sesion.id], (err) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error reanudando sesión' });
+                }
+                
+                // Emitir evento a todos
+                io.emit('sesion-reanudada', {
+                    mensaje: 'La sesión ha sido reanudada'
+                });
+                
+                res.json({
+                    success: true,
+                    mensaje: 'Sesión reanudada exitosamente'
                 });
             });
         });
