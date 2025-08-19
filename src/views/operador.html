@@ -233,7 +233,7 @@
             </div>
             
             <!-- Lista de iniciativas -->
-            <div class="col-md-8">
+            <div class="col-md-5">
                 <div class="card">
                     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="fas fa-list"></i> Iniciativas Cargadas</h5>
@@ -246,6 +246,47 @@
                     <div class="card-body">
                         <div id="initiativesList">
                             <p class="text-muted text-center">No hay iniciativas cargadas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Panel de Exportación -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-download"></i> Exportar Resultados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="exportPanel">
+                            <p class="small text-muted mb-3">Exporta los resultados de la sesión actual en diferentes formatos</p>
+                            
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-success" onclick="exportarResultados('excel')" id="btnExportExcel" disabled>
+                                    <i class="fas fa-file-excel"></i> Exportar a Excel
+                                </button>
+                                <button class="btn btn-danger" onclick="exportarResultados('pdf')" id="btnExportPDF" disabled>
+                                    <i class="fas fa-file-pdf"></i> Exportar a PDF
+                                </button>
+                                <button class="btn btn-primary" onclick="exportarResultados('word')" id="btnExportWord" disabled>
+                                    <i class="fas fa-file-word"></i> Exportar a Word
+                                </button>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="small">
+                                <h6>El reporte incluye:</h6>
+                                <ul class="small ps-3">
+                                    <li>Información de la sesión</li>
+                                    <li>Duración total</li>
+                                    <li>Asistencia y quórum</li>
+                                    <li>Resultados por iniciativa</li>
+                                    <li>Detalle de votos</li>
+                                </ul>
+                            </div>
+                            
+                            <div id="exportStatus" class="mt-3"></div>
                         </div>
                     </div>
                 </div>
@@ -612,6 +653,9 @@
         
         // Variable para rastrear el tipo de pantalla actual (definida al inicio)
         let currentScreenType = 'votacion';
+        
+        // Variable para almacenar información de la sesión actual
+        let sessionData = null;
         
         if (!token || !user || user.role !== 'operador') {
             window.location.href = '/';
@@ -1432,6 +1476,71 @@
             window.location.href = '/';
         }
         
+        // Función para exportar resultados
+        async function exportarResultados(formato) {
+            const sesionActiva = sessionData?.id;
+            
+            if (!sesionActiva) {
+                alert('No hay sesión activa para exportar');
+                return;
+            }
+            
+            // Mostrar estado de descarga
+            const statusDiv = document.getElementById('exportStatus');
+            statusDiv.innerHTML = `<div class="alert alert-info p-2">
+                <i class="fas fa-spinner fa-spin"></i> Generando ${formato.toUpperCase()}...
+            </div>`;
+            
+            try {
+                const response = await fetch(`/api/exportar/${formato}/${sesionActiva}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Error al generar el archivo');
+                }
+                
+                // Obtener el blob del archivo
+                const blob = await response.blob();
+                
+                // Crear URL temporal para descarga
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // Nombre del archivo basado en formato y fecha
+                const fecha = new Date().toISOString().split('T')[0];
+                const extension = formato === 'excel' ? 'xlsx' : formato === 'word' ? 'docx' : 'pdf';
+                a.download = `sesion_${sessionData.codigo_sesion}_${fecha}.${extension}`;
+                
+                // Descargar archivo
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // Limpiar URL temporal
+                window.URL.revokeObjectURL(url);
+                
+                // Mostrar éxito
+                statusDiv.innerHTML = `<div class="alert alert-success p-2">
+                    <i class="fas fa-check"></i> ${formato.toUpperCase()} descargado
+                </div>`;
+                
+                // Limpiar mensaje después de 3 segundos
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Error exportando:', error);
+                statusDiv.innerHTML = `<div class="alert alert-danger p-2">
+                    <i class="fas fa-times"></i> Error al generar ${formato.toUpperCase()}
+                </div>`;
+            }
+        }
+        
         // Abrir pantalla según tipo
         function abrirPantalla(tipo) {
             const width = 774;
@@ -1586,7 +1695,47 @@
         }
         
         // Event listeners para actualización de URL
+        // Función para cargar estado de sesión y habilitar exportación
+        async function cargarEstadoSesion() {
+            try {
+                const response = await fetch('/api/operador/sesion-actual', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.sesion) {
+                        sessionData = data.sesion;
+                        
+                        // Habilitar botones de exportación
+                        document.getElementById('btnExportExcel').disabled = false;
+                        document.getElementById('btnExportPDF').disabled = false;
+                        document.getElementById('btnExportWord').disabled = false;
+                        
+                        // Actualizar contadores del dashboard
+                        document.getElementById('votacionesActivas').textContent = data.votaciones_activas || 0;
+                        document.getElementById('votacionesCompletadas').textContent = data.votaciones_completadas || 0;
+                        document.getElementById('documentosPendientes').textContent = data.documentos_pendientes || 0;
+                    } else {
+                        // Deshabilitar botones si no hay sesión
+                        document.getElementById('btnExportExcel').disabled = true;
+                        document.getElementById('btnExportPDF').disabled = true;
+                        document.getElementById('btnExportWord').disabled = true;
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando estado de sesión:', error);
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', () => {
+            // Cargar estado inicial
+            cargarEstadoSesion();
+            
+            // Actualizar cada 30 segundos
+            setInterval(cargarEstadoSesion, 30000);
             const resolutionSelect = document.getElementById('obsResolution');
             if (resolutionSelect) {
                 resolutionSelect.addEventListener('change', (e) => {

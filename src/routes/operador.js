@@ -123,6 +123,31 @@ router.post('/upload-pdf', upload.single('pdf'), async (req, res) => {
 });
 
 // Obtener sesión activa
+// Obtener sesión actual con estadísticas
+router.get('/sesion-actual', (req, res) => {
+    const db = req.db;
+    
+    db.get(`
+        SELECT s.*, 
+            (SELECT COUNT(*) FROM iniciativas WHERE sesion_id = s.id AND activa = 1) as votaciones_activas,
+            (SELECT COUNT(*) FROM iniciativas WHERE sesion_id = s.id AND cerrada = 1) as votaciones_completadas,
+            (SELECT COUNT(*) FROM sesiones WHERE estado = 'preparada') as documentos_pendientes
+        FROM sesiones s
+        WHERE s.activa = 1
+    `, (err, sesion) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error obteniendo sesión' });
+        }
+        
+        res.json({
+            sesion: sesion || null,
+            votaciones_activas: sesion?.votaciones_activas || 0,
+            votaciones_completadas: sesion?.votaciones_completadas || 0,
+            documentos_pendientes: sesion?.documentos_pendientes || 0
+        });
+    });
+});
+
 router.get('/sesion-activa', (req, res) => {
     const db = req.db;
     

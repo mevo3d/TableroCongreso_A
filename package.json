@@ -42,8 +42,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "docx": "^9.5.1",
     "dotenv": "^16.0.3",
     "exceljs": "^4.4.0",
     "express": "^4.18.2",
@@ -59,20 +61,19 @@
     "socket.io": "^4.6.1",
     "socket.io-client": "^4.8.1",
     "sqlite3": "^5.1.6",
-    "xlsx": "^0.18.5",
-    "axios": "^1.6.0"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@playwright/test": "^1.40.0",
     "concurrently": "^9.2.0",
+    "cross-env": "^7.0.3",
     "electron": "^37.2.6",
     "electron-builder": "^26.0.12",
-    "nodemon": "^2.0.22",
-    "@playwright/test": "^1.40.0",
+    "fs-extra": "^11.1.1",
     "jest": "^29.7.0",
     "jest-environment-node": "^29.7.0",
-    "supertest": "^6.3.3",
-    "@jest/globals": "^29.7.0",
-    "fs-extra": "^11.1.1",
-    "cross-env": "^7.0.3"
+    "nodemon": "^2.0.22",
+    "supertest": "^6.3.3"
   }
 }

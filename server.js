@@ -52,6 +52,7 @@ const diputadoRoutes = require('./src/routes/diputado');
 const pantallaRoutes = require('./src/routes/pantalla');
 const superadminRoutes = require('./src/routes/superadmin');
 const paseListaRoutes = require('./src/routes/pase-lista');
+const exportarRoutes = require('./src/routes/exportar');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/operador', operadorRoutes);
@@ -61,6 +62,7 @@ app.use('/api/pantalla', pantallaRoutes);
 app.use('/api/superadmin', superadminRoutes);
 app.use('/api/pase-lista', paseListaRoutes);
 app.use('/api/servicios-legislativos', require('./src/routes/servicios-legislativos'));
+app.use('/api/exportar', exportarRoutes);
 
 // Rutas de acceso de prueba (solo desarrollo)
 const testAccessRoutes = require('./src/routes/test-access');
