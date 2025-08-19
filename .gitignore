@@ -5,10 +5,11 @@ yarn-debug.log*
 yarn-error.log*
 
 # Database
-*.db
-*.sqlite
-*.sqlite3
-src/db/*.db
+# *.db
+# *.sqlite
+# *.sqlite3
+# src/db/*.db
+# NOTA: La base de datos SE INCLUYE para facilitar el despliegue
 
 # Environment variables
 .env
