@@ -234,7 +234,9 @@ async function procesarExcel(file) {
         // Enviar al servidor
         const formData = new FormData();
         formData.append('archivo', file);
-        formData.append('datos_sesion', JSON.stringify(datosSesion));
+        if (datosSesion.NOMBRE_SESION) {
+            formData.append('nombre', datosSesion.NOMBRE_SESION);
+        }
         formData.append('iniciativas', JSON.stringify(iniciativas));
         
         const response = await fetch('/api/servicios-legislativos/cargar-excel', {

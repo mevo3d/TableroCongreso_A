@@ -41,6 +41,117 @@ router.get('/estadisticas', (req, res) => {
     });
 });
 
+// Cargar iniciativas desde Excel
+router.post('/cargar-excel', upload.single('archivo'), async (req, res) => {
+    const db = req.db;
+    const userId = req.user.id;
+    
+    if (!req.file) {
+        return res.status(400).json({ error: 'No se proporcionó archivo' });
+    }
+    
+    try {
+        // Leer el archivo Excel
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(sheet);
+        
+        if (!data || data.length === 0) {
+            return res.status(400).json({ error: 'El archivo Excel está vacío' });
+        }
+        
+        // Validar estructura esperada
+        const requiredColumns = ['numero', 'titulo', 'presentador', 'partido', 'tipo_mayoria'];
+        const columns = Object.keys(data[0]);
+        const missingColumns = requiredColumns.filter(col => !columns.includes(col));
+        
+        if (missingColumns.length > 0) {
+            return res.status(400).json({ 
+                error: 'Faltan columnas requeridas en el Excel',
+                columnas_faltantes: missingColumns,
+                columnas_esperadas: requiredColumns
+            });
+        }
+        
+        // Crear sesión precargada
+        const fecha = new Date().toISOString();
+        const nombreSesion = req.body.nombre || `Sesión cargada desde Excel - ${new Date().toLocaleDateString('es-MX')}`;
+        
+        db.run(`
+            INSERT INTO sesiones_precargadas (
+                nombre, fecha_carga, estado, cargada_por, tipo_carga
+            ) VALUES (?, ?, 'borrador', ?, 'excel')
+        `, [nombreSesion, fecha, userId], function(err) {
+            if (err) {
+                console.error('Error creando sesión:', err);
+                return res.status(500).json({ error: 'Error creando sesión precargada' });
+            }
+            
+            const sesionId = this.lastID;
+            let iniciativasInsertadas = 0;
+            let errores = [];
+            
+            // Insertar cada iniciativa
+            const stmt = db.prepare(`
+                INSERT INTO iniciativas_precargadas (
+                    sesion_precargada_id, numero, titulo, descripcion,
+                    presentador, partido_presentador, tipo_mayoria
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `);
+            
+            data.forEach((row, index) => {
+                // Limpiar y validar datos
+                const numero = parseInt(row.numero) || (index + 1);
+                const titulo = String(row.titulo || row.descripcion || 'Sin título').trim();
+                const descripcion = String(row.descripcion || row.titulo || '').trim();
+                const presentador = String(row.presentador || 'No especificado').trim();
+                const partido = String(row.partido || row.partido_presentador || 'No especificado').trim();
+                const tipoMayoria = String(row.tipo_mayoria || 'simple').toLowerCase();
+                
+                // Validar tipo de mayoría
+                const tiposValidos = ['simple', 'absoluta', 'calificada', 'unanime'];
+                const tipoMayoriaValido = tiposValidos.includes(tipoMayoria) ? tipoMayoria : 'simple';
+                
+                stmt.run(
+                    sesionId, numero, titulo, descripcion,
+                    presentador, partido, tipoMayoriaValido,
+                    (err) => {
+                        if (err) {
+                            errores.push(`Error en fila ${index + 1}: ${err.message}`);
+                        } else {
+                            iniciativasInsertadas++;
+                        }
+                    }
+                );
+            });
+            
+            stmt.finalize((err) => {
+                if (err) {
+                    console.error('Error finalizando statement:', err);
+                    return res.status(500).json({ error: 'Error procesando iniciativas' });
+                }
+                
+                res.json({
+                    success: true,
+                    sesion_id: sesionId,
+                    iniciativas_procesadas: data.length,
+                    iniciativas_insertadas: iniciativasInsertadas,
+                    errores: errores.length > 0 ? errores : undefined,
+                    mensaje: `Sesión creada con ${iniciativasInsertadas} iniciativas`
+                });
+            });
+        });
+        
+    } catch (error) {
+        console.error('Error procesando Excel:', error);
+        res.status(500).json({ 
+            error: 'Error procesando archivo Excel',
+            detalle: error.message 
+        });
+    }
+});
+
 // Obtener sesiones del usuario
 router.get('/mis-sesiones', (req, res) => {
     const db = req.db;
