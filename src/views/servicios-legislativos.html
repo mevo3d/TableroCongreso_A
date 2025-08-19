@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servicios Legislativos - Sistema de Votación</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/dark-theme.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background-color: #2c3e50;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .main-container {
+            padding: 20px;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stats-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s;
+        }
+        
+        .upload-zone:hover {
+            background: #e9ecef;
+            border-color: #764ba2;
+        }
+        
+        .upload-zone.dragover {
+            background: #667eea20;
+            border-color: #667eea;
+        }
+        
+        .sesion-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        
+        .sesion-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .sesion-card.borrador {
+            border-left: 5px solid #ffc107;
+        }
+        
+        .sesion-card.enviada {
+            border-left: 5px solid #28a745;
+        }
+        
+        .sesion-card.procesada {
+            border-left: 5px solid #17a2b8;
+        }
+        
+        .badge-borrador {
+            background-color: #ffc107;
+            color: #000;
+        }
+        
+        .badge-enviada {
+            background-color: #28a745;
+        }
+        
+        .badge-procesada {
+            background-color: #17a2b8;
+        }
+        
+        .iniciativa-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand">
+                <i class="fas fa-file-alt"></i> Servicios Legislativos
+            </span>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3">
+                    <i class="fas fa-user"></i> <span id="userName"></span>
+                </span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid main-container">
+        <!-- Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="statBorrador">0</div>
+                    <div class="text-muted">Sesiones en Borrador</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="statEnviadas">0</div>
+                    <div class="text-muted">Sesiones Enviadas</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="statProcesadas">0</div>
+                    <div class="text-muted">Sesiones Procesadas</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number" id="statIniciativas">0</div>
+                    <div class="text-muted">Total Iniciativas</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs principales -->
+        <ul class="nav nav-tabs mb-4" id="mainTabs">
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nuevaSesion">
+                    <i class="fas fa-plus-circle"></i> Nueva Sesión
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#misSeiones">
+                    <i class="fas fa-folder"></i> Mis Sesiones
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#plantillas">
+                    <i class="fas fa-download"></i> Plantillas
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Tab Nueva Sesión -->
+            <div class="tab-pane fade show active" id="nuevaSesion">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-upload"></i> Cargar desde Excel</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="upload-zone" id="excelDropZone">
+                                    <i class="fas fa-file-excel fa-3x text-success mb-3"></i>
+                                    <h5>Arrastre aquí su archivo Excel</h5>
+                                    <p class="text-muted">o haga clic para seleccionar</p>
+                                    <input type="file" id="excelFile" accept=".xlsx,.xls" style="display: none;">
+                                    <button class="btn btn-success mt-3" onclick="document.getElementById('excelFile').click()">
+                                        <i class="fas fa-folder-open"></i> Seleccionar Archivo
+                                    </button>
+                                </div>
+                                <div id="excelStatus" class="mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0"><i class="fas fa-file-pdf"></i> Cargar desde PDF</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="upload-zone" id="pdfDropZone">
+                                    <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
+                                    <h5>Arrastre aquí su archivo PDF</h5>
+                                    <p class="text-muted">o haga clic para seleccionar</p>
+                                    <input type="file" id="pdfFile" accept=".pdf" style="display: none;">
+                                    <button class="btn btn-danger mt-3" onclick="document.getElementById('pdfFile').click()">
+                                        <i class="fas fa-folder-open"></i> Seleccionar Archivo
+                                    </button>
+                                </div>
+                                <div id="pdfStatus" class="mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Captura Manual -->
+                <div class="card mt-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-keyboard"></i> Captura Manual
+                            <button class="btn btn-light btn-sm float-end" onclick="mostrarFormularioManual()">
+                                <i class="fas fa-plus"></i> Agregar Manualmente
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="card-body" id="capturaManual" style="display: none;">
+                        <form id="formSesionManual">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nombre de la Sesión</label>
+                                        <input type="text" class="form-control" id="nombreSesion" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Fecha Propuesta</label>
+                                        <input type="date" class="form-control" id="fechaPropuesta">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Descripción</label>
+                                <textarea class="form-control" id="descripcionSesion" rows="2"></textarea>
+                            </div>
+                            
+                            <h6 class="mt-4">Iniciativas</h6>
+                            <div id="iniciativasContainer">
+                                <!-- Aquí se agregarán las iniciativas dinámicamente -->
+                            </div>
+                            
+                            <button type="button" class="btn btn-sm btn-success" onclick="agregarIniciativaManual()">
+                                <i class="fas fa-plus"></i> Agregar Iniciativa
+                            </button>
+                            
+                            <hr>
+                            
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary" onclick="cancelarCapturaManual()">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Guardar como Borrador
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="guardarYEnviar()">
+                                    <i class="fas fa-paper-plane"></i> Guardar y Enviar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Mis Sesiones -->
+            <div class="tab-pane fade" id="misSeiones">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-warning" onclick="filtrarSesiones('borrador')">
+                                            <i class="fas fa-edit"></i> Borradores
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-success" onclick="filtrarSesiones('enviada')">
+                                            <i class="fas fa-check"></i> Enviadas
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info" onclick="filtrarSesiones('procesada')">
+                                            <i class="fas fa-cog"></i> Procesadas
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="filtrarSesiones('todas')">
+                                            <i class="fas fa-list"></i> Todas
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <input type="text" class="form-control form-control-sm" placeholder="Buscar..." id="buscarSesion" onkeyup="buscarSesiones()">
+                                    </div>
+                                </div>
+                                
+                                <div id="listaSesiones">
+                                    <!-- Lista de sesiones se carga dinámicamente -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Plantillas -->
+            <div class="tab-pane fade" id="plantillas">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-excel fa-4x text-success mb-3"></i>
+                                <h5>Plantilla Excel</h5>
+                                <p class="text-muted">Formato estructurado para cargar múltiples iniciativas</p>
+                                <a href="/plantilla_iniciativas_servicios_legislativos.xlsx" class="btn btn-success" download>
+                                    <i class="fas fa-download"></i> Descargar Plantilla Excel
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-question-circle fa-4x text-info mb-3"></i>
+                                <h5>Guía de Uso</h5>
+                                <p class="text-muted">Instrucciones para el correcto llenado de plantillas</p>
+                                <button class="btn btn-info" onclick="mostrarGuia()">
+                                    <i class="fas fa-book"></i> Ver Guía
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información Importante</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>Tipos de Mayoría:</h6>
+                        <ul>
+                            <li><strong>simple:</strong> Mayoría simple (50% + 1 de presentes)</li>
+                            <li><strong>absoluta:</strong> Mayoría absoluta (2/3 de presentes)</li>
+                            <li><strong>calificada:</strong> Mayoría calificada (2/3 del total)</li>
+                            <li><strong>unanime:</strong> Unanimidad</li>
+                        </ul>
+                        
+                        <h6>Estados de las Sesiones:</h6>
+                        <ul>
+                            <li><span class="badge badge-borrador">Borrador</span> - Sesión guardada pero no enviada</li>
+                            <li><span class="badge badge-enviada">Enviada</span> - Sesión enviada al operador</li>
+                            <li><span class="badge badge-procesada">Procesada</span> - Sesión cargada por el operador</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ver Sesión -->
+    <div class="modal fade" id="modalVerSesion" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalles de Sesión</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detallesSesion">
+                    <!-- Contenido dinámico -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-warning" id="btnEditarSesion" style="display:none;">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button type="button" class="btn btn-success" id="btnEnviarSesion" style="display:none;">
+                        <i class="fas fa-paper-plane"></i> Enviar al Operador
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="/js/servicios-legislativos.js"></script>
+    <script src="/js/theme-switcher.js"></script>
+</body>
+</html>

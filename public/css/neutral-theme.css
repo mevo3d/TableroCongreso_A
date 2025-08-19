@@ -1,0 +1,375 @@
+/**
+ * Sistema de Tema Neutro Profesional
+ * Paleta de colores neutros para modo claro y oscuro
+ */
+
+/* === MODO CLARO === */
+body, 
+[data-theme="light"] body {
+    background-color: #FAFAFA !important;
+    color: #2C3E50 !important;
+}
+
+[data-theme="light"] {
+    --bg-primary: #FAFAFA;
+    --bg-secondary: #F5F5F5;
+    --bg-surface: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-hover: #F0F2F5;
+    --text-primary: #2C3E50;
+    --text-secondary: #5A6C7D;
+    --text-muted: #8B9AAC;
+    --border-color: #E1E4E8;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.10);
+}
+
+/* Navbar en modo claro */
+[data-theme="light"] .navbar,
+.navbar {
+    background: linear-gradient(135deg, #495057 0%, #343a40 100%) !important;
+}
+
+/* Cards en modo claro */
+[data-theme="light"] .card,
+.card {
+    background-color: #FFFFFF !important;
+    border: 1px solid #E1E4E8 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .card-header,
+.card-header {
+    background-color: #F8F9FA !important;
+    border-bottom: 1px solid #E1E4E8 !important;
+    color: #2C3E50 !important;
+}
+
+/* Stat cards */
+.stat-card {
+    background: #FFFFFF !important;
+    border: 1px solid #E1E4E8 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+.stat-card h3 {
+    color: #2C3E50 !important;
+}
+
+.stat-card small {
+    color: #5A6C7D !important;
+}
+
+.stat-card i {
+    color: #8B9AAC !important;
+}
+
+/* Formularios */
+[data-theme="light"] .form-control,
+[data-theme="light"] .form-select,
+.form-control,
+.form-select {
+    background-color: #FFFFFF !important;
+    border: 1px solid #DEE2E6 !important;
+    color: #2C3E50 !important;
+}
+
+[data-theme="light"] .form-control:focus,
+[data-theme="light"] .form-select:focus,
+.form-control:focus,
+.form-select:focus {
+    background-color: #FFFFFF !important;
+    border-color: #86B7FE !important;
+    box-shadow: 0 0 0 0.25rem rgba(134, 183, 254, 0.25) !important;
+}
+
+/* Tablas */
+[data-theme="light"] .table,
+.table {
+    color: #2C3E50 !important;
+}
+
+[data-theme="light"] .table thead th,
+.table thead th {
+    background-color: #F8F9FA !important;
+    color: #2C3E50 !important;
+    border-color: #DEE2E6 !important;
+}
+
+/* Botones primarios neutros */
+.btn-primary {
+    background-color: #495057 !important;
+    border-color: #495057 !important;
+}
+
+.btn-primary:hover {
+    background-color: #5A6268 !important;
+    border-color: #545B62 !important;
+}
+
+/* === MODO OSCURO === */
+[data-theme="dark"] {
+    --bg-primary: #1A1D23;
+    --bg-secondary: #22262E;
+    --bg-surface: #2A2E38;
+    --bg-card: #2A2E38;
+    --bg-hover: #32374  3;
+    --text-primary: #E4E6EB;
+    --text-secondary: #B8BCC5;
+    --text-muted: #8B91A0;
+    --border-color: #3E4450;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] body {
+    background-color: #1A1D23 !important;
+    color: #E4E6EB !important;
+}
+
+[data-theme="dark"] .navbar {
+    background: linear-gradient(135deg, #22262E 0%, #1A1D23 100%) !important;
+}
+
+[data-theme="dark"] .card {
+    background-color: #2A2E38 !important;
+    border: 1px solid #3E4450 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .card-header {
+    background-color: #22262E !important;
+    border-bottom: 1px solid #3E4450 !important;
+    color: #E4E6EB !important;
+}
+
+[data-theme="dark"] .stat-card {
+    background: #2A2E38 !important;
+    border: 1px solid #3E4450 !important;
+}
+
+[data-theme="dark"] .stat-card h3 {
+    color: #E4E6EB !important;
+}
+
+[data-theme="dark"] .stat-card small {
+    color: #B8BCC5 !important;
+}
+
+[data-theme="dark"] .stat-card i {
+    color: #8B91A0 !important;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background-color: #22262E !important;
+    border: 1px solid #3E4450 !important;
+    color: #E4E6EB !important;
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+    background-color: #2A2E38 !important;
+    border-color: #5A6C8C !important;
+    box-shadow: 0 0 0 0.25rem rgba(90, 108, 140, 0.25) !important;
+}
+
+[data-theme="dark"] .table {
+    color: #E4E6EB !important;
+}
+
+[data-theme="dark"] .table thead th {
+    background-color: #22262E !important;
+    color: #E4E6EB !important;
+    border-color: #3E4450 !important;
+}
+
+[data-theme="dark"] .table tbody td {
+    background-color: #2A2E38 !important;
+    border-color: #3E4450 !important;
+}
+
+[data-theme="dark"] .btn-primary {
+    background-color: #495A7A !important;
+    border-color: #495A7A !important;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+    background-color: #5A6C8C !important;
+    border-color: #5A6C8C !important;
+}
+
+/* === CORRECCIÓN DE ELEMENTOS ESPECÍFICOS === */
+
+/* Eliminar colores inline problemáticos */
+[style*="background-color: white"],
+[style*="background-color:#fff"],
+[style*="background-color: #fff"],
+[style*="background-color:#ffffff"],
+[style*="background-color: #ffffff"],
+[style*="background-color: #f8f9fa"],
+[style*="color: #333"],
+[style*="color: #666"] {
+    background-color: inherit !important;
+    color: inherit !important;
+}
+
+/* Asegurar contraste en todos los modos */
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+.text-primary {
+    color: var(--text-primary) !important;
+}
+
+.text-secondary {
+    color: var(--text-secondary) !important;
+}
+
+/* Badges con colores neutros */
+.badge.bg-secondary {
+    background-color: #6C757D !important;
+}
+
+[data-theme="dark"] .badge.bg-secondary {
+    background-color: #495057 !important;
+}
+
+/* Alertas neutras */
+.alert-light {
+    background-color: #F8F9FA !important;
+    color: #2C3E50 !important;
+    border-color: #DEE2E6 !important;
+}
+
+[data-theme="dark"] .alert-light {
+    background-color: #2A2E38 !important;
+    color: #E4E6EB !important;
+    border-color: #3E4450 !important;
+}
+
+/* Modales */
+.modal-content {
+    background-color: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+}
+
+.modal-header {
+    background-color: var(--bg-secondary) !important;
+    border-bottom-color: var(--border-color) !important;
+}
+
+/* Dropdown menus */
+.dropdown-menu {
+    background-color: var(--bg-surface) !important;
+    border-color: var(--border-color) !important;
+}
+
+.dropdown-item {
+    color: var(--text-primary) !important;
+}
+
+.dropdown-item:hover {
+    background-color: var(--bg-hover) !important;
+}
+
+/* Links neutros */
+a {
+    color: #495A7A;
+}
+
+a:hover {
+    color: #5A6C8C;
+}
+
+[data-theme="dark"] a {
+    color: #7A8BA8;
+}
+
+[data-theme="dark"] a:hover {
+    color: #8B9CB8;
+}
+
+/* Transiciones suaves */
+* {
+    transition: background-color 0.3s ease, 
+                color 0.3s ease, 
+                border-color 0.3s ease,
+                box-shadow 0.3s ease;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Asegurar legibilidad en elementos con bg-white */
+.bg-white {
+    background-color: var(--bg-surface) !important;
+}
+
+.bg-light {
+    background-color: var(--bg-secondary) !important;
+}
+
+.text-dark {
+    color: var(--text-primary) !important;
+}
+
+.text-white:not(.btn):not(.badge) {
+    color: var(--text-primary) !important;
+}
+
+/* === COLORES SEMÁNTICOS NEUTROS PARA VOTACIÓN === */
+[data-theme="light"] .vote-badge-favor,
+.vote-badge-favor {
+    background-color: #5CB85C !important;
+}
+
+[data-theme="light"] .vote-badge-contra,
+.vote-badge-contra {
+    background-color: #D9534F !important;
+}
+
+[data-theme="light"] .vote-badge-abstencion,
+.vote-badge-abstencion {
+    background-color: #868E96 !important;
+}
+
+[data-theme="light"] .vote-badge-pendiente,
+.vote-badge-pendiente {
+    background-color: #FFC107 !important;
+    color: #212529 !important;
+}
+
+[data-theme="dark"] .vote-badge-favor {
+    background-color: #4A7C59 !important;
+}
+
+[data-theme="dark"] .vote-badge-contra {
+    background-color: #A94442 !important;
+}
+
+[data-theme="dark"] .vote-badge-abstencion {
+    background-color: #5A6268 !important;
+}
+
+[data-theme="dark"] .vote-badge-pendiente {
+    background-color: #D39E00 !important;
+    color: #212529 !important;
+}

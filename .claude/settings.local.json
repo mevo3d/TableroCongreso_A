@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npx playwright:*)",
+      "Bash(npm start)",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)",
+      "Bash(copy:*)",
+      "Bash(cp:*)",
+      "Bash(curl:*)",
+      "Bash(dir)",
+      "Bash(node:*)",
+      "Bash(powershell:*)",
+      "Bash(dir:*)",
+      "Bash(git add:*)",
+      "Bash(rm:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\Users\\BALERION\\proyectos-automatizacion"
+    ]
+  }
+}

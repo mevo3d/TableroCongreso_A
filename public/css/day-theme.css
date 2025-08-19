@@ -1,0 +1,110 @@
+/* ========================================
+   TEMA DÍA - SISTEMA DE VOTACIÓN ELECTRÓNICA
+   Paleta de colores: Blancos y Grises
+   ======================================== */
+
+:root {
+    /* Colores principales */
+    --bg-primary: #ffffff;        /* Fondo principal - Blanco */
+    --bg-secondary: #f8f9fa;      /* Fondo secundario - Gris muy claro */
+    --bg-tertiary: #e9ecef;       /* Fondo terciario - Gris claro */
+    --bg-card: #ffffff;           /* Fondo de tarjetas - Blanco */
+    --bg-hover: #f1f3f5;          /* Fondo hover - Gris muy claro */
+    
+    /* Bordes */
+    --border-light: #dee2e6;      /* Borde claro */
+    --border-medium: #ced4da;     /* Borde medio */
+    --border-dark: #adb5bd;       /* Borde oscuro */
+    
+    /* Textos */
+    --text-primary: #212529;      /* Texto principal - Gris muy oscuro */
+    --text-secondary: #495057;    /* Texto secundario - Gris oscuro */
+    --text-muted: #6c757d;        /* Texto deshabilitado - Gris medio */
+    --text-light: #868e96;        /* Texto claro - Gris */
+    
+    /* Encabezados y elementos destacados */
+    --header-bg: #343a40;         /* Fondo de encabezado - Gris oscuro */
+    --header-text: #ffffff;       /* Texto de encabezado - Blanco */
+    --header-border: #495057;     /* Borde de encabezado */
+    
+    /* Sombras */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.07);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+    --shadow-xl: 0 20px 25px rgba(0,0,0,0.1);
+    
+    /* Estados de votación - Mantener colores distintivos pero más suaves */
+    --vote-favor: #28a745;        /* Verde para voto a favor */
+    --vote-contra: #dc3545;       /* Rojo para voto en contra */
+    --vote-abstencion: #ffc107;   /* Amarillo para abstención */
+    --vote-default: #e9ecef;      /* Gris claro para sin voto */
+    
+    /* Elementos interactivos */
+    --btn-primary-bg: #495057;    /* Botón primario - Gris oscuro */
+    --btn-primary-text: #ffffff;  /* Texto botón primario */
+    --btn-secondary-bg: #e9ecef;  /* Botón secundario - Gris claro */
+    --btn-secondary-text: #495057; /* Texto botón secundario */
+    --btn-hover-bg: #343a40;      /* Hover botón - Gris más oscuro */
+    
+    /* Tablas */
+    --table-header-bg: #f8f9fa;   /* Encabezado de tabla */
+    --table-row-even: #ffffff;    /* Fila par */
+    --table-row-odd: #f8f9fa;     /* Fila impar */
+    --table-row-hover: #e9ecef;   /* Fila hover */
+    
+    /* Inputs y formularios */
+    --input-bg: #ffffff;          /* Fondo de input */
+    --input-border: #ced4da;      /* Borde de input */
+    --input-focus-border: #868e96; /* Borde de input enfocado */
+    --input-text: #212529;        /* Texto de input */
+    --input-placeholder: #adb5bd; /* Placeholder */
+    
+    /* Alertas y notificaciones */
+    --alert-info-bg: #e7f3ff;     /* Fondo alerta info - Azul muy claro */
+    --alert-info-border: #b8daff; /* Borde alerta info */
+    --alert-success-bg: #d4edda;  /* Fondo alerta éxito */
+    --alert-warning-bg: #fff3cd;  /* Fondo alerta advertencia */
+    --alert-error-bg: #f8d7da;    /* Fondo alerta error */
+}
+
+/* Estilos base para modo día */
+.day-theme {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Transiciones suaves para cambios de tema */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Scrollbar personalizada para modo día */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-dark);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Selección de texto */
+::selection {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+::-moz-selection {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}

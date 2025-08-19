@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Generador de Iconos PWA</title>
+</head>
+<body>
+    <h1>Generador de Iconos para PWA</h1>
+    <p>Este archivo genera los iconos necesarios para la PWA del Sistema de Votación</p>
+    
+    <canvas id="canvas192" width="192" height="192"></canvas>
+    <canvas id="canvas512" width="512" height="512"></canvas>
+    <canvas id="canvas180" width="180" height="180"></canvas>
+    
+    <br><br>
+    <button onclick="downloadAll()">Descargar Todos los Iconos</button>
+    
+    <script>
+        function drawIcon(canvas) {
+            const ctx = canvas.getContext('2d');
+            const size = canvas.width;
+            
+            // Fondo con gradiente
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#16213e');
+            gradient.addColorStop(1, '#0f3460');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Círculo central blanco
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size*0.35, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            
+            // Icono de voto (check)
+            ctx.strokeStyle = '#16213e';
+            ctx.lineWidth = size * 0.08;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(size * 0.35, size * 0.5);
+            ctx.lineTo(size * 0.45, size * 0.6);
+            ctx.lineTo(size * 0.65, size * 0.4);
+            ctx.stroke();
+            
+            // Texto "VOTO"
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${size * 0.12}px -apple-system, system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('VOTO', size/2, size * 0.9);
+        }
+        
+        // Dibujar en todos los canvas
+        drawIcon(document.getElementById('canvas192'));
+        drawIcon(document.getElementById('canvas512'));
+        drawIcon(document.getElementById('canvas180'));
+        
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        function downloadAll() {
+            downloadIcon('canvas192', 'icon-192.png');
+            setTimeout(() => downloadIcon('canvas512', 'icon-512.png'), 500);
+            setTimeout(() => downloadIcon('canvas180', 'icon-180.png'), 1000);
+        }
+    </script>
+</body>
+</html>

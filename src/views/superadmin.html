@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Superadmin - Sistema de Votación</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="/css/dark-theme.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar { 
+            background-color: #2c3e50;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: white;
+            border: 1px solid #e0e0e0;
+        }
+        .stat-card h3 {
+            font-size: 36px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .stat-card small {
+            color: #666;
+        }
+        .stat-card i {
+            font-size: 30px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .card {
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .card-header {
+            background-color: #f5f5f5;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background-color: #333;
+            border-color: #333;
+        }
+        .btn-primary:hover {
+            background-color: #555;
+            border-color: #555;
+        }
+        .badge {
+            padding: 5px 10px;
+        }
+        .vote-badge-favor { background-color: #28a745; }
+        .vote-badge-contra { background-color: #dc3545; }
+        .vote-badge-abstencion { background-color: #6c757d; }
+        .vote-badge-pendiente { background-color: #ffc107; color: #000; }
+        
+        .logo-preview {
+            max-height: 60px;
+            max-width: 120px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .foto-preview {
+            max-height: 120px;
+            max-width: 120px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-crown"></i> Panel Superadministrador
+            </span>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3" id="userName"></span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Tabs de navegación -->
+        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="usuarios-tab" data-bs-toggle="tab" data-bs-target="#usuarios" type="button">
+                    <i class="fas fa-users"></i> Usuarios
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="partidos-tab" data-bs-toggle="tab" data-bs-target="#partidos" type="button">
+                    <i class="fas fa-flag"></i> Partidos
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="configuracion-tab" data-bs-toggle="tab" data-bs-target="#configuracion" type="button">
+                    <i class="fas fa-cog"></i> Configuración
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab content -->
+        <div class="tab-content" id="myTabContent">
+            <!-- Dashboard Tab -->
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                <!-- Estadísticas generales -->
+                <div class="row mb-4">
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-users"></i>
+                            <h3 id="totalUsuarios">0</h3>
+                            <small>Total Usuarios</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-user-tie"></i>
+                            <h3 id="totalDiputados">0</h3>
+                            <small>Diputados</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-calendar"></i>
+                            <h3 id="totalSesiones">0</h3>
+                            <small>Sesiones</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-file-alt"></i>
+                            <h3 id="totalIniciativas">0</h3>
+                            <small>Iniciativas</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-vote-yea"></i>
+                            <h3 id="totalVotos">0</h3>
+                            <small>Votos Emitidos</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-circle" id="sessionIndicator" style="color: #dc3545;"></i>
+                            <h6 id="sesionActiva">Sin sesión</h6>
+                            <small>Estado Actual</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sesiones y votación activa -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-history"></i> Historial de Sesiones</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Sesión</th>
+                                                <th>Fecha</th>
+                                                <th>Iniciativas</th>
+                                                <th>Votadas</th>
+                                                <th>Estado</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="sessionsTable">
+                                            <tr>
+                                                <td colspan="7" class="text-center">Cargando...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-tools"></i> Control del Sistema</h6>
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-danger btn-sm w-100 mb-2" onclick="cerrarSesion()">
+                                    <i class="fas fa-stop"></i> Cerrar Sesión Activa
+                                </button>
+                                <button class="btn btn-primary btn-sm w-100" onclick="loadDashboard()">
+                                    <i class="fas fa-sync"></i> Actualizar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usuarios Tab -->
+            <div class="tab-pane fade" id="usuarios" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-users"></i> Gestión de Usuarios</h5>
+                        <button class="btn btn-primary btn-sm" onclick="showNewUserModal()">
+                            <i class="fas fa-plus"></i> Nuevo Usuario
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Foto</th>
+                                        <th>Usuario</th>
+                                        <th>Nombre</th>
+                                        <th>Rol</th>
+                                        <th>Cargo</th>
+                                        <th>Partido</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTable">
+                                    <tr>
+                                        <td colspan="9" class="text-center">Cargando usuarios...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Partidos Tab -->
+            <div class="tab-pane fade" id="partidos" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-flag"></i> Gestión de Partidos Políticos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Logo</th>
+                                        <th>Partido</th>
+                                        <th>Siglas</th>
+                                        <th>Color</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="partidosTable">
+                                    <tr>
+                                        <td colspan="5" class="text-center">Cargando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuración Tab -->
+            <div class="tab-pane fade" id="configuracion" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cog"></i> Configuración del Sistema</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="configForm">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre del Congreso</label>
+                                <input type="text" class="form-control" id="nombreCongreso" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Logo Principal del Congreso</label>
+                                        <div class="mb-2" id="logoPrincipalPreview"></div>
+                                        <input type="file" class="form-control" id="logoCongreso" accept="image/*">
+                                        <small class="text-muted">Máximo 5MB - JPG, PNG, GIF, SVG</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Logo Secundario</label>
+                                        <div class="mb-2" id="logoSecundarioPreview"></div>
+                                        <input type="file" class="form-control" id="logoSecundario" accept="image/*">
+                                        <small class="text-muted">Máximo 5MB - JPG, PNG, GIF, SVG</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Configuración
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para nuevo/editar usuario -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userModalTitle">Nuevo Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label class="form-label">Usuario</label>
+                            <input type="text" class="form-control" id="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="password">
+                            <small class="text-muted">Dejar en blanco para mantener la actual</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nombre Completo</label>
+                            <input type="text" class="form-control" id="nombreCompleto" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Rol</label>
+                            <select class="form-select" id="role" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="diputado">Diputado</option>
+                                <option value="secretario">Secretario</option>
+                                <option value="operador">Operador</option>
+                                <option value="superadmin">Superadmin</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="cargoField">
+                            <label class="form-label">Cargo en Mesa Directiva</label>
+                            <select class="form-select" id="cargoMesaDirectiva">
+                                <option value="">Sin cargo</option>
+                                <option value="presidente">Presidente</option>
+                                <option value="vicepresidente">Vicepresidente</option>
+                                <option value="secretario1">Secretario 1</option>
+                                <option value="secretario2">Secretario 2</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="coordinadorField">
+                            <label class="form-label">Es Coordinador de Partido</label>
+                            <select class="form-select" id="cargoCoordinador">
+                                <option value="">No es coordinador</option>
+                                <option value="MORENA">Coordinador - MORENA</option>
+                                <option value="PAN">Coordinador - PAN</option>
+                                <option value="PRI">Coordinador - PRI</option>
+                                <option value="PT">Coordinador - PT</option>
+                                <option value="PVEM">Coordinador - PVEM</option>
+                                <option value="MC">Coordinador - MC</option>
+                                <option value="NUEVA ALIANZA">Coordinador - NUEVA ALIANZA</option>
+                                <option value="IND">Coordinador - Independiente</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="partidoField">
+                            <label class="form-label">Partido</label>
+                            <select class="form-select" id="partido">
+                                <option value="">Seleccionar...</option>
+                                <option value="MORENA">MORENA</option>
+                                <option value="PAN">PAN</option>
+                                <option value="PRI">PRI</option>
+                                <option value="PT">PT</option>
+                                <option value="PVEM">PVEM</option>
+                                <option value="MC">MC</option>
+                                <option value="NUEVA ALIANZA">NUEVA ALIANZA</option>
+                                <option value="IND">Independiente</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="comisionField">
+                            <label class="form-label">Comisión</label>
+                            <input type="text" class="form-control" id="comision" placeholder="Ej: Comisión de Salud">
+                        </div>
+                        <div class="mb-3" id="cargoLegislativoField">
+                            <label class="form-label">Cargo Legislativo</label>
+                            <select class="form-select" id="cargoLegislativo">
+                                <option value="">Sin cargo legislativo</option>
+                                <optgroup label="Junta Política y de Coordinación">
+                                    <option value="Presidente - Junta Política">Presidente - Junta Política y de Coordinación</option>
+                                    <option value="Vicepresidente - Junta Política">Vicepresidente - Junta Política y de Coordinación</option>
+                                    <option value="Secretario - Junta Política">Secretario - Junta Política y de Coordinación</option>
+                                    <option value="Vocal - Junta Política">Vocal - Junta Política y de Coordinación</option>
+                                </optgroup>
+                                <optgroup label="Comisiones">
+                                    <option value="Presidente - Comisión">Presidente de Comisión</option>
+                                    <option value="Secretario - Comisión">Secretario de Comisión</option>
+                                    <option value="Vocal - Comisión">Vocal de Comisión</option>
+                                </optgroup>
+                                <optgroup label="Otros cargos">
+                                    <option value="otro">Otro cargo (especificar en campo de comisión)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="fotoField">
+                            <label class="form-label">Fotografía</label>
+                            <div id="fotoPreview" class="mb-2"></div>
+                            <input type="file" class="form-control" id="fotoUsuario" accept="image/*">
+                            <small class="text-muted">JPG, PNG - Máximo 5MB</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveUser()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const user = JSON.parse(localStorage.getItem('user'));
+        const token = localStorage.getItem('token');
+        const userModal = new bootstrap.Modal(document.getElementById('userModal'));
+        let partidosData = {}; // Para almacenar datos de partidos
+        
+        if (!token || !user || user.role !== 'superadmin') {
+            window.location.href = '/';
+        }
+        
+        document.getElementById('userName').textContent = user.nombre;
+        
+        // Cargar todo al iniciar
+        loadDashboard();
+        loadPartidos().then(() => {
+            loadUsers(); // Cargar usuarios después de tener los partidos
+        });
+        loadConfig();
+        
+        // Cargar dashboard
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/superadmin/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById('totalUsuarios').textContent = data.total_usuarios || 0;
+                document.getElementById('totalDiputados').textContent = data.total_diputados || 0;
+                document.getElementById('totalSesiones').textContent = data.total_sesiones || 0;
+                document.getElementById('totalIniciativas').textContent = data.total_iniciativas || 0;
+                document.getElementById('totalVotos').textContent = data.total_votos || 0;
+                
+                if (data.sesion_activa) {
+                    document.getElementById('sesionActiva').textContent = 'Sesión Activa';
+                    document.getElementById('sessionIndicator').style.color = '#28a745';
+                } else {
+                    document.getElementById('sesionActiva').textContent = 'Sin Sesión';
+                    document.getElementById('sessionIndicator').style.color = '#dc3545';
+                }
+                
+                loadSessions();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Cargar usuarios
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/superadmin/usuarios', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                const tbody = document.getElementById('usersTable');
+                
+                tbody.innerHTML = data.usuarios.map(user => {
+                    // Preparar datos para pasarlos a editUser
+                    window[`userData_${user.id}`] = {
+                        id: user.id,
+                        username: user.username,
+                        nombre_completo: user.nombre_completo,
+                        role: user.role,
+                        cargo_mesa_directiva: user.cargo_mesa_directiva || '',
+                        cargo_coordinador: user.cargo_coordinador || '',
+                        partido: user.partido || '',
+                        comision: user.comision || '',
+                        cargo_legislativo: user.cargo_legislativo || '',
+                        foto_url: user.foto_url || ''
+                    };
+                    
+                    // Obtener datos del partido para el color
+                    const partido = partidosData ? partidosData[user.partido] : null;
+                    const partyColor = partido ? partido.color_primario : '#666';
+                    const inicial = user.nombre_completo ? user.nombre_completo.charAt(0) : '?';
+                    
+                    return `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>
+                                ${user.foto_url ? 
+                                    `<img src="${user.foto_url}" alt="${user.nombre_completo}" 
+                                         style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd;">` :
+                                    `<div style="width: 40px; height: 40px; border-radius: 50%; 
+                                         background-color: ${partyColor}; color: white; 
+                                         display: flex; align-items: center; justify-content: center;
+                                         font-weight: bold; font-size: 18px;">
+                                        ${inicial}
+                                    </div>`
+                                }
+                            </td>
+                            <td>${user.username}</td>
+                            <td>${user.nombre_completo}</td>
+                            <td><span class="badge bg-secondary">${user.role}</span></td>
+                            <td>${user.cargo_mesa_directiva || '-'}</td>
+                            <td>${user.partido || '-'}</td>
+                            <td>
+                                <span class="badge bg-${user.activo ? 'success' : 'danger'}">
+                                    ${user.activo ? 'Activo' : 'Inactivo'}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="editUser(window.userData_${user.id})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="toggleUser(${user.id})">
+                                    <i class="fas fa-${user.activo ? 'ban' : 'check'}"></i>
+                                </button>
+                                ${user.role !== 'superadmin' ? `
+                                    <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Cargar sesiones
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/superadmin/sesiones', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                const tbody = document.getElementById('sessionsTable');
+                
+                if (data.sesiones.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay sesiones registradas</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = data.sesiones.map(sesion => `
+                    <tr>
+                        <td>${sesion.id}</td>
+                        <td>${sesion.nombre}</td>
+                        <td>${new Date(sesion.fecha).toLocaleDateString()}</td>
+                        <td>${sesion.total_iniciativas}</td>
+                        <td>${sesion.iniciativas_votadas}</td>
+                        <td>
+                            <span class="badge bg-${sesion.activa ? 'success' : 'secondary'}">
+                                ${sesion.activa ? 'ACTIVA' : 'CERRADA'}
+                            </span>
+                        </td>
+                        <td>
+                            ${!sesion.activa ? `
+                                <button class="btn btn-sm btn-primary" onclick="descargarReporteSesion(${sesion.id})" title="Descargar Reporte PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                </button>
+                            ` : '<span class="text-muted">-</span>'}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Cargar configuración
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/superadmin/configuracion', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const config = await response.json();
+                
+                document.getElementById('nombreCongreso').value = config.nombre_congreso || '';
+                
+                if (config.logo_congreso) {
+                    document.getElementById('logoPrincipalPreview').innerHTML = 
+                        `<img src="${config.logo_congreso}" class="logo-preview">`;
+                }
+                
+                if (config.logo_secundario) {
+                    document.getElementById('logoSecundarioPreview').innerHTML = 
+                        `<img src="${config.logo_secundario}" class="logo-preview">`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Guardar configuración
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('nombre_congreso', document.getElementById('nombreCongreso').value);
+            
+            const logoCongreso = document.getElementById('logoCongreso').files[0];
+            if (logoCongreso) {
+                formData.append('logo_congreso', logoCongreso);
+            }
+            
+            const logoSecundario = document.getElementById('logoSecundario').files[0];
+            if (logoSecundario) {
+                formData.append('logo_secundario', logoSecundario);
+            }
+            
+            try {
+                const response = await fetch('/api/superadmin/configuracion', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    alert('Configuración guardada correctamente');
+                    loadConfig();
+                } else {
+                    alert('Error al guardar configuración');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al guardar configuración');
+            }
+        });
+        
+        // Mostrar modal nuevo usuario
+        function showNewUserModal() {
+            document.getElementById('userModalTitle').textContent = 'Nuevo Usuario';
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+            document.getElementById('username').disabled = false;
+            document.getElementById('password').required = true;
+            
+            // Ocultar campos específicos de diputado inicialmente
+            document.getElementById('cargoField').style.display = 'none';
+            document.getElementById('coordinadorField').style.display = 'none';
+            document.getElementById('partidoField').style.display = 'none';
+            document.getElementById('comisionField').style.display = 'none';
+            document.getElementById('cargoLegislativoField').style.display = 'none';
+            document.getElementById('fotoField').style.display = 'none';
+            
+            // Limpiar preview de foto
+            document.getElementById('fotoPreview').innerHTML = '';
+            
+            userModal.show();
+        }
+        
+        // Editar usuario
+        function editUser(userData) {
+            document.getElementById('userModalTitle').textContent = 'Editar Usuario';
+            document.getElementById('userId').value = userData.id;
+            document.getElementById('username').value = userData.username;
+            document.getElementById('username').disabled = true;
+            document.getElementById('password').required = false;
+            document.getElementById('nombreCompleto').value = userData.nombre_completo;
+            document.getElementById('role').value = userData.role;
+            document.getElementById('cargoMesaDirectiva').value = userData.cargo_mesa_directiva;
+            // Establecer valor del coordinador basado en el cargo guardado
+            const cargoCoord = userData.cargo_coordinador || '';
+            if (cargoCoord.includes('MORENA')) {
+                document.getElementById('cargoCoordinador').value = 'MORENA';
+            } else if (cargoCoord.includes('PAN')) {
+                document.getElementById('cargoCoordinador').value = 'PAN';
+            } else if (cargoCoord.includes('PRI')) {
+                document.getElementById('cargoCoordinador').value = 'PRI';
+            } else if (cargoCoord.includes('PT')) {
+                document.getElementById('cargoCoordinador').value = 'PT';
+            } else if (cargoCoord.includes('PVEM')) {
+                document.getElementById('cargoCoordinador').value = 'PVEM';
+            } else if (cargoCoord.includes('MC')) {
+                document.getElementById('cargoCoordinador').value = 'MC';
+            } else if (cargoCoord.includes('NUEVA ALIANZA')) {
+                document.getElementById('cargoCoordinador').value = 'NUEVA ALIANZA';
+            } else if (cargoCoord.includes('IND') || cargoCoord.includes('Independiente')) {
+                document.getElementById('cargoCoordinador').value = 'IND';
+            } else {
+                document.getElementById('cargoCoordinador').value = '';
+            }
+            document.getElementById('partido').value = userData.partido;
+            document.getElementById('comision').value = userData.comision;
+            
+            // Establecer valor del cargo legislativo
+            const cargoLeg = userData.cargo_legislativo || '';
+            if (cargoLeg.includes('Junta Política') || cargoLeg.includes('Comisión')) {
+                // Intentar encontrar la opción exacta
+                const selectCargo = document.getElementById('cargoLegislativo');
+                let found = false;
+                for (let option of selectCargo.options) {
+                    if (option.value && cargoLeg.includes(option.value.split(' - ')[0])) {
+                        selectCargo.value = option.value;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    selectCargo.value = 'otro';
+                    document.getElementById('comision').value = cargoLeg;
+                }
+            } else if (cargoLeg) {
+                document.getElementById('cargoLegislativo').value = 'otro';
+                document.getElementById('comision').value = cargoLeg;
+            } else {
+                document.getElementById('cargoLegislativo').value = '';
+            }
+            
+            // Mostrar foto existente
+            if (userData.foto_url) {
+                document.getElementById('fotoPreview').innerHTML = 
+                    `<img src="${userData.foto_url}" class="foto-preview" alt="Foto actual">`;
+            } else {
+                document.getElementById('fotoPreview').innerHTML = '';
+            }
+            
+            // Mostrar/ocultar campos según rol
+            const showDiputadoFields = userData.role === 'diputado';
+            document.getElementById('cargoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('coordinadorField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('partidoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('comisionField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('cargoLegislativoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('fotoField').style.display = showDiputadoFields ? 'block' : 'none';
+            
+            userModal.show();
+        }
+        
+        // Guardar usuario
+        async function saveUser() {
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const nombre_completo = document.getElementById('nombreCompleto').value;
+            const role = document.getElementById('role').value;
+            const cargo_mesa_directiva = document.getElementById('cargoMesaDirectiva').value;
+            // Construir el texto del cargo coordinador basado en la selección
+            const coordinadorPartido = document.getElementById('cargoCoordinador').value;
+            let cargo_coordinador = '';
+            if (coordinadorPartido) {
+                cargo_coordinador = `Coordinador Grupo Parlamentario ${coordinadorPartido}`;
+            }
+            const partido = document.getElementById('partido').value;
+            const comision = document.getElementById('comision').value;
+            // Obtener el cargo legislativo correctamente
+            let cargo_legislativo = document.getElementById('cargoLegislativo').value;
+            if (cargo_legislativo === 'otro') {
+                // Si es "otro", usar el valor del campo comisión como cargo
+                cargo_legislativo = document.getElementById('comision').value;
+            } else if (cargo_legislativo && cargo_legislativo !== '') {
+                // Si es un cargo predefinido, agregar el nombre de la comisión si existe
+                const comisionName = document.getElementById('comision').value;
+                if (comisionName && (cargo_legislativo.includes('Comisión'))) {
+                    cargo_legislativo = cargo_legislativo.replace('Comisión', comisionName);
+                }
+            }
+            const fotoFile = document.getElementById('fotoUsuario').files[0];
+            
+            // Preparar FormData para manejar archivos
+            const formData = new FormData();
+            formData.append('nombre_completo', nombre_completo);
+            formData.append('cargo_mesa_directiva', cargo_mesa_directiva);
+            formData.append('cargo_coordinador', cargo_coordinador);
+            formData.append('partido', partido);
+            formData.append('comision', comision);
+            formData.append('cargo_legislativo', cargo_legislativo);
+            
+            if (fotoFile) {
+                formData.append('foto', fotoFile);
+            }
+            
+            if (userId) {
+                // Actualizar
+                if (password) formData.append('password', password);
+                
+                try {
+                    const response = await fetch(`/api/superadmin/usuarios/${userId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        userModal.hide();
+                        loadUsers();
+                        alert('Usuario actualizado correctamente');
+                    } else {
+                        alert('Error al actualizar usuario');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al actualizar usuario');
+                }
+            } else {
+                // Crear nuevo
+                formData.append('username', username);
+                formData.append('password', password);
+                formData.append('role', role);
+                
+                try {
+                    const response = await fetch('/api/superadmin/usuarios', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        userModal.hide();
+                        loadUsers();
+                        alert('Usuario creado correctamente');
+                    } else {
+                        const data = await response.json();
+                        alert(data.error || 'Error al crear usuario');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al crear usuario');
+                }
+            }
+        }
+        
+        // Toggle usuario activo/inactivo
+        async function toggleUser(userId) {
+            try {
+                const response = await fetch(`/api/superadmin/usuario/${userId}/toggle`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    loadUsers();
+                } else {
+                    alert('Error al actualizar usuario');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al actualizar usuario');
+            }
+        }
+        
+        // Eliminar usuario
+        async function deleteUser(userId) {
+            if (!confirm('¿Eliminar este usuario permanentemente?')) return;
+            
+            try {
+                const response = await fetch(`/api/superadmin/usuarios/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    loadUsers();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al eliminar usuario');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar usuario');
+            }
+        }
+        
+        // Cerrar sesión activa
+        async function cerrarSesion() {
+            if (!confirm('¿Cerrar la sesión activa?')) return;
+            
+            try {
+                const response = await fetch('/api/superadmin/cerrar-sesion', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('Sesión cerrada correctamente');
+                    loadDashboard();
+                } else {
+                    alert('Error al cerrar sesión');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cerrar sesión');
+            }
+        }
+        
+        // Mostrar/ocultar campos según rol
+        document.getElementById('role').addEventListener('change', (e) => {
+            const role = e.target.value;
+            const showDiputadoFields = role === 'diputado';
+            document.getElementById('cargoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('coordinadorField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('partidoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('comisionField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('cargoLegislativoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('fotoField').style.display = showDiputadoFields ? 'block' : 'none';
+        });
+        
+        // Cargar partidos
+        async function loadPartidos() {
+            try {
+                const response = await fetch('/api/superadmin/partidos', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const partidos = await response.json();
+                    // Crear mapa de partidos por siglas
+                    partidosData = {};
+                    partidos.forEach(partido => {
+                        partidosData[partido.siglas] = partido;
+                    });
+                    displayPartidos(partidos);
+                } else {
+                    console.error('Error cargando partidos');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Mostrar partidos
+        function displayPartidos(partidos) {
+            const tbody = document.getElementById('partidosTable');
+            
+            if (partidos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay partidos registrados</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = partidos.map(partido => `
+                <tr>
+                    <td>
+                        ${partido.logo_url ? 
+                            `<img src="${partido.logo_url}" alt="${partido.siglas}" style="height: 40px; max-width: 60px; object-fit: contain;">` :
+                            '<i class="fas fa-image text-muted" style="font-size: 2em;"></i>'
+                        }
+                    </td>
+                    <td>${partido.nombre}</td>
+                    <td><strong>${partido.siglas}</strong></td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 30px; height: 30px; background-color: ${partido.color_primario}; border: 1px solid #ccc; border-radius: 5px;"></div>
+                            <small>${partido.color_primario}</small>
+                        </div>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editPartido(${partido.id}, '${partido.siglas}', '${partido.color_primario}', '${partido.logo_url || ''}')">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Editar partido
+        function editPartido(id, siglas, color, logoUrl) {
+            const formHtml = `
+                <form id="editPartidoForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Logo del Partido</label>
+                        ${logoUrl ? `<div class="mb-2"><img src="${logoUrl}" style="height: 60px; max-width: 100px; object-fit: contain;"></div>` : ''}
+                        <input type="file" class="form-control" id="partidoLogo" accept="image/*">
+                        <small class="text-muted">Formatos: PNG, JPG, SVG. Máximo 20MB</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Color Primario</label>
+                        <input type="color" class="form-control" id="partidoColor" value="${color}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </form>
+            `;
+            
+            Swal.fire({
+                title: `Editar ${siglas}`,
+                html: formHtml,
+                showCancelButton: true,
+                showConfirmButton: false,
+                cancelButtonText: 'Cancelar',
+                didOpen: () => {
+                    document.getElementById('editPartidoForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        
+                        const formData = new FormData();
+                        const logoFile = document.getElementById('partidoLogo').files[0];
+                        const color = document.getElementById('partidoColor').value;
+                        
+                        if (logoFile) {
+                            formData.append('logo', logoFile);
+                        }
+                        formData.append('color_primario', color);
+                        
+                        try {
+                            const response = await fetch(`/api/superadmin/partido/${id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: formData
+                            });
+                            
+                            if (response.ok) {
+                                Swal.fire('Éxito', 'Partido actualizado correctamente', 'success');
+                                loadPartidos();
+                            } else {
+                                const error = await response.json();
+                                Swal.fire('Error', error.error || 'Error al actualizar partido', 'error');
+                            }
+                        } catch (error) {
+                            Swal.fire('Error', 'Error al actualizar partido', 'error');
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Descargar reporte PDF de sesión
+        async function descargarReporteSesion(sesionId) {
+            try {
+                const response = await fetch(`/api/operador/reporte-sesion/${sesionId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Error al generar el reporte');
+                }
+                
+                // Obtener el blob del PDF
+                const blob = await response.blob();
+                
+                // Crear URL temporal para descarga
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reporte_sesion_${sesionId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Reporte descargado',
+                    text: 'El reporte PDF se ha descargado correctamente',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo descargar el reporte PDF'
+                });
+            }
+        }
+        
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+    </script>
+    <script src="/js/theme-switcher.js"></script>
+</body>
+</html>

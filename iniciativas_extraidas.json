@@ -1,0 +1,322 @@
+{
+  "iniciativas": [
+    {
+      "numero": 1,
+      "descripcion": "Iniciativa con proyecto de decreto por el que se inscribe con letras doradas, en el muro del Salón de Plenos del Congreso del Estado de Morelos, la frase “A la Maestra y el Maestro Morelenses”, presentada por el Diputado Sergio Omar Livera Chavarría (MORENA)"
+    },
+    {
+      "numero": 2,
+      "descripcion": "Iniciativa con proyecto de decreto por el que se adiciona un segundo párrafo al artículo 53 de la Ley Orgánica y se adiciona un tercer párrafo al artículo 99 2 del Reglamento, ambos para el Congreso del Estado de Morelos, en materia de iniciativas con carácter de dictamen; presentada por la Diputada Andrea Valentina Guadalupe Gordillo Vega (PAN)"
+    },
+    {
+      "numero": 3,
+      "descripcion": "Iniciativa con proyecto de decreto por el que se adicionan un capítulo sexto al título primero del libro segundo, los artículos 131 Bis, 131 Ter y 131 Quáter, todos  del  Código  Penal  para el  Estado  de  Morelos;  presentada  por  la Diputada Andrea Valentina Guadalupe Gordillo Vega (PAN)"
+    },
+    {
+      "numero": 4,
+      "descripcion": "Iniciativa con proyecto de decreto por el que se adiciona un párrafo segundo al artículo 50 de la Ley de Salud del Estado de Morelos y una fracción LXXIII al artículo 38 de la Ley Orgánica Municipal del Estado de Morelos, en materia de Salud y Seguridad para los usuarios de los gimnasios; presentada por el Diputado Óscar Daniel Martínez Terrazas (PAN)"
+    },
+    {
+      "numero": 5,
+      "descripcion": "Iniciativa con proyecto de decreto por el que se reforman los artículos 97 y 98 y se adiciona la fracción XVI quáter del artículo 2 de la Ley de Transporte del Estado de Morelos; presentada por el Diputado Gerardo Abarca Peña (PAN)"
+    },
+    {
+      "numero": 6,
+      "descripcion": "Iniciativa con proyecto de decreto por el que se reforma el artículo segundo y se derogan los párrafos tercero y cuarto, del artículo 32 de la Constitución Política  del  Estado  Libre  y  Soberano  de  Morelos,  que  reforma  la  del  año 1888; presentada por la Gobernadora Constitucional del Estado Libre y Soberano de Morelos, Margarita González Saravia Calderón."
+    },
+    {
+      "numero": 7,
+      "descripcion": "Iniciativa  con  proyecto  de  decreto  por  el  que  se  propone  que  una  vez aprobada  por  el  Pleno  del  Congreso  de  Morelos,  se  turne  a  la  Cámara  de Diputados  Federales  del  Congreso  de la  Unión,  propuesta  por  el  que  se reforman el artículo 343 quáter del Código Penal Federal, así como el artículo 6 de la Ley General de Acceso de las Mujeres a una Vida Libre de Violencia, para cambiar el término violencia por interpóstita persona, por el de violencia vicaria; presentada por la Diputada Jazmín Solano López (MORENA)"
+    },
+    {
+      "numero": 8,
+      "descripcion": "Iniciativa con proyecto de decreto que reforma diversas disposiciones de la Ley  del  Instituto  de  la  Mujer  para  el  Estado  de  Morelos,  en  materia  de lenguaje  inclusivo; presentada  por  la Diputada  Jazmín  Solano  López (MORENA)"
+    },
+    {
+      "numero": 9,
+      "descripcion": "Iniciativa con proyecto de decreto que reforma diversas disposiciones de la Ley del Notariado del Estado de Morelos, en materia de lenguaje inclusivo; presentada por la Diputada Jazmín Solano López (MORENA)"
+    }
+  ],
+  "dictamenesPrimeraLectura": [
+    {
+      "numero": 10,
+      "descripcion": "Iniciativa  con  proyecto  de  decreto  por  el  que  se  establece  la  obligación  de proveer de agua potable a las personas trabajadoras durante su jornada de trabajo, también denominada “Ley Vaso de Agua”, que adiciona la fracción 3 XIX  al  artículo  45  de  la  Ley  del Servicio  Civil  del  Estado  de  Morelos; presentada por la Diputada Jazmín Solano López (MORENA)"
+    },
+    {
+      "numero": 1,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Ética  Legislativa,  por  el  que  se expide el Código de Ética de las Personas Servidoras Públicas del Poder Legislativo del Estado de Morelos."
+    },
+    {
+      "numero": 2,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Fortalecimiento   Municipal, Desarrollo Regional, Pueblos y Comunidades Indígenas y Afromexicanas, por el que se adiciona el artículo 102 Bis a la Ley Orgánica Municipal del Estado de Morelos”."
+    },
+    {
+      "numero": 3,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Fortalecimiento   Municipal, Desarrollo Regional, Pueblos y Comunidades Indígenas y Afromexicanas, por el que se adiciona el artículo 24 sexties a la Ley Orgánica Municipal del Estado de Morelos."
+    },
+    {
+      "numero": 4,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Fortalecimiento   Municipal, Desarrollo Regional, Pueblos y Comunidades Indígenas y Afromexicanas, por el que se reforma la Ley Orgánica Municipal del Estado de Morelos."
+    },
+    {
+      "numero": 5,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Fortalecimiento   Municipal, Desarrollo Regional, Pueblos y Comunidades Indígenas y Afromexicanas, por  el  que  se  reforma  el  artículo  89  ter  a  la  Ley  Orgánica  Municipal  del Estado de Morelos."
+    },
+    {
+      "numero": 6,
+      "descripcion": "Dictamen  emanado  de  la  Comisión de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por viudez y orfandad a María de Lourdes Beltrán Cruz y a sus descendientes Luis Damián y Noah Isaac Escorza  Beltrán,  en  cumplimiento  a  la  ejecutoria  dictada  por  el  Juzgado Octavo  de  Distrito  en  el  Estado  de  Morelos, dentro  del  juicio  de  amparo 962/2024."
+    },
+    {
+      "numero": 7,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión y  Seguridad Social,  por  el  cual  se concede  pensión  por jubilación a Silvia  Ruíz Castañeda, en cumplimiento a la ejecutoria dictada por el Juzgado Quinto de Distrito en el Estado de Morelos, dentro del juicio de amparo 1148/2024."
+    },
+    {
+      "numero": 8,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se concede  pensión  por jubilación a Marisol  Neri Castrejón, en cumplimiento a la ejecutoria dictada por el Juzgado Octavo de Distrito en el Estado de Morelos, dentro del juicio de amparo 266/2025. 4"
+    },
+    {
+      "numero": 9,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por jubilación a Lucía María Luisa Calderón  Hernández,  en  cumplimiento  a  la  ejecutoria  dictada  por  el Juzgado Noveno de Distrito en el Estado de Morelos, dentro del juicio de amparo 274/2025."
+    },
+    {
+      "numero": 10,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por jubilación a Claudia Angélica Balcázar Sánchez, en cumplimiento a la ejecutoria dictada por el Juzgado Octavo de  Distrito  en  el  Estado  de  Morelos, dentro  del  juicio  de  amparo 1105/2024."
+    },
+    {
+      "numero": 11,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se concede  pensión  por jubilación a Elvira  Figueroa Morales, en cumplimiento a la ejecutoria dictada por el Juzgado Décimo de Distrito en el Estado de Morelos, dentro del juicio de amparo 93/2025."
+    },
+    {
+      "numero": 12,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por jubilación a Adriana Vergara Castelar, en cumplimiento a la ejecutoria dictada por el Juzgado Octavo de Distrito en el Estado de Morelos, dentro del juicio de amparo 903/2024."
+    },
+    {
+      "numero": 13,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por jubilación a María de Lourdes Betancourt Soria, en cumplimiento a la ejecutoria dictada por el Juzgado Séptimo de Distrito en el Estado de Morelos, dentro del juicio de amparo 1350/2024."
+    },
+    {
+      "numero": 14,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por jubilación a Silvia Flores de la Rosa, en cumplimiento a la ejecutoria dictada por el Juzgado Tercero de Distrito en el Estado de Morelos, dentro del juicio de amparo 1609/2024."
+    },
+    {
+      "numero": 15,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, respecto  a  la  observación  realizada  por  el  Poder  Ejecutivo  del Estado  de  Morelos  al  Decreto  número  Sesenta  y  Cuatro, aprobado  en Sesión  Ordinaria  de  Pleno  el  día  27  de  febrero  de  2025, por  el  que se concede  pensión  por jubilación a Lucero  Leticia  Ayala  Escobedo,  en cumplimiento a la ejecutoria dictada por el Juzgado Sexto de Distrito en el Estado de Morelos, dentro del juicio de amparo 612/2024."
+    },
+    {
+      "numero": 16,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, respecto a las observaciones realizadas por el Poder Ejecutivo del Estado de Morelos, al Decreto número Ciento Cuarenta y Dos, aprobado en  Sesión  Ordinaria  de  Pleno  el  20  de  marzo  de  2025, por el  cual  se concede pensión por jubilación a Georgina Lara Gómez, en cumplimiento 5 a la ejecutoria dictada por el Juzgado Décimo de Distrito en el Estado de Morelos, dentro del juicio de amparo 301/2024."
+    },
+    {
+      "numero": 17,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, respecto a las observaciones realizadas por el Poder Ejecutivo del Estado  de  Morelos,  al  Decreto  número  Cuarenta  y  Ocho, aprobado  en Sesión  Ordinaria  de  Pleno  el  día  27  de  febrero  de 2025, por  el  cual  se concede   pensión   por jubilación a Rosalba   Salgado   Salgado,   en cumplimiento a la ejecutoria dictada por el Juzgado Octavo de Distrito en el Estado de Morelos, dentro del juicio de amparo 608/2024."
+    },
+    {
+      "numero": 18,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, respecto a las observaciones realizadas por el Poder Ejecutivo del Estado  de  Morelos,  al  Decreto  número  Cuarenta  y  Seis, aprobado  en Sesión  Ordinaria  de  Pleno  el  día  27  de  febrero  de  2025, por  el  cual  se concede pensión por jubilación a Mayra Muñoz Nava, en cumplimiento a la  ejecutoria  dictada  por  el  Juzgado Primero de  Distrito  en  el  Estado  de Morelos, dentro del juicio de amparo 714/2024."
+    },
+    {
+      "numero": 19,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, respecto a las observaciones realizadas por el Poder Ejecutivo del Estado  de  Morelos,  al  Decreto  número  Setenta  y  Cuatro, aprobado  en Sesión  Ordinaria  de  Pleno  el  día  27  de  febrero  de  2025, por  el  cual  se concede  pensión  por cesantía  en  edad  avanzada a María  Alejandra Enciso Vázquez, en cumplimiento a la ejecutoria dictada por el Juzgado Octavo de  Distrito  en  el  Estado  de  Morelos, dentro  del  juicio  de  amparo 609/2024."
+    },
+    {
+      "numero": 20,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, respecto a las observaciones realizadas por el Poder Ejecutivo del Estado de Morelos, al Decreto número Sesenta y Uno, aprobado en Sesión Ordinaria de Pleno el día 27 de febrero de 2025, por el cual se concede pensión por jubilación a Irma Zswlleth Castro Tapia, en cumplimiento a la  ejecutoria  dictada  por  el  Juzgado Quinto de  Distrito  en  el  Estado  de Morelos, dentro del juicio de amparo 730/2024."
+    },
+    {
+      "numero": 21,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, respecto a las observaciones realizadas por el Poder Ejecutivo del Estado  de  Morelos,  al  Decreto  número  Treinta  y  Cuatro,  aprobado  en Sesión  Ordinaria  de  Pleno  el  día  27  de  febrero  de  2025, por  el  cual  se concede   pensión   por jubilación a Victoria   Paredes   Noguerón,   en cumplimiento a la ejecutoria dictada por el Juzgado Octavo de Distrito en el Estado de Morelos, dentro del juicio de amparo 733/2024."
+    },
+    {
+      "numero": 22,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, respecto a las observaciones realizadas por el Poder Ejecutivo del Estado  de  Morelos,  al  Decreto  número  Cuarenta  y  Cinco,  aprobado  en 6 Sesión  Ordinaria  de  Pleno  el  día  27  de  febrero  de  2025, por  el  cual  se concede  pensión  por cesantía  en  edad  avanzada a Héctor  Castro Gómez, en cumplimiento a la ejecutoria dictada por el Juzgado Segundo de Distrito en el Estado de Morelos, dentro del juicio de amparo 815/2024."
+    },
+    {
+      "numero": 23,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por jubilación a Eliazar Pichardo Bustamante, en  cumplimiento  a  la  ejecutoria  dictada  por  el  Juzgado Noveno  de  Distrito  del  Estado  de  Morelos,  dentro  del  juicio  de  amparo 176/2025."
+    },
+    {
+      "numero": 24,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Puntos   Constitucionales   y Legislación, por el que se reforma el artículo 185 del Código Penal para el Estado de Morelos."
+    },
+    {
+      "numero": 25,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Puntos   Constitucionales   y Legislación, por el que se adiciona un párrafo al artículo 85-E y se reforma el 121 de la Constitución Política del Estado Libre y Soberano de Morelos."
+    },
+    {
+      "numero": 26,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Puntos   Constitucionales   y Legislación, por  el  que  se  adiciona  la  fracción  XI  al  artículo  176  bis  al Código Penal para el Estado de Morelos."
+    },
+    {
+      "numero": 27,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Puntos   Constitucionales   y Legislación, por el que se crea la Ley de Participación Ciudadana para el Estado de Morelos."
+    },
+    {
+      "numero": 28,
+      "descripcion": "Dictamen de Acuerdo Parlamentario emanado de la Comisión de Puntos Constitucionales y Legislación, por el que se aprueba la presentación ante el Congreso de la Unión, de la iniciativa con proyecto de decreto por el que se  reforman  y  adicionan  diversas  disposiciones  de  la  Ley  Federal  del Trabajo  y  de  la  Ley  Federal  de  los  Trabajadores  al  Servicio  del  Estado, reglamentaria del apartado b) del artículo 123 Constitucional; con el objeto de garantizar un permiso de ausencia laboral con goce de sueldo mensual para  las  mujeres  trabajadoras  diagnosticadas  con  dismenorrea  en  un grado severo que las incapacite."
+    },
+    {
+      "numero": 29,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Puntos   Constitucionales   y Legislación, por el que se deroga el artículo 136 del Código Penal para el Estado de Morelos."
+    },
+    {
+      "numero": 30,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Puntos   Constitucionales   y Legislación, por el que se reforma el artículo 790 del Código Familiar para el Estado Libre y Soberano de Morelos. 7"
+    },
+    {
+      "numero": 31,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Puntos   Constitucionales   y Legislación, por el que se reforma el artículo 360 del Código Familiar para el Estado Libre y Soberano de Morelos."
+    },
+    {
+      "numero": 32,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Puntos   Constitucionales   y Legislación, por  el  que  se  adiciona  un  último  párrafo  al  artículo  58  del Código Penal para el Estado de Morelos."
+    }
+  ],
+  "dictamenesSegundaLectura": [
+    {
+      "numero": 33,
+      "descripcion": "Dictamen emanado   de   la   Comisión   de   Puntos   Constitucionales   y Legislación, por el que se reforma el artículo 202 bis del Código Penal para el Estado de Morelos."
+    },
+    {
+      "numero": 1,
+      "descripcion": "Dictamen   emanado   de   la   Comisión   de   Puntos   Constitucionales   y Legislación por el que se reforma el artículo 131, párrafo tercero, fracción II de la Constitución Política del Estado Libre y Soberano de Morelos, en materia de topes salariales."
+    },
+    {
+      "numero": 2,
+      "descripcion": "Dictamen emanado de la Comisión de Salud, por el que se instituye el 22 de octubre de cada año como el “Día Estatal de la Medicina Tradicional”, en el Estado de Morelos."
+    },
+    {
+      "numero": 3,
+      "descripcion": "Dictamen emanado de la Comisión de la Familia y Derechos de la Niñez, por el que se declara el 10 de junio de cada año como el “Día de la Niñez Morelense”."
+    },
+    {
+      "numero": 4,
+      "descripcion": "Dictamen emanado de la Comisión de la Familia y Derechos de la Niñez, por el que se adiciona el artículo 83 bis a la Ley de los Derechos de las Niñas, Niños y Adolescentes del Estado de Morelos."
+    },
+    {
+      "numero": 5,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se le concede pensión por jubilación a Rocío Rodríguez Colín,  en  cumplimiento  a  la  ejecutoria  dictada  por  el  Juez  Quinto  de Distrito  en  el  Estado  de  Morelos,  dentro  del  juicio  de  amparo  número 1208/2024."
+    },
+    {
+      "numero": 6,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  le  concede  pensión  por  jubilación  a Luis  Enrique Ramírez Román, en cumplimiento a la ejecutoria dictada por el Juez Sexto de Distrito en el Estado de Morelos, dentro del juicio de amparo número 1448/2024."
+    },
+    {
+      "numero": 7,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, respecto a las observaciones realizadas por el Poder Ejecutivo del 8 Estado  de  Morelos,  al  Decreto  número  Sesenta  y  Siete, aprobado  en Sesión Ordinaria de Pleno el 27 de febrero de 2025, por el que se concede pensión   por   jubilación   a Benoni   Cristina   Pérez   Calderón,   en cumplimiento a la ejecutoria dictada por el Juzgado Primero de Distrito en el Estado de Morelos, dentro del juicio de amparo número 983/2024."
+    },
+    {
+      "numero": 8,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, respecto a las observaciones realizadas por el Poder Ejecutivo del Estado de Morelos al Decreto número Dos Mil Ciento Noventa y Cuatro, aprobado en Sesión Ordinaria de Pleno el 10 de julio de 2024, por el que se  concede  pensión  por  jubilación  a Rosalba  Archundia  Franco,  en cumplimiento a la ejecutoria dictada por el Juzgado Primero de Distrito en el Estado de Morelos, dentro del juicio de amparo número 318/2024."
+    },
+    {
+      "numero": 9,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, respecto a las observaciones realizadas por el Poder Ejecutivo del Estado  de  Morelos  al  Decreto  número  Dos  Mil Doscientos  Cincuenta y Dos, aprobado en Sesión Ordinaria de Pleno el 10 de julio de 2024, por el que  se  concede  pensión  por  jubilación  a Martha  Magali  Medrano Domínguez, en cumplimiento a la ejecutoria dictada por el Juzgado Quinto de Distrito en el Estado de Morelos, dentro del juicio de amparo 1390/2024."
+    },
+    {
+      "numero": 10,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el que se solventan las observaciones realizadas por el Poder Ejecutivo del Estado de Morelos al Decreto número Dos Mil  Trescientos Once, aprobado en Sesión Ordinaria de Pleno el 10 de julio de 2024, por el  que  se  le  concede  pensión  por  viudez  a María  del  Rosario  Sedano Laizo, en  su  calidad  de  cónyuge  supérstite  y  se  concede  pensión  por orfandad a Ana Arteaga Molina, en su calidad de descendiente en primer grado, ambas del de cujus Ricardo Arteaga Granados, en cumplimiento a la  ejecutoria  dictada  por  el  Juzgado  Sexto  de  Distrito  en  el  Estado  de Morelos, dentro del juicio de amparo 1349/2024."
+    },
+    {
+      "numero": 11,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por viudez  a Sergio  Antonio Padilla Morales, cónyuge supérstite de la finada Irma Catalán Reyna, en cumplimiento a la ejecutoria dictada por el Juzgado Quinto de Distrito en el Estado de Morelos, dentro del juicio de amparo 1620/2024."
+    },
+    {
+      "numero": 12,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por jubilación a María del Refugio Neri  Martínez, en  cumplimiento  a  la  ejecutoria  dictada  por  el  Juzgado Octavo de Distrito  en el Estado  de  Morelos, dentro del juicio de amparo 1319/2024. 9"
+    },
+    {
+      "numero": 13,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por viudez a Aida Rosales García, cónyuge   supérstite   del   finado   Raúl   Antonio   Saldívar   González, en cumplimiento a la ejecutoria dictada por el Juzgado Cuarto de Distrito en el Estado de Morelos, dentro del juicio de amparo 1424/2024."
+    },
+    {
+      "numero": 14,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por jubilación a Leonardo Hernández Uribe, en cumplimiento a la ejecutoria dictada por el Juzgado Noveno de Distrito en el Estado de Morelos, dentro del juicio de amparo 1335/2024."
+    },
+    {
+      "numero": 15,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por jubilación a Angela Martínez Ignacio, en cumplimiento a la ejecutoria dictada por el Juzgado Octavo de Distrito en el Estado de Morelos, dentro del juicio de amparo 1204/2024."
+    },
+    {
+      "numero": 16,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por cesantía en edad avanzada a Manuel Vázquez Hurtado, en cumplimiento a la ejecutoria dictada por el Juzgado Quinto de Distrito en el Estado de Morelos, dentro del juicio de amparo 1440/2024."
+    },
+    {
+      "numero": 17,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por cesantía en edad avanzada a Gaudencio Cuamatzi Escudero, en cumplimiento a la ejecutoria dictada por el Juzgado Cuarto de Distrito en el Estado de Morelos, dentro del juicio de amparo 1489/24."
+    },
+    {
+      "numero": 18,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión  por viudez a Bernarda Martínez Ibarra, cónyuge supérstite de Ezequiel Honorato Valdez, en cumplimiento a la ejecutoria dictada por el Juzgado Quinto de Distrito en el Estado de Morelos, dentro del juicio de amparo 944/2024."
+    },
+    {
+      "numero": 19,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por jubilación a Alberto  Herrera Bonilla, en cumplimiento  a la ejecutoria  dictada por el Juzgado Primero de Distrito en el Estado de Morelos, dentro del juicio de amparo 1193/2024."
+    },
+    {
+      "numero": 20,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por cesantía en edad avanzada a Roberto Santiago Osorio, en cumplimiento a la ejecutoria dictada por el Juzgado Sexto de  Distrito  en  el  Estado  de  Morelos,  dentro  del  juicio  de amparo 1382/2024. 10"
+    },
+    {
+      "numero": 21,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por jubilación a Raúl  Alvarado Delgadillo, en cumplimiento a la ejecutoria dictada por el Juzgado Tercero de Distrito en el Estado de Morelos, dentro del juicio de amparo 1277/2024."
+    },
+    {
+      "numero": 22,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por cesantía en edad avanzada a Rubén Argueta Figueroa, en cumplimiento a la ejecutoria dictada por el Juzgado Octavo de Distrito en el Estado de Morelos, dentro del juicio de amparo 784/2024."
+    },
+    {
+      "numero": 23,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por  jubilación  a Lidsay  Mejía Anzurez, en cumplimiento a la ejecutoria dictada por el  Juzgado Cuarto de Distrito en el Estado de Morelos, dentro del juicio de amparo 1438/2024."
+    },
+    {
+      "numero": 24,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por  jubilación  a Mariela  García Domínguez, en  cumplimiento  a  la  ejecutoria  dictada  por  el  Juzgado Séptimo de Distrito en el Estado de Morelos, dentro del juicio de amparo 1185/2024."
+    },
+    {
+      "numero": 25,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por  jubilación  a Félix  Paredes Ocelotl, en cumplimiento a la ejecutoria dictada por el Juzgado Quinto de Distrito en el Estado de Morelos, dentro del juicio de amparo 1581/2024."
+    },
+    {
+      "numero": 26,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por  viudez  a María  Cruz  García Ortiz, cónyuge   supérstite   del   finado   Eliaim Villegas   Flores,   en cumplimiento a la ejecutoria dictada por el Juzgado Quinto de Distrito en el Estado de Morelos, dentro del juicio de amparo 1325/2024."
+    },
+    {
+      "numero": 27,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por  jubilación  a José  Antonio García Fuentes, en cumplimiento a la ejecutoria dictada por el Juzgado Tercero de Distrito en el Estado de Morelos, dentro del juicio de amparo 1368/2024."
+    },
+    {
+      "numero": 28,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por  jubilación  a Vicente  García Carpintero, en  cumplimiento  a  la  ejecutoria  dictada  por  el  Juzgado Segundo de Distrito en el Estado de Morelos, dentro del juicio de amparo 1351/2024. 11"
+    },
+    {
+      "numero": 29,
+      "descripcion": "Dictamen  emanado  de  la  Comisión de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por  jubilación  a Leticia  Sedano Vargas, en cumplimiento a la ejecutoria dictada por el Juzgado Tercero de Distrito en el Estado de Morelos, dentro del juicio de amparo 923/2024."
+    },
+    {
+      "numero": 30,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por  jubilación  a Alma  Adriana Ayala  Pineda, en  cumplimiento  a  la  ejecutoria  dictada  por  el  Juzgado Segundo de Distrito en el Estado de Morelos, dentro del juicio de amparo 1442/2024."
+    },
+    {
+      "numero": 31,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por  jubilación  a José  de  Jesús Vergara García, en  cumplimiento a la  ejecutoria dictada por  el Juzgado Séptimo de Distrito en el Estado de Morelos, dentro del juicio de amparo 867/2024."
+    },
+    {
+      "numero": 32,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por cesantía en edad avanzada a Jaime  Albavera  Pérez, en  cumplimiento  a  la  ejecutoria dictada  por  el Juzgado Octavo de Distrito en el Estado de Morelos, dentro del juicio de amparo 1295/2024."
+    },
+    {
+      "numero": 33,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social, por el cual se concede pensión por cesantía en edad avanzada a Rodrigo Arriaga Gómez, en  cumplimiento a la ejecutoria dictada por  el Juzgado  Sexto  de  Distrito  en  el  Estado  de  Morelos,  dentro  del  juicio  de amparo 1294/2024."
+    },
+    {
+      "numero": 34,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por  jubilación  a Alfa  Vargas Bahena, en cumplimiento a la ejecutoria dictada por el Juzgado Octavo de Distrito en el Estado de Morelos, dentro del juicio de amparo 1208/2024."
+    },
+    {
+      "numero": 35,
+      "descripcion": "Dictamen  emanado  de  la  Comisión  de  Trabajo,  Previsión  y  Seguridad Social,  por  el  cual  se  concede  pensión  por  jubilación  a Víctor  Saldívar Moreno, en cumplimiento a la ejecutoria dictada por el Juzgado Quinto de Distrito en el Estado de Morelos, dentro del juicio de amparo 1505/2024."
+    }
+  ],
+  "totalIniciativas": 9,
+  "totalDictamenes": 69
+}

@@ -1,0 +1,2697 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Diputado - Sistema de Votación</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/dark-theme.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        }
+        
+        /* Header del diputado */
+        .deputy-header {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 25px;
+            margin: 20px auto;
+            max-width: 900px;
+            border-left: 5px solid #007bff;
+            transition: all 0.3s;
+        }
+        
+        .deputy-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+        }
+        
+        .deputy-avatar {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            border: 4px solid white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .deputy-details {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .deputy-text-info {
+            flex: 1;
+        }
+        
+        .deputy-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .deputy-cargo {
+            font-size: 16px;
+            color: #6c757d;
+            margin-bottom: 3px;
+        }
+        
+        .deputy-commission {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        
+        .deputy-party {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .party-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            background-color: #6c757d;
+        }
+        
+        .party-logo {
+            height: 30px;
+            max-width: 60px;
+            object-fit: contain;
+        }
+        
+        /* Contenedor de votación */
+        .vote-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .vote-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        /* Botones de votación mejorados */
+        .vote-btn {
+            width: 100%;
+            height: 100px;
+            position: relative;
+            font-size: 26px;
+            font-weight: bold;
+            margin: 15px 0;
+            border: 3px solid transparent;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .vote-btn i {
+            font-size: 32px;
+        }
+        
+        .vote-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        .vote-btn.selected {
+            border-color: #333;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+            animation: selectedPulse 2s infinite;
+        }
+        
+        @keyframes selectedPulse {
+            0% { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.8); }
+            50% { box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.4); }
+            100% { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.8); }
+        }
+        
+        .btn-favor {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+            color: white;
+        }
+        
+        .btn-favor:hover {
+            background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+        }
+        
+        .btn-contra {
+            background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%);
+            color: white;
+        }
+        
+        .btn-contra:hover {
+            background: linear-gradient(135deg, #bd2130 0%, #a71d2a 100%);
+        }
+        
+        .btn-abstencion {
+            background: linear-gradient(135deg, #6c757d 0%, #545b62 100%);
+            color: white;
+        }
+        
+        .btn-abstencion:hover {
+            background: linear-gradient(135deg, #545b62 0%, #383d42 100%);
+        }
+        
+        /* Estado sin votación */
+        .no-voting {
+            text-align: center;
+            padding: 80px 20px;
+            color: #6c757d;
+        }
+        
+        .no-voting i {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+        
+        /* Badge de votado */
+        .voted-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse-animation {
+            animation: pulse 1s ease-in-out 3;
+            border: 3px solid #ffc107 !important;
+            box-shadow: 0 0 20px rgba(255, 193, 7, 0.5) !important;
+        }
+        
+        /* Botón EN VIVO flotante */
+        .live-button-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+        }
+        
+        .btn-live {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-live:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.5);
+        }
+        
+        .btn-live .live-dot {
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.3; }
+        }
+        
+        /* Contenedor del stream */
+        .stream-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 450px;
+            max-width: 90vw;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 1040;
+            display: none;
+            overflow: hidden;
+        }
+        
+        .stream-header {
+            background: linear-gradient(135deg, #212529, #343a40);
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stream-header .live-badge {
+            background: #dc3545;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .stream-header .live-badge .live-dot {
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+        
+        .stream-video {
+            width: 100%;
+            height: auto;
+            background: black;
+        }
+        
+        .stream-controls {
+            background: #f8f9fa;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .stream-controls .btn-group-sm .btn {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .viewer-count {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        /* Modo pantalla completa */
+        .stream-container.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            border-radius: 0;
+            z-index: 9999;
+        }
+        
+        .stream-container.fullscreen .stream-video {
+            height: calc(100vh - 100px);
+        }
+        
+        /* Responsive para tablets */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .vote-btn {
+                height: 120px;
+                font-size: 28px;
+            }
+            
+            .vote-btn i {
+                font-size: 36px;
+            }
+            
+            .deputy-avatar {
+                width: 90px;
+                height: 90px;
+                font-size: 32px;
+            }
+        }
+        
+        /* Timer de sesión */
+        #sessionTimer {
+            font-weight: bold;
+            padding: 5px 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+        }
+        
+        .congress-logos {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-right: 10px;
+        }
+        
+        .congress-logos img {
+            height: 100px;
+            object-fit: contain;
+        }
+        
+        .secretary-menu {
+            margin-top: 15px;
+            width: 100%;
+        }
+        
+        .secretary-menu .btn {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 10px 20px;
+            font-size: 1em;
+        }
+        
+        .secretary-menu .btn:hover {
+            background: linear-gradient(135deg, #0056b3 0%, #003d82 100%);
+        }
+        
+        .secretary-menu .dropdown-menu {
+            background: white;
+            border: 1px solid #ddd;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            width: 100%;
+        }
+        
+        .secretary-menu .dropdown-item {
+            color: #333;
+            padding: 10px 20px;
+        }
+        
+        .secretary-menu .dropdown-item:hover {
+            background: #f0f0f0;
+            color: #007bff;
+        }
+        
+        .secretary-menu .dropdown-item i {
+            margin-right: 8px;
+            color: #007bff;
+        }
+        
+        /* Notificación de resultado de votación */
+        .result-notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            max-width: 400px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            z-index: 9999;
+            animation: slideIn 0.5s ease-out;
+            border-left: 5px solid #007bff;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .result-notification .notification-header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .result-notification .notification-body {
+            padding: 20px;
+        }
+        
+        .result-notification .result-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+        
+        .result-notification .stat-item {
+            text-align: center;
+        }
+        
+        .result-notification .stat-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .result-notification .stat-circle.favor { background: #28A745; }
+        .result-notification .stat-circle.contra { background: #DC3545; }
+        .result-notification .stat-circle.abstencion { background: #FFC107; }
+        
+        .result-notification .countdown-bar {
+            height: 4px;
+            background: #e0e0e0;
+            position: relative;
+            margin-top: 10px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .result-notification .countdown-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            animation: countdown 10s linear forwards;
+        }
+        
+        @keyframes countdown {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+        
+        /* Menú hamburguesa */
+        .menu-button {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .menu-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .side-menu {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 350px;
+            height: 100%;
+            background: white;
+            box-shadow: -5px 0 20px rgba(0,0,0,0.1);
+            transition: right 0.3s ease-out;
+            z-index: 1049;
+            overflow-y: auto;
+        }
+        
+        .side-menu.active {
+            right: 0;
+        }
+        
+        .side-menu-header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+        
+        .side-menu-content {
+            padding: 20px;
+        }
+        
+        .menu-item {
+            display: block;
+            padding: 15px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .menu-item:hover {
+            background: #f0f0f0;
+            transform: translateX(5px);
+        }
+        
+        .menu-item i {
+            font-size: 20px;
+            width: 30px;
+            text-align: center;
+            color: #007bff;
+        }
+        
+        /* Overlay para el menú */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1048;
+            display: none;
+        }
+        
+        .menu-overlay.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Botón de menú hamburguesa -->
+    <button class="menu-button" onclick="toggleMenu()">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Overlay del menú -->
+    <div class="menu-overlay" onclick="toggleMenu()"></div>
+    
+    <!-- Menú lateral -->
+    <div class="side-menu" id="sideMenu">
+        <div class="side-menu-header">
+            <h5 class="mb-0">Opciones</h5>
+            <button class="btn btn-sm btn-light" onclick="toggleMenu()" style="position: absolute; right: 20px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="side-menu-content">
+            <!-- Panel de Control del Presidente -->
+            <div id="panelPresidente" style="display: none;">
+                <h6 class="text-primary mb-3"><i class="fas fa-crown"></i> Panel de Control - Presidente</h6>
+                <a href="#" class="menu-item" onclick="verListaIniciativas()">
+                    <i class="fas fa-list"></i>
+                    <div>
+                        <div>Gestionar Iniciativas</div>
+                        <small class="text-muted">Activar votaciones</small>
+                    </div>
+                </a>
+                <a href="#" class="menu-item" onclick="verDiputadosPresentes()">
+                    <i class="fas fa-users"></i>
+                    <div>
+                        <div>Diputados Presentes</div>
+                        <small class="text-muted">Ver quórum actual</small>
+                    </div>
+                </a>
+                <hr>
+            </div>
+            
+            <a href="#" class="menu-item" onclick="verTableroSimplificado()">
+                <i class="fas fa-th"></i>
+                <div>
+                    <div>Ver Tablero de Votación</div>
+                    <small class="text-muted">Vista simplificada del tablero</small>
+                </div>
+            </a>
+            <a href="#" class="menu-item" onclick="verHistorialVotaciones()">
+                <i class="fas fa-history"></i>
+                <div>
+                    <div>Historial de Votaciones</div>
+                    <small class="text-muted">Mis votaciones anteriores</small>
+                </div>
+            </a>
+            <a href="#" class="menu-item" onclick="verEstadisticas()">
+                <i class="fas fa-chart-bar"></i>
+                <div>
+                    <div>Estadísticas</div>
+                    <small class="text-muted">Resumen de participación</small>
+                </div>
+            </a>
+            <a href="#" class="menu-item" onclick="abrirConfiguracion()">
+                <i class="fas fa-cog"></i>
+                <div>
+                    <div>Configuración</div>
+                    <small class="text-muted">Preferencias personales</small>
+                </div>
+            </a>
+        </div>
+    </div>
+    
+    <nav class="navbar navbar-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-user"></i> Panel de Votación - Diputado
+            </span>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3">
+                    <i class="fas fa-clock"></i> <span id="currentTime">00:00:00</span>
+                </span>
+                <span class="text-white me-3" id="sessionTimerContainer" style="display: none;">
+                    <i class="fas fa-hourglass-half"></i> Sesión: <span id="sessionTimer">00:00:00</span>
+                </span>
+                <span class="text-white me-3" id="coordinatorInfo" style="display: none;">
+                    <span style="font-size: 0.9em; opacity: 0.8;">Coordinador:</span>
+                    <img id="coordinatorPartyLogo" src="" alt="" style="height: 20px; margin: 0 5px; display: none;">
+                    <span id="coordinatorName" style="font-weight: 500;"></span>
+                </span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Botón EN VIVO flotante -->
+    <div class="live-button-container" id="liveButtonContainer" style="display: none;">
+        <button class="btn-live" onclick="toggleLiveStream()">
+            <span class="live-dot"></span>
+            <span>EN VIVO</span>
+        </button>
+    </div>
+
+    <!-- Contenedor del Stream -->
+    <div class="stream-container" id="streamContainer">
+        <div class="stream-header">
+            <div class="d-flex align-items-center gap-2">
+                <span class="live-badge">
+                    <span class="live-dot"></span>
+                    EN VIVO
+                </span>
+                <span>Transmisión del Pleno</span>
+            </div>
+            <button class="btn-close btn-close-white" onclick="closeLiveStream()"></button>
+        </div>
+        <video id="remoteVideo" class="stream-video" autoplay playsinline muted controls></video>
+        <div class="stream-controls">
+            <div class="viewer-count">
+                <i class="fas fa-eye"></i>
+                <span id="viewerCount">0</span> viendo
+            </div>
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary" onclick="togglePiP()" title="Picture in Picture">
+                    <i class="fas fa-external-link-alt"></i>
+                </button>
+                <button class="btn btn-outline-secondary" onclick="toggleFullscreen()" title="Pantalla Completa">
+                    <i class="fas fa-expand"></i>
+                </button>
+                <button class="btn btn-outline-secondary" onclick="toggleMinimal()" title="Modo Minimal">
+                    <i class="fas fa-compress"></i>
+                </button>
+            </div>
+            <select class="form-select form-select-sm" style="width: auto;" onchange="changeQuality(this.value)">
+                <option value="high">Alta (720p)</option>
+                <option value="medium" selected>Media (480p)</option>
+                <option value="low">Baja (360p)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="container vote-container">
+        <!-- Header del diputado mejorado -->
+        <div class="deputy-header" id="deputyHeader">
+            <div class="deputy-info">
+                <div class="deputy-avatar" id="deputyAvatar">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+                <div class="deputy-details">
+                    <div class="deputy-text-info">
+                        <div class="deputy-name" id="fullName"></div>
+                        <div class="deputy-cargo" id="userCargo"></div>
+                        <div class="deputy-commission" id="userCommission"></div>
+                        <div class="deputy-party">
+                            <span class="party-badge" id="partyBadge"></span>
+                            <img class="party-logo" id="partyLogo" style="display: none;">
+                        </div>
+                    </div>
+                    <div class="congress-logos" id="congressLogos">
+                        <!-- Se llenarán dinámicamente -->
+                    </div>
+                </div>
+            </div>
+            <!-- Menú para secretario de mesa directiva -->
+            <div class="secretary-menu" id="secretaryMenu" style="display: none;">
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-tasks"></i> Funciones de Secretario
+                    </button>
+                    <ul class="dropdown-menu w-100">
+                        <li><a class="dropdown-item" href="#" onclick="goToAttendance()">
+                            <i class="fas fa-clipboard-check"></i> Pase de Lista
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" onclick="backToVoting()">
+                            <i class="fas fa-vote-yea"></i> Regresar a Votación
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Panel de control para presidente/vicepresidente -->
+            <div class="president-controls" id="presidentControls" style="display: none;">
+                <div class="card mt-3 border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h6 class="mb-0"><i class="fas fa-gavel"></i> Control de Sesión</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="sessionControlStatus" class="mb-3">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success btn-lg" id="btnIniciarSesion" onclick="iniciarSesion()" style="display: none;">
+                                <i class="fas fa-play"></i> Iniciar Sesión Legislativa
+                            </button>
+                            <button class="btn btn-danger btn-lg" id="btnClausurarSesion" onclick="clausurarSesion()" style="display: none;">
+                                <i class="fas fa-stop"></i> Clausurar Sesión
+                            </button>
+                        </div>
+                        <div id="sessionStats" class="mt-3" style="display: none;">
+                            <!-- Estadísticas de sesión -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel de votación -->
+        <div class="vote-card" id="votingPanel" style="display: none;">
+            <div class="text-center mb-4">
+                <h2 class="text-primary">INICIATIVA EN VOTACIÓN</h2>
+                <div class="badge bg-info fs-6 mb-3">
+                    Iniciativa #<span id="initiativeNumber"></span>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 id="initiativeTitle" class="card-title"></h4>
+                    <p id="initiativeDescription" class="card-text text-muted"></p>
+                    <span class="badge bg-secondary" id="majorityType"></span>
+                </div>
+            </div>
+            
+            <div id="votingButtons" class="text-center">
+                <h5 class="mb-3">Emite tu voto:</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn vote-btn btn-favor" onclick="vote('favor')" title="Presiona 1 para votar A Favor">
+                            <i class="fas fa-check-circle"></i>
+                            <span>A FAVOR</span>
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn vote-btn btn-contra" onclick="vote('contra')" title="Presiona 2 para votar En Contra">
+                            <i class="fas fa-times-circle"></i>
+                            <span>EN CONTRA</span>
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn vote-btn btn-abstencion" onclick="vote('abstencion')" title="Presiona 3 para Abstención">
+                            <i class="fas fa-minus-circle"></i>
+                            <span>ABSTENCIÓN</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="votedMessage" class="text-center mt-4" style="display: none;">
+                <div class="alert alert-success">
+                    <h4><i class="fas fa-check"></i> Voto Registrado</h4>
+                    <p class="mb-0">Tu voto ha sido: <strong id="myVote"></strong></p>
+                </div>
+                <button class="btn btn-warning mt-3" onclick="changeVote()">
+                    <i class="fas fa-edit"></i> Cambiar mi voto
+                </button>
+                <p class="text-muted mt-3">La votación sigue abierta. Puedes cambiar tu voto hasta que se cierre.</p>
+            </div>
+        </div>
+        
+        <!-- Mensaje sin votación -->
+        <div class="vote-card no-voting" id="noVotingPanel">
+            <i class="fas fa-clock fa-4x mb-3"></i>
+            <h3>No hay iniciativa activa</h3>
+            <p>Espera a que se active una iniciativa para votar</p>
+            <div class="spinner-border text-primary mt-3" role="status">
+                <span class="visually-hidden">Esperando...</span>
+            </div>
+        </div>
+        
+        <!-- Historial -->
+        <div class="card mt-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-history"></i> Mi Historial de Votos</h5>
+            </div>
+            <div class="card-body">
+                <div id="votingHistory" class="small">
+                    <p class="text-muted text-center">Cargando historial...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para Gestión de Iniciativas (Solo Presidente) -->
+    <div class="modal fade" id="gestionIniciativasModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-crown"></i> Gestión de Iniciativas - Presidente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Como Presidente de la Mesa Directiva, puedes activar iniciativas para votación.
+                    </div>
+                    <div id="listaIniciativasPresidente">
+                        <p class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando iniciativas...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://unpkg.com/mediasoup-client@3/lib/mediasoup-client.min.js"></script>
+    <script>
+        const socket = io();
+        const user = JSON.parse(localStorage.getItem('user'));
+        const token = localStorage.getItem('token');
+        let currentInitiative = null;
+        let hasVoted = false;
+        let partidosData = {};
+        
+        // Verificar si es presidente o secretario
+        const isPresidente = user && user.cargo_mesa_directiva === 'Presidente de la Mesa Directiva';
+        const isSecretario = user && user.cargo_mesa_directiva === 'Secretario de la Mesa Directiva';
+        const isVicepresidente = user && user.cargo_mesa_directiva === 'Vicepresidente';
+        let sessionStartTime = null;
+        let sessionTimerInterval = null;
+        
+        if (!token || !user || user.role !== 'diputado') {
+            window.location.href = '/';
+        }
+        
+        // Función de logout (debe estar antes de ser usada)
+        function logout() {
+            if (sessionTimerInterval) clearInterval(sessionTimerInterval);
+            localStorage.clear();
+            window.location.href = '/';
+        }
+        
+        // No mostrar el nombre del usuario aquí, se mostrará el coordinador después
+        
+        // Esperar a que el DOM esté listo y cargar información del usuario
+        setTimeout(() => {
+            loadUserInfo();
+            // Mostrar panel del presidente si corresponde
+            if (isPresidente) {
+                document.getElementById('panelPresidente').style.display = 'block';
+            }
+        }, 100);
+        
+        // También cargar información de partidos (en paralelo)
+        loadPartidos().catch(error => {
+            console.error('Error cargando partidos:', error);
+        });
+        
+        // Cargar iniciativa activa y historial al iniciar
+        checkActiveInitiative();
+        loadHistory();
+        
+        // Iniciar cronómetro de sesión
+        startSessionTimer();
+        
+        // Agregar atajos de teclado para votación rápida
+        document.addEventListener('keydown', function(event) {
+            // Solo funcionar si hay una iniciativa activa y no se está escribiendo en un input
+            if (!currentInitiative || hasVoted) return;
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
+            
+            // Verificar que el panel de votación esté visible
+            if (document.getElementById('votingPanel').style.display !== 'block') return;
+            
+            // Verificar que los botones de votación estén visibles (no haya votado ya)
+            if (document.getElementById('votingButtons').style.display !== 'block') return;
+            
+            switch(event.key) {
+                case '1':
+                    event.preventDefault();
+                    // Resaltar visualmente el botón antes de votar
+                    const btnFavor = document.querySelector('.btn-favor.vote-btn');
+                    if (btnFavor && !btnFavor.disabled) {
+                        btnFavor.style.transform = 'scale(1.1)';
+                        setTimeout(() => {
+                            btnFavor.style.transform = '';
+                            vote('favor');
+                        }, 200);
+                    }
+                    break;
+                    
+                case '2':
+                    event.preventDefault();
+                    // Resaltar visualmente el botón antes de votar
+                    const btnContra = document.querySelector('.btn-contra.vote-btn');
+                    if (btnContra && !btnContra.disabled) {
+                        btnContra.style.transform = 'scale(1.1)';
+                        setTimeout(() => {
+                            btnContra.style.transform = '';
+                            vote('contra');
+                        }, 200);
+                    }
+                    break;
+                    
+                case '3':
+                    event.preventDefault();
+                    // Resaltar visualmente el botón antes de votar
+                    const btnAbstencion = document.querySelector('.btn-abstencion.vote-btn');
+                    if (btnAbstencion && !btnAbstencion.disabled) {
+                        btnAbstencion.style.transform = 'scale(1.1)';
+                        setTimeout(() => {
+                            btnAbstencion.style.transform = '';
+                            vote('abstencion');
+                        }, 200);
+                    }
+                    break;
+            }
+        });
+        
+        // Cargar información de partidos
+        async function loadPartidos() {
+            try {
+                const response = await fetch('/api/pantalla/partidos');
+                if (response.ok) {
+                    const partidos = await response.json();
+                    // Crear mapa de partidos por siglas
+                    partidos.forEach(partido => {
+                        partidosData[partido.siglas] = partido;
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando partidos:', error);
+            }
+        }
+        
+        // Verificar iniciativa activa
+        async function checkActiveInitiative() {
+            try {
+                const response = await fetch('/api/diputado/iniciativa-activa', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.iniciativa) {
+                    currentInitiative = data.iniciativa;
+                    hasVoted = data.yaVoto;
+                    showVotingPanel(data.iniciativa, data.yaVoto, data.miVoto);
+                } else {
+                    showNoVoting();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNoVoting();
+            }
+        }
+        
+        // Mostrar panel de votación
+        function showVotingPanel(initiative, alreadyVoted, myVote) {
+            document.getElementById('noVotingPanel').style.display = 'none';
+            document.getElementById('votingPanel').style.display = 'block';
+            
+            document.getElementById('initiativeNumber').textContent = initiative.numero;
+            document.getElementById('initiativeTitle').textContent = initiative.titulo;
+            document.getElementById('initiativeDescription').textContent = initiative.descripcion || 'Sin descripción';
+            document.getElementById('majorityType').textContent = getMajorityLabel(initiative.tipo_mayoria);
+            
+            if (alreadyVoted) {
+                document.getElementById('votingButtons').style.display = 'none';
+                document.getElementById('votedMessage').style.display = 'block';
+                document.getElementById('myVote').textContent = getVoteLabel(myVote);
+                // Deshabilitar botones si ya votó
+                document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = true);
+            } else {
+                document.getElementById('votingButtons').style.display = 'block';
+                document.getElementById('votedMessage').style.display = 'none';
+                // Habilitar botones si no ha votado
+                document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = false);
+            }
+        }
+        
+        // Mostrar mensaje sin votación
+        function showNoVoting() {
+            document.getElementById('votingPanel').style.display = 'none';
+            document.getElementById('noVotingPanel').style.display = 'block';
+        }
+        
+        // Cambiar voto
+        function changeVote() {
+            // Mostrar botones de votación nuevamente
+            document.getElementById('votingButtons').style.display = 'block';
+            document.getElementById('votedMessage').style.display = 'none';
+            document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = false);
+            hasVoted = false;
+        }
+        
+        // Emitir voto
+        async function vote(voto) {
+            if (!currentInitiative) return;
+            
+            // Si ya votó, no permitir votar de nuevo (a menos que haya cambiado de opinión)
+            if (hasVoted && document.getElementById('votedMessage').style.display === 'block') {
+                return;
+            }
+            
+            // Deshabilitar botones
+            document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = true);
+            
+            try {
+                const response = await fetch('/api/diputado/votar', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        iniciativa_id: currentInitiative.id,
+                        voto: voto
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    hasVoted = true;
+                    document.getElementById('votingButtons').style.display = 'none';
+                    document.getElementById('votedMessage').style.display = 'block';
+                    document.getElementById('myVote').textContent = getVoteLabel(voto);
+                    
+                    // Recargar historial
+                    setTimeout(loadHistory, 1000);
+                } else {
+                    alert(data.error);
+                    document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = false);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al registrar tu voto');
+                document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = false);
+            }
+        }
+        
+        // Cargar historial
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/diputado/mi-historial', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                const container = document.getElementById('votingHistory');
+                
+                if (data.votos.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">No has emitido votos aún</p>';
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Iniciativa</th>
+                                    <th>Mi Voto</th>
+                                    <th>Resultado</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.votos.map(v => `
+                                    <tr>
+                                        <td>${v.numero}</td>
+                                        <td>${v.titulo}</td>
+                                        <td>
+                                            <span class="badge bg-${getVoteColor(v.voto)}">
+                                                ${getVoteLabel(v.voto)}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            ${v.resultado ? `
+                                                <span class="badge bg-${v.resultado === 'aprobada' ? 'success' : 'danger'}">
+                                                    ${v.resultado.toUpperCase()}
+                                                </span>
+                                            ` : '<span class="text-muted">Pendiente</span>'}
+                                        </td>
+                                        <td>${new Date(v.fecha_voto).toLocaleString()}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Utilidades
+        function getMajorityLabel(tipo) {
+            const labels = {
+                'simple': 'Mayoría Simple',
+                'absoluta': 'Mayoría Absoluta',
+                'calificada': 'Mayoría Calificada (2/3)',
+                'unanime': 'Unanimidad'
+            };
+            return labels[tipo] || 'Mayoría Simple';
+        }
+        
+        function getVoteLabel(voto) {
+            const labels = {
+                'favor': 'A FAVOR',
+                'contra': 'EN CONTRA',
+                'abstencion': 'ABSTENCIÓN'
+            };
+            return labels[voto] || voto;
+        }
+        
+        function getVoteColor(voto) {
+            const colors = {
+                'favor': 'success',
+                'contra': 'danger',
+                'abstencion': 'secondary'
+            };
+            return colors[voto] || 'secondary';
+        }
+        
+        // Eventos de socket
+        socket.on('iniciativa-activa', (iniciativa) => {
+            currentInitiative = iniciativa;
+            hasVoted = false;
+            // Re-habilitar botones cuando se activa una nueva iniciativa
+            document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = false);
+            showVotingPanel(iniciativa, false, null);
+        });
+        
+        // Escuchar recordatorios de voto
+        socket.on(`recordatorio-voto-${user.id}`, (data) => {
+            console.log('Recordatorio recibido:', data);
+            
+            // Mostrar notificación no invasiva
+            const notificationDiv = document.createElement('div');
+            notificationDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed bottom-0 end-0 m-3';
+            notificationDiv.style.zIndex = '9999';
+            notificationDiv.style.maxWidth = '350px';
+            notificationDiv.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-bell fa-2x me-3 text-warning"></i>
+                    <div>
+                        <strong>Recordatorio</strong><br>
+                        ${data.mensaje}
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notificationDiv);
+            
+            // Hacer parpadear el panel de votación
+            if (currentInitiative && !hasVoted) {
+                const votingPanel = document.getElementById('votingPanel');
+                votingPanel.classList.add('pulse-animation');
+                setTimeout(() => {
+                    votingPanel.classList.remove('pulse-animation');
+                }, 3000);
+            }
+            
+            // Auto-cerrar después de 10 segundos
+            setTimeout(() => {
+                if (notificationDiv.parentNode) {
+                    notificationDiv.remove();
+                }
+            }, 10000);
+        });
+        
+        // Escuchar cambios de habilitación
+        socket.on(`estado-habilitacion-${user.id}`, (data) => {
+            console.log('Estado de habilitación cambiado:', data);
+            
+            if (!data.habilitado) {
+                // Si fue deshabilitado, mostrar mensaje y bloquear votación
+                alert(data.mensaje);
+                
+                // Deshabilitar botones de voto
+                document.querySelectorAll('.vote-btn').forEach(btn => {
+                    btn.disabled = true;
+                });
+                
+                // Mostrar mensaje en el panel
+                const votingPanel = document.getElementById('votingPanel');
+                if (votingPanel) {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-danger mt-3';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-ban"></i> 
+                        ${data.mensaje}. Contacte al Secretario Legislativo.
+                    `;
+                    votingPanel.insertBefore(alertDiv, votingPanel.firstChild);
+                }
+                
+                // Recargar página después de 3 segundos
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } else {
+                // Si fue habilitado, recargar la página
+                alert(data.mensaje);
+                window.location.reload();
+            }
+        });
+        
+        socket.on('votacion-cerrada', (data) => {
+            // Mostrar notificación de resultados
+            mostrarNotificacionResultado(data);
+            showNoVoting();
+            loadHistory();
+        });
+        
+        socket.on('votacion-completa', () => {
+            if (hasVoted) {
+                const msg = document.getElementById('votedMessage').querySelector('p.text-muted');
+                if (msg) {
+                    msg.innerHTML = '<i class="fas fa-check-circle text-success"></i> ¡Todos han votado! La votación se cerrará pronto.';
+                }
+            }
+        });
+        
+        // Eventos de sesión
+        // Notificación específica para el presidente cuando el secretario clausura
+        socket.on('notificacion-presidente', (data) => {
+            if (user.cargo_mesa_directiva === 'presidente') {
+                if (data.tipo === 'sesion_clausurada_por_secretario') {
+                    alert(`⚠️ NOTIFICACIÓN:\n\n${data.mensaje}\n\nEstadísticas de la sesión:\n- Iniciativas votadas: ${data.estadisticas.total_iniciativas}\n- Aprobadas: ${data.estadisticas.aprobadas}\n- Rechazadas: ${data.estadisticas.rechazadas}`);
+                }
+            }
+        });
+        
+        socket.on('sesion-iniciada', (data) => {
+            console.log('Sesión iniciada:', data);
+            if (user.cargo_mesa_directiva) {
+                alert(`Sesión iniciada por ${data.iniciada_por}: ${data.nombre}`);
+                checkSessionStatus();
+                startSessionTimer();
+            }
+        });
+        
+        socket.on('sesion-clausurada', (data) => {
+            console.log('Sesión clausurada:', data);
+            alert(`Sesión clausurada por ${data.clausurada_por}\n\nEstadísticas finales:\n- Total iniciativas: ${data.estadisticas.total_iniciativas}\n- Aprobadas: ${data.estadisticas.aprobadas}\n- Rechazadas: ${data.estadisticas.rechazadas}`);
+            
+            // Detener cronómetro
+            sessionStartTime = null;
+            if (sessionTimerInterval) {
+                clearInterval(sessionTimerInterval);
+                sessionTimerInterval = null;
+            }
+            document.getElementById('sessionTimer').textContent = '00:00:00';
+            
+            // Actualizar estado
+            if (user.cargo_mesa_directiva === 'presidente' || user.cargo_mesa_directiva === 'vicepresidente') {
+                checkSessionStatus();
+            }
+            
+            // Ocultar panel de votación
+            showNoVoting();
+        });
+        
+        // Verificar periódicamente
+        setInterval(checkActiveInitiative, 10000);
+        
+        // Cargar información del usuario
+        async function loadUserInfo() {
+            console.log('Iniciando carga de información del diputado...');
+            try {
+                const response = await fetch('/api/diputado/mi-informacion', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error('Error en respuesta:', response.status);
+                    // Mostrar información básica del localStorage
+                    document.getElementById('fullName').textContent = user.nombre_completo || user.nombre || 'Diputado';
+                    document.getElementById('userCargo').textContent = 'Diputado';
+                    document.getElementById('userCommission').textContent = 'Sin comisión asignada';
+                    document.getElementById('partyBadge').textContent = 'Sin partido';
+                    return;
+                }
+                
+                const data = await response.json();
+                console.log('Datos del diputado cargados:', data);
+                
+                // Actualizar el objeto user con la información completa
+                user.cargo_mesa_directiva = data.cargo_mesa_directiva;
+                user.partido = data.partido;
+                user.comision = data.comision;
+                localStorage.setItem('user', JSON.stringify(user));
+                
+                // Verificar si es secretario después de cargar la información
+                checkIfSecretary();
+                
+                // Mostrar información del coordinador en el navbar
+                updateCoordinatorInfo(data);
+                
+                // Actualizar información en la interfaz (con verificación de elementos)
+                const fullNameEl = document.getElementById('fullName');
+                const userCargoEl = document.getElementById('userCargo');
+                const userCommissionEl = document.getElementById('userCommission');
+                
+                if (fullNameEl) fullNameEl.textContent = data.nombre_completo || data.nombre || 'Diputado';
+                if (userCargoEl) userCargoEl.textContent = data.cargo_legislativo || data.cargo_mesa_directiva || 'Diputado';
+                if (userCommissionEl) userCommissionEl.textContent = data.comision || 'Sin comisión asignada';
+                
+                // Obtener datos del partido
+                const partidoInfo = partidosData[data.partido] || null;
+                const partyColor = partidoInfo ? partidoInfo.color_primario : '#6c757d';
+                
+                // Actualizar badge del partido
+                const partyBadge = document.getElementById('partyBadge');
+                if (partyBadge) {
+                    partyBadge.textContent = data.partido || 'Independiente';
+                    partyBadge.style.backgroundColor = partyColor;
+                }
+                
+                // Mostrar logo del partido si existe
+                if (partidoInfo && partidoInfo.logo_url) {
+                    const partyLogo = document.getElementById('partyLogo');
+                    if (partyLogo) {
+                        partyLogo.src = partidoInfo.logo_url;
+                        partyLogo.style.display = 'inline-block';
+                    }
+                }
+                
+                // Actualizar avatar con foto o iniciales
+                const deputyAvatar = document.getElementById('deputyAvatar');
+                if (deputyAvatar) {
+                    if (data.foto_url) {
+                        deputyAvatar.style.backgroundImage = `url(${data.foto_url})`;
+                        deputyAvatar.innerHTML = '';
+                    } else if (data.nombre_completo) {
+                        const iniciales = data.nombre_completo.split(' ').map(n => n[0]).slice(0, 2).join('');
+                        deputyAvatar.textContent = iniciales;
+                        deputyAvatar.style.backgroundColor = partyColor;
+                    } else {
+                        deputyAvatar.textContent = 'D';
+                        deputyAvatar.style.backgroundColor = '#6c757d';
+                    }
+                }
+                
+                // Aplicar colores del partido
+                applyPartyColors(partyColor);
+                
+                // Código anterior del placeholder
+                const photoContainer = document.getElementById('userPhotoContainer');
+                if (photoContainer) {
+                    if (data.foto_url) {
+                        photoContainer.innerHTML = `<img src="${data.foto_url}" class="user-photo" alt="Foto">`;
+                    } else {
+                            photoContainer.innerHTML = `
+                            <div class="user-photo-placeholder">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando información del usuario:', error);
+                // Mostrar información básica en caso de error
+                const fullNameEl = document.getElementById('fullName');
+                const userCargoEl = document.getElementById('userCargo');
+                const userCommissionEl = document.getElementById('userCommission');
+                const partyBadge = document.getElementById('partyBadge');
+                const deputyAvatar = document.getElementById('deputyAvatar');
+                
+                if (fullNameEl) fullNameEl.textContent = user.nombre_completo || user.nombre || 'Diputado';
+                if (userCargoEl) userCargoEl.textContent = 'Diputado';
+                if (userCommissionEl) userCommissionEl.textContent = 'Sin información disponible';
+                if (partyBadge) {
+                    partyBadge.textContent = 'Sin partido';
+                    partyBadge.style.backgroundColor = '#6c757d';
+                }
+                if (deputyAvatar) {
+                    deputyAvatar.textContent = 'D';
+                    deputyAvatar.style.backgroundColor = '#6c757d';
+                }
+            }
+        }
+        
+        // Reloj en tiempo real (para todos)
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('currentTime').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+        
+        // Iniciar reloj
+        setInterval(updateClock, 1000);
+        updateClock();
+        
+        // Cronómetro de sesión (solo para mesa directiva, secretarios y superadmin)
+        // Variables ya declaradas arriba, no duplicar
+        
+        function shouldShowSessionTimer() {
+            return user.cargo_mesa_directiva || 
+                   user.role === 'secretario' || 
+                   user.role === 'superadmin';
+        }
+        
+        async function startSessionTimer() {
+            // Solo mostrar cronómetro a usuarios autorizados
+            if (!shouldShowSessionTimer()) return;
+            
+            try {
+                const response = await fetch('/api/diputado/tiempo-sesion', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.sesionActiva && data.inicioSesion) {
+                    sessionStartTime = new Date(data.inicioSesion);
+                    document.getElementById('sessionTimerContainer').style.display = 'inline-block';
+                    
+                    // Actualizar cada segundo
+                    if (sessionTimerInterval) clearInterval(sessionTimerInterval);
+                    sessionTimerInterval = setInterval(updateTimer, 1000);
+                    updateTimer();
+                }
+            } catch (error) {
+                console.error('Error obteniendo tiempo de sesión:', error);
+            }
+        }
+        
+        function updateTimer() {
+            if (!sessionStartTime) return;
+            
+            const now = new Date();
+            const elapsed = Math.floor((now - sessionStartTime) / 1000);
+            
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('sessionTimer').textContent = timeString;
+        }
+        
+        // Aplicar colores del partido dinámicamente
+        function applyPartyColors(partyColor) {
+            const style = document.createElement('style');
+            style.innerHTML = `
+                .deputy-header {
+                    border-left-color: ${partyColor} !important;
+                }
+                .deputy-avatar {
+                    border-color: ${partyColor} !important;
+                }
+                .vote-btn:hover {
+                    box-shadow: 0 10px 25px ${partyColor}33 !important;
+                }
+                .party-badge {
+                    background-color: ${partyColor} !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Cargar configuración del sistema
+        async function loadSystemConfig() {
+            try {
+                const response = await fetch('/api/configuracion/public');
+                if (response.ok) {
+                    const config = await response.json();
+                    const logosDiv = document.getElementById('congressLogos');
+                    
+                    if (config.logo_congreso) {
+                        logosDiv.innerHTML += `<img src="${config.logo_congreso}" alt="Logo Principal">`;
+                    }
+                    if (config.logo_secundario) {
+                        logosDiv.innerHTML += `<img src="${config.logo_secundario}" alt="Logo Secundario">`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
+            }
+        }
+        
+        // Verificar cargo en mesa directiva
+        function updateCoordinatorInfo(data) {
+            // Obtener el nombre del coordinador desde la base de datos
+            let coordinatorName = data.nombre_coordinador || '';
+            let partyLogo = '';
+            
+            if (data.partido && coordinatorName) {
+                
+                // Configurar logo del partido
+                const partyLogos = {
+                    'MORENA': '/images/partidos/morena.svg',
+                    'PAN': '/images/partidos/pan.svg',
+                    'PRI': '/images/partidos/pri.svg',
+                    'PT': '/images/partidos/pt.svg',
+                    'PVEM': '/images/partidos/pvem.svg',
+                    'MC': '/images/partidos/mc.svg',
+                    'PRD': '/images/partidos/prd.svg',
+                    'PNA': '/images/partidos/pna.svg',
+                    'NUEVA ALIANZA': '/images/partidos/nueva-alianza.svg'
+                };
+                
+                partyLogo = partyLogos[data.partido] || '';
+                
+                // Actualizar el navbar
+                const coordinatorInfo = document.getElementById('coordinatorInfo');
+                const coordinatorNameElement = document.getElementById('coordinatorName');
+                const coordinatorPartyLogo = document.getElementById('coordinatorPartyLogo');
+                
+                if (coordinatorInfo && coordinatorNameElement) {
+                    coordinatorNameElement.textContent = coordinatorName;
+                    coordinatorInfo.style.display = 'inline-block';
+                    
+                    if (partyLogo && coordinatorPartyLogo) {
+                        coordinatorPartyLogo.src = partyLogo;
+                        coordinatorPartyLogo.alt = data.partido;
+                        coordinatorPartyLogo.style.display = 'inline-block';
+                    }
+                }
+            }
+        }
+        
+        function checkIfSecretary() {
+            console.log('Verificando cargo mesa directiva:', user.cargo_mesa_directiva);
+            console.log('Usuario completo:', user);
+            
+            // Mostrar menú de secretario
+            if (user.cargo_mesa_directiva === 'secretario1' || user.cargo_mesa_directiva === 'secretario2') {
+                console.log('Es secretario, mostrando menú');
+                document.getElementById('secretaryMenu').style.display = 'block';
+            }
+            
+            // Mostrar panel de control de presidente/vicepresidente
+            if (user.cargo_mesa_directiva === 'presidente') {
+                console.log('Es presidente, mostrando panel de control');
+                document.getElementById('presidentControls').style.display = 'block';
+                checkSessionStatus();
+            } else if (user.cargo_mesa_directiva === 'vicepresidente') {
+                console.log('Es vicepresidente, verificando autorización');
+                verificarAutorizacionVicepresidente();
+            }
+        }
+        
+        // Verificar autorización del vicepresidente
+        async function verificarAutorizacionVicepresidente() {
+            try {
+                const response = await fetch('/api/secretario/vicepresidente-autorizado', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.autorizado) {
+                        console.log('Vicepresidente autorizado para funciones de presidente');
+                        document.getElementById('presidentControls').style.display = 'block';
+                        checkSessionStatus();
+                    } else {
+                        console.log('Vicepresidente no autorizado');
+                        document.getElementById('presidentControls').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error verificando autorización:', error);
+                document.getElementById('presidentControls').style.display = 'none';
+            }
+        }
+        
+        // Listener para cambios de autorización en tiempo real
+        socket.on('autorizacion-vicepresidente-cambiada', (data) => {
+            if (user.cargo_mesa_directiva === 'vicepresidente') {
+                if (data.autorizado) {
+                    alert(`Has sido autorizado por ${data.autorizado_por} para usar funciones del Presidente`);
+                    document.getElementById('presidentControls').style.display = 'block';
+                    checkSessionStatus();
+                } else {
+                    alert('Tu autorización para usar funciones del Presidente ha sido revocada');
+                    document.getElementById('presidentControls').style.display = 'none';
+                }
+            }
+        });
+        
+        // Verificar estado de la sesión para presidente/vicepresidente
+        async function checkSessionStatus() {
+            try {
+                const response = await fetch('/api/diputado/estado-sesion', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                updateSessionControls(data);
+            } catch (error) {
+                console.error('Error obteniendo estado de sesión:', error);
+            }
+        }
+        
+        function updateSessionControls(data) {
+            const statusDiv = document.getElementById('sessionControlStatus');
+            const btnIniciar = document.getElementById('btnIniciarSesion');
+            const btnClausurar = document.getElementById('btnClausurarSesion');
+            const statsDiv = document.getElementById('sessionStats');
+            
+            if (data.sesion_activa) {
+                statusDiv.innerHTML = `
+                    <div class="alert alert-info">
+                        <strong>Sesión Activa:</strong> ${data.sesion.nombre}<br>
+                        <small>Iniciada: ${new Date(data.sesion.fecha).toLocaleString('es-MX')}</small>
+                    </div>
+                `;
+                
+                btnIniciar.style.display = 'none';
+                btnClausurar.style.display = data.puede_clausurar ? 'block' : 'none';
+                
+                // Mostrar botón de recordatorios si es presidente o vicepresidente autorizado
+                const btnRecordatorios = document.getElementById('btnRecordatorios');
+                if (btnRecordatorios) {
+                    btnRecordatorios.style.display = (isPresidente || (user.cargo_mesa_directiva === 'vicepresidente' && data.puede_clausurar)) ? 'block' : 'none';
+                }
+                
+                if (data.estadisticas) {
+                    statsDiv.style.display = 'block';
+                    statsDiv.innerHTML = `
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <h5>${data.estadisticas.total_iniciativas}</h5>
+                                <small>Iniciativas</small>
+                            </div>
+                            <div class="col-4">
+                                <h5>${data.estadisticas.votaciones_cerradas}</h5>
+                                <small>Cerradas</small>
+                            </div>
+                            <div class="col-4">
+                                <h5>${data.estadisticas.votaciones_activas}</h5>
+                                <small>Activas</small>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                // Mensaje según si hay iniciativas cargadas o no
+                let mensaje = '';
+                if (data.mensaje_iniciativas) {
+                    mensaje = `
+                        <div class="alert alert-warning">
+                            <strong>No hay sesión activa</strong><br>
+                            <small class="text-danger">${data.mensaje_iniciativas}</small>
+                        </div>
+                    `;
+                } else {
+                    mensaje = `
+                        <div class="alert alert-warning">
+                            <strong>No hay sesión activa</strong><br>
+                            <small>Puedes iniciar una nueva sesión legislativa</small>
+                        </div>
+                    `;
+                }
+                
+                statusDiv.innerHTML = mensaje;
+                
+                // Mostrar botón solo si puede iniciar Y hay iniciativas
+                btnIniciar.style.display = data.puede_iniciar ? 'block' : 'none';
+                btnIniciar.disabled = !data.iniciativas_cargadas;
+                
+                // Actualizar texto del botón si está deshabilitado
+                if (!data.iniciativas_cargadas && data.puede_iniciar) {
+                    btnIniciar.title = 'El operador debe cargar las iniciativas primero';
+                    btnIniciar.classList.add('btn-secondary');
+                    btnIniciar.classList.remove('btn-success');
+                } else if (data.puede_iniciar) {
+                    btnIniciar.title = 'Iniciar nueva sesión legislativa';
+                    btnIniciar.classList.add('btn-success');
+                    btnIniciar.classList.remove('btn-secondary');
+                }
+                
+                btnClausurar.style.display = 'none';
+                statsDiv.style.display = 'none';
+            }
+        }
+        
+        // Iniciar sesión
+        async function iniciarSesion() {
+            if (!confirm('¿Deseas iniciar una nueva sesión legislativa?')) return;
+            
+            try {
+                const response = await fetch('/api/diputado/iniciar-sesion', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Sesión iniciada correctamente');
+                    checkSessionStatus();
+                    startSessionTimer(); // Reiniciar cronómetro
+                } else {
+                    alert(data.error || 'Error al iniciar sesión');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al iniciar sesión');
+            }
+        }
+        
+        // Clausurar sesión
+        async function clausurarSesion() {
+            if (!confirm('¿Estás seguro de clausurar la sesión? Esto cerrará todas las votaciones activas.')) return;
+            
+            try {
+                const response = await fetch('/api/diputado/clausurar-sesion', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(`Sesión clausurada correctamente.\n\nEstadísticas:\n- Iniciativas: ${data.estadisticas.total_iniciativas}\n- Aprobadas: ${data.estadisticas.aprobadas}\n- Rechazadas: ${data.estadisticas.rechazadas}`);
+                    checkSessionStatus();
+                    sessionStartTime = null; // Detener cronómetro
+                    if (sessionTimerInterval) {
+                        clearInterval(sessionTimerInterval);
+                        sessionTimerInterval = null;
+                    }
+                    document.getElementById('sessionTimer').textContent = '00:00:00';
+                } else {
+                    alert(data.error || 'Error al clausurar sesión');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al clausurar sesión');
+            }
+        }
+        
+        // Ir a pase de lista
+        function goToAttendance() {
+            window.location.href = '/pase-lista';
+        }
+        
+        // Regresar a votación
+        function backToVoting() {
+            window.location.href = '/diputado';
+        }
+        
+        
+        // Funciones de recordatorios para presidente
+        async function mostrarDiputadosSinVoto() {
+            try {
+                const response = await fetch('/api/diputado/diputados-sin-voto', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!data.iniciativa) {
+                    alert('No hay votación activa');
+                    return;
+                }
+                
+                // Mostrar info de iniciativa
+                document.getElementById('iniciativaInfo').innerHTML = `
+                    <strong>Iniciativa #${data.iniciativa.numero}:</strong> ${data.iniciativa.descripcion || data.iniciativa.titulo || 'Sin descripción'}
+                `;
+                
+                // Actualizar contador
+                document.getElementById('totalSinVoto').textContent = data.total_sin_voto;
+                
+                // Mostrar lista de diputados
+                const tbody = document.getElementById('listaDiputadosSinVoto');
+                if (data.diputados_sin_voto.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-success">Todos los diputados han votado</td></tr>';
+                } else {
+                    tbody.innerHTML = data.diputados_sin_voto.map(dip => `
+                        <tr>
+                            <td>${dip.nombre_completo}</td>
+                            <td><span class="badge bg-secondary">${dip.partido}</span></td>
+                            <td>${dip.cargo_mesa_directiva || '-'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" onclick="enviarRecordatorio(${dip.id}, ${data.iniciativa.id}, '${dip.nombre_completo}')">
+                                    <i class="fas fa-bell"></i> Recordar
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+                
+                // Guardar ID de iniciativa para uso posterior
+                window.currentIniciativaId = data.iniciativa.id;
+                
+                recordatoriosModal.show();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cargar diputados sin voto');
+            }
+        }
+        
+        // Enviar recordatorio individual
+        async function enviarRecordatorio(diputadoId, iniciativaId, nombreDiputado) {
+            if (!confirm(`¿Enviar recordatorio a ${nombreDiputado}?`)) return;
+            
+            try {
+                const response = await fetch('/api/diputado/enviar-recordatorio', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        diputado_id: diputadoId,
+                        iniciativa_id: iniciativaId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(data.mensaje);
+                    // Actualizar lista
+                    mostrarDiputadosSinVoto();
+                } else {
+                    alert(data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al enviar recordatorio');
+            }
+        }
+
+        // Configurar listener para recordatorios de voto
+        function setupRecordatorioListener() {
+            // Escuchar recordatorios específicos para este usuario
+            socket.on(`recordatorio-voto-${user.id}`, (data) => {
+                mostrarNotificacionRecordatorio(data);
+            });
+        }
+        
+        // Mostrar notificación no invasiva de recordatorio
+        function mostrarNotificacionRecordatorio(data) {
+            // Crear elemento de notificación si no existe
+            let notifContainer = document.getElementById('notificacionRecordatorio');
+            if (!notifContainer) {
+                notifContainer = document.createElement('div');
+                notifContainer.id = 'notificacionRecordatorio';
+                notifContainer.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 9999;
+                    max-width: 400px;
+                `;
+                document.body.appendChild(notifContainer);
+            }
+            
+            // Crear notificación
+            const notifId = 'notif-' + Date.now();
+            const notifHtml = `
+                <div id="${notifId}" class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <strong><i class="fas fa-bell"></i> Recordatorio de Votación</strong><br>
+                    <small>De: ${data.cargo_enviador}</small><br>
+                    <hr class="my-2">
+                    ${data.mensaje}<br>
+                    <button type="button" class="btn-close" onclick="document.getElementById('${notifId}').remove()"></button>
+                </div>
+            `;
+            
+            notifContainer.insertAdjacentHTML('beforeend', notifHtml);
+            
+            // Auto-remover después de 10 segundos
+            setTimeout(() => {
+                const notif = document.getElementById(notifId);
+                if (notif) {
+                    notif.classList.add('fade');
+                    setTimeout(() => notif.remove(), 500);
+                }
+            }, 10000);
+            
+            // Si el diputado puede votar, resaltar el botón de voto
+            if (!isPresidente && !isSecretario && currentInitiative) {
+                const voteButtons = document.querySelectorAll('.vote-btn');
+                voteButtons.forEach(btn => {
+                    btn.classList.add('pulse-animation');
+                    setTimeout(() => btn.classList.remove('pulse-animation'), 3000);
+                });
+            }
+        }
+        
+        // Modal de recordatorios (solo para presidente)
+        const recordatoriosModal = isPresidente ? new bootstrap.Modal(document.getElementById('recordatoriosModal')) : null;
+        
+        // Variables para streaming
+        let streamSocket = null;
+        let device = null;
+        let transport = null;
+        let consumer = null;
+        let isStreamConnected = false;
+        let streamMode = 'webrtc'; // 'webrtc' o 'hls'
+        
+        // Conectar al servidor de streaming
+        function connectStreamingServer() {
+            streamSocket = io('http://localhost:3001', {
+                transports: ['websocket'],
+                reconnection: true
+            });
+            
+            streamSocket.on('connect', () => {
+                console.log('Conectado al servidor de streaming');
+            });
+            
+            // Escuchar cuando hay stream disponible
+            streamSocket.on('stream-live', (data) => {
+                console.log('Stream en vivo disponible:', data);
+                document.getElementById('liveButtonContainer').style.display = 'block';
+                
+                // Mostrar notificación
+                showStreamNotification('La transmisión del pleno está en vivo');
+            });
+            
+            streamSocket.on('stream-ended', () => {
+                console.log('Stream terminado');
+                document.getElementById('liveButtonContainer').style.display = 'none';
+                closeLiveStream();
+            });
+            
+            // Actualizar contador de espectadores
+            streamSocket.on('viewer-count', (data) => {
+                document.getElementById('viewerCount').textContent = data.count;
+            });
+        }
+        
+        // Mostrar notificación de stream
+        function showStreamNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'stream-notification';
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-broadcast-tower text-danger me-3"></i>
+                    <div>
+                        <strong>Transmisión en Vivo</strong>
+                        <div class="small text-muted">${message}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+        
+        // Toggle stream
+        async function toggleLiveStream() {
+            const container = document.getElementById('streamContainer');
+            
+            if (container.style.display === 'none' || container.style.display === '') {
+                container.style.display = 'block';
+                await connectToStream();
+            } else {
+                closeLiveStream();
+            }
+        }
+        
+        // Conectar al stream
+        async function connectToStream() {
+            try {
+                // Intentar WebRTC primero para baja latencia
+                if (typeof mediasoupClient !== 'undefined') {
+                    await connectWebRTC();
+                } else {
+                    // Fallback a HLS
+                    connectHLS();
+                }
+            } catch (error) {
+                console.error('Error conectando al stream:', error);
+                // Fallback a HLS si WebRTC falla
+                connectHLS();
+            }
+        }
+        
+        // Conectar usando WebRTC (baja latencia)
+        async function connectWebRTC() {
+            try {
+                // Obtener capacidades del router
+                const response = await fetch('http://localhost:3001/api/streaming/capabilities');
+                const routerRtpCapabilities = await response.json();
+                
+                // Crear device
+                device = new mediasoupClient.Device();
+                await device.load({ routerRtpCapabilities });
+                
+                // Notificar al servidor que queremos consumir
+                streamSocket.emit('consume-stream', {
+                    rtpCapabilities: device.rtpCapabilities,
+                    diputadoId: user.id,
+                    nombre: user.nombre_completo || user.nombre
+                });
+                
+                // Esperar transport
+                streamSocket.on('transport-created', async (params) => {
+                    // Crear transport de recepción
+                    transport = device.createRecvTransport(params);
+                    
+                    // Manejar conexión
+                    transport.on('connect', ({ dtlsParameters }, callback) => {
+                        streamSocket.emit('connect-transport', { dtlsParameters });
+                        streamSocket.once('transport-connected', callback);
+                    });
+                    
+                    // Solicitar consumir
+                    streamSocket.emit('consume', { transportId: transport.id });
+                });
+                
+                // Recibir consumer
+                streamSocket.on('consumer-created', async (params) => {
+                    // Crear consumer
+                    consumer = await transport.consume({
+                        id: params.id,
+                        producerId: params.producerId,
+                        kind: params.kind,
+                        rtpParameters: params.rtpParameters
+                    });
+                    
+                    // Mostrar video
+                    const video = document.getElementById('remoteVideo');
+                    const stream = new MediaStream();
+                    stream.addTrack(consumer.track);
+                    video.srcObject = stream;
+                    
+                    isStreamConnected = true;
+                    streamMode = 'webrtc';
+                    console.log('✅ Conectado via WebRTC (baja latencia)');
+                });
+                
+                // Manejar no stream disponible
+                streamSocket.on('no-stream-available', () => {
+                    console.log('No hay stream disponible, intentando HLS...');
+                    connectHLS();
+                });
+                
+            } catch (error) {
+                console.error('Error en WebRTC:', error);
+                throw error;
+            }
+        }
+        
+        // Conectar usando HLS (fallback)
+        function connectHLS() {
+            const video = document.getElementById('remoteVideo');
+            const videoSrc = 'http://localhost:8000/live/congreso/index.m3u8';
+            
+            if (Hls.isSupported()) {
+                const hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    backBufferLength: 90
+                });
+                
+                hls.loadSource(videoSrc);
+                hls.attachMedia(video);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(e => console.log('Autoplay bloqueado:', e));
+                    isStreamConnected = true;
+                    streamMode = 'hls';
+                    console.log('✅ Conectado via HLS');
+                });
+                
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        console.error('Error fatal HLS:', data);
+                        alert('No se pudo conectar al stream');
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // iOS Safari nativo
+                video.src = videoSrc;
+                video.addEventListener('loadedmetadata', () => {
+                    video.play().catch(e => console.log('Autoplay bloqueado:', e));
+                    isStreamConnected = true;
+                    streamMode = 'hls';
+                });
+            } else {
+                alert('Tu navegador no soporta streaming HLS');
+            }
+            
+            // Notificar que está viendo
+            if (streamSocket) {
+                streamSocket.emit('viewer-joined', {
+                    diputadoId: user.id,
+                    nombre: user.nombre_completo || user.nombre
+                });
+            }
+        }
+        
+        // Cerrar stream
+        function closeLiveStream() {
+            const container = document.getElementById('streamContainer');
+            container.style.display = 'none';
+            
+            const video = document.getElementById('remoteVideo');
+            video.pause();
+            
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            
+            if (consumer) {
+                consumer.close();
+                consumer = null;
+            }
+            
+            if (transport) {
+                transport.close();
+                transport = null;
+            }
+            
+            isStreamConnected = false;
+            
+            // Notificar desconexión
+            if (streamSocket) {
+                streamSocket.emit('viewer-left', {
+                    diputadoId: user.id
+                });
+            }
+        }
+        
+        // Picture in Picture
+        async function togglePiP() {
+            const video = document.getElementById('remoteVideo');
+            
+            try {
+                if (document.pictureInPictureElement) {
+                    await document.exitPictureInPicture();
+                } else if (document.pictureInPictureEnabled) {
+                    await video.requestPictureInPicture();
+                } else {
+                    alert('Picture-in-Picture no está soportado en este navegador');
+                }
+            } catch (error) {
+                console.error('Error en PiP:', error);
+            }
+        }
+        
+        // Pantalla completa
+        function toggleFullscreen() {
+            const container = document.getElementById('streamContainer');
+            
+            if (!document.fullscreenElement) {
+                container.classList.add('fullscreen');
+                container.requestFullscreen().catch(err => {
+                    console.error('Error en pantalla completa:', err);
+                });
+            } else {
+                document.exitFullscreen();
+                container.classList.remove('fullscreen');
+            }
+        }
+        
+        // Modo minimal
+        function toggleMinimal() {
+            const container = document.getElementById('streamContainer');
+            container.classList.toggle('minimal');
+        }
+        
+        // Cambiar calidad
+        async function changeQuality(quality) {
+            if (streamMode === 'webrtc' && consumer && streamSocket) {
+                streamSocket.emit('change-quality', {
+                    consumerId: consumer.id,
+                    quality
+                });
+            }
+            // Para HLS, la calidad se adapta automáticamente
+        }
+        
+        // Inicializar conexión de streaming al cargar
+        connectStreamingServer();
+        
+        // Inicializar al cargar
+        loadSystemConfig();
+        if (typeof setupRecordatorioListener === 'function') {
+            setupRecordatorioListener();
+        }
+    </script>
+
+    <!-- Modal de Recordatorios para Presidente -->
+    <div class="modal fade" id="recordatoriosModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="fas fa-bell"></i> Enviar Recordatorios de Votación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="iniciativaInfo" class="alert alert-light mb-3"></div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6>Diputados que no han votado: <span id="totalSinVoto" class="badge bg-danger">0</span></h6>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Diputado</th>
+                                    <th>Partido</th>
+                                    <th>Cargo</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="listaDiputadosSinVoto">
+                                <tr><td colspan="4" class="text-center">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); box-shadow: 0 0 15px rgba(255, 193, 7, 0.5); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse-animation {
+            animation: pulse 1s infinite;
+        }
+    </style>
+    
+    <!-- Modal para tablero simplificado -->
+    <div class="modal fade" id="tableroModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-th"></i> Tablero de Votación Simplificado
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <div id="tableroSimplificado">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Funciones del menú
+        function toggleMenu() {
+            const menu = document.getElementById('sideMenu');
+            const overlay = document.querySelector('.menu-overlay');
+            
+            menu.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+        
+        // Función para mostrar notificación de resultado
+        function mostrarNotificacionResultado(data) {
+            // Obtener los resultados de la última votación
+            fetch('/api/diputado/ultima-votacion-resultado', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(resultado => {
+                if (resultado && resultado.conteo) {
+                    const notification = document.createElement('div');
+                    notification.className = 'result-notification';
+                    notification.innerHTML = `
+                        <div class="notification-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-poll"></i> Votación Cerrada
+                            </h5>
+                            <button class="btn btn-sm btn-light" onclick="this.closest('.result-notification').remove()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="notification-body">
+                            <h6>${resultado.descripcion || 'Iniciativa votada'}</h6>
+                            <div class="result-stats">
+                                <div class="stat-item">
+                                    <div class="stat-circle favor">${resultado.conteo.favor || 0}</div>
+                                    <small>A Favor</small>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-circle contra">${resultado.conteo.contra || 0}</div>
+                                    <small>En Contra</small>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-circle abstencion">${resultado.conteo.abstencion || 0}</div>
+                                    <small>Abstención</small>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-center">
+                                <strong>Resultado: </strong>
+                                <span class="badge ${resultado.aprobada ? 'bg-success' : 'bg-danger'}">
+                                    ${resultado.aprobada ? 'APROBADA' : 'RECHAZADA'}
+                                </span>
+                            </div>
+                            <div class="countdown-bar">
+                                <div class="countdown-progress"></div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(notification);
+                    
+                    // Auto-cerrar después de 10 segundos
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 10000);
+                }
+            })
+            .catch(error => console.error('Error obteniendo resultado:', error));
+        }
+        
+        // Función para ver tablero simplificado
+        function verTableroSimplificado() {
+            toggleMenu();
+            
+            // Obtener estado actual del tablero
+            fetch('/api/pantalla/estado')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('tableroSimplificado');
+                    
+                    if (data.estado === 'sin_actividad') {
+                        container.innerHTML = `
+                            <div class="text-center py-5">
+                                <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                                <h5>Sin actividad de votación</h5>
+                                <p class="text-muted">No hay votaciones activas en este momento</p>
+                            </div>
+                        `;
+                    } else {
+                        // Crear tabla simplificada
+                        container.innerHTML = `
+                            <div class="mb-3">
+                                <h6>Iniciativa: ${data.iniciativa.descripcion || 'Sin descripción'}</h6>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h3 class="text-success">${data.conteo.favor}</h3>
+                                            <p>A Favor</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h3 class="text-danger">${data.conteo.contra}</h3>
+                                            <p>En Contra</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h3 class="text-warning">${data.conteo.abstencion}</h3>
+                                            <p>Abstención</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <h6>Detalle de Votos:</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Diputado</th>
+                                                <th>Partido</th>
+                                                <th>Voto</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.votos.map(v => `
+                                                <tr>
+                                                    <td>${v.nombre_completo}</td>
+                                                    <td><small>${v.partido || 'N/A'}</small></td>
+                                                    <td>
+                                                        ${v.voto === 'favor' ? '<span class="badge bg-success">A Favor</span>' :
+                                                          v.voto === 'contra' ? '<span class="badge bg-danger">En Contra</span>' :
+                                                          v.voto === 'abstencion' ? '<span class="badge bg-warning">Abstención</span>' :
+                                                          '<span class="badge bg-secondary">Sin voto</span>'}
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Mostrar modal
+                    const modal = new bootstrap.Modal(document.getElementById('tableroModal'));
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al cargar el tablero');
+                });
+        }
+        
+        // Función para ver historial de votaciones
+        function verHistorialVotaciones() {
+            toggleMenu();
+            window.location.href = '#historial';
+            document.getElementById('historialTab').click();
+        }
+        
+        // Función para ver estadísticas
+        function verEstadisticas() {
+            toggleMenu();
+            alert('Función de estadísticas en desarrollo');
+        }
+        
+        // Funciones para el Presidente de la Mesa Directiva
+        async function verListaIniciativas() {
+            toggleMenu();
+            
+            if (!isPresidente) {
+                alert('Solo el Presidente de la Mesa Directiva puede acceder a esta función');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('gestionIniciativasModal'));
+            modal.show();
+            
+            try {
+                const response = await fetch('/api/diputado/iniciativas-sesion', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    mostrarIniciativasPresidente(data.iniciativas || []);
+                } else {
+                    document.getElementById('listaIniciativasPresidente').innerHTML = 
+                        '<p class="text-danger">Error al cargar iniciativas</p>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('listaIniciativasPresidente').innerHTML = 
+                    '<p class="text-danger">Error de conexión</p>';
+            }
+        }
+        
+        function mostrarIniciativasPresidente(iniciativas) {
+            const container = document.getElementById('listaIniciativasPresidente');
+            
+            if (iniciativas.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">No hay iniciativas en la sesión actual</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="list-group">
+                    ${iniciativas.map(init => `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        ${init.numero}. ${init.descripcion || init.titulo || 'Sin descripción'}
+                                        ${init.activa ? '<span class="badge bg-success ms-2">EN VOTACIÓN</span>' : ''}
+                                        ${init.cerrada ? '<span class="badge bg-dark ms-2">CERRADA</span>' : ''}
+                                    </h6>
+                                    ${init.presentador ? `<small class="text-muted">Por: ${init.presentador}</small>` : ''}
+                                </div>
+                                <div>
+                                    ${!init.activa && !init.cerrada ? `
+                                        <button class="btn btn-sm btn-success" onclick="activarIniciativaPresidente(${init.id})">
+                                            <i class="fas fa-play"></i> Activar
+                                        </button>
+                                    ` : ''}
+                                    ${init.activa ? `
+                                        <button class="btn btn-sm btn-danger" onclick="cerrarVotacionPresidente(${init.id})">
+                                            <i class="fas fa-stop"></i> Cerrar
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        async function activarIniciativaPresidente(id) {
+            if (!confirm('¿Activar esta iniciativa para votación?')) return;
+            
+            try {
+                const response = await fetch(`/api/diputado/activar-iniciativa/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('Iniciativa activada para votación');
+                    verListaIniciativas(); // Recargar lista
+                    checkActiveInitiative(); // Actualizar panel principal
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al activar iniciativa');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al activar la iniciativa');
+            }
+        }
+        
+        async function cerrarVotacionPresidente(id) {
+            if (!confirm('¿Cerrar la votación de esta iniciativa?')) return;
+            
+            try {
+                const response = await fetch(`/api/diputado/cerrar-votacion/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(`Votación cerrada. Resultado: ${data.resultado}`);
+                    verListaIniciativas(); // Recargar lista
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al cerrar votación');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cerrar la votación');
+            }
+        }
+        
+        function verDiputadosPresentes() {
+            toggleMenu();
+            if (!isPresidente) {
+                alert('Solo el Presidente de la Mesa Directiva puede acceder a esta función');
+                return;
+            }
+            alert('Función de quórum en desarrollo');
+        }
+        
+        // Función para configuración
+        function abrirConfiguracion() {
+            toggleMenu();
+            alert('Función de configuración en desarrollo');
+        }
+    </script>
+
+    <script src="/js/theme-switcher.js"></script>
+</body>
+</html>
