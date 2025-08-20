@@ -1419,8 +1419,7 @@ router.post('/procesar-pdf-extraordinarias', upload.single('pdf'), async (req, r
                     numero: numeroActual++,
                     descripcion: linea.replace(/^\d+[\.\-\)]/, '').trim(),
                     tipo_mayoria: 'simple',
-                    tipo_iniciativa: 'extraordinaria',
-                    metodo_captura: 'pdf'
+                    tipo_iniciativa: 'extraordinaria'
                 };
             } else if (iniciativaActual && linea.trim()) {
                 // Continuar agregando a la descripción actual
@@ -1467,9 +1466,9 @@ router.post('/guardar-extraordinarias', async (req, res) => {
         // Insertar cada iniciativa extraordinaria
         const stmt = db.prepare(`
             INSERT INTO iniciativas (
-                sesion_id, numero, descripcion, 
+                sesion_id, numero, titulo, descripcion, 
                 presentador, partido_presentador, tipo_mayoria,
-                tipo_iniciativa, metodo_captura, created_at
+                tipo_iniciativa, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         
@@ -1477,12 +1476,12 @@ router.post('/guardar-extraordinarias', async (req, res) => {
             stmt.run(
                 sesion.id,
                 init.numero,
+                init.titulo || `Iniciativa Extraordinaria ${init.numero}`,
                 init.descripcion || '',
                 init.presentador || '',
                 init.partido_presentador || '',
                 init.tipo_mayoria || 'simple',
                 'extraordinaria',
-                'secretario',
                 new Date().toISOString(),
                 function(err) {
                     if (err) {

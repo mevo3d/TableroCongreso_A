@@ -859,7 +859,6 @@ router.post('/procesar-pdf-extraordinarias', upload.single('pdf'), async (req, r
         // Marcar todas como extraordinarias
         iniciativas.forEach(init => {
             init.tipo_iniciativa = 'extraordinaria';
-            init.metodo_captura = 'pdf';
         });
         
         res.json({
@@ -899,9 +898,9 @@ router.post('/guardar-extraordinarias', async (req, res) => {
         // Insertar cada iniciativa extraordinaria
         const stmt = db.prepare(`
             INSERT INTO iniciativas (
-                sesion_id, numero, descripcion, 
+                sesion_id, numero, titulo, descripcion, 
                 presentador, partido_presentador, tipo_mayoria,
-                tipo_iniciativa, metodo_captura, created_at
+                tipo_iniciativa, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         
@@ -909,12 +908,12 @@ router.post('/guardar-extraordinarias', async (req, res) => {
             stmt.run(
                 sesion.id,
                 init.numero,
+                init.titulo || `Iniciativa Extraordinaria ${init.numero}`,
                 init.descripcion || init.titulo || '',
                 init.presentador || '',
                 init.partido_presentador || '',
                 init.tipo_mayoria || 'simple',
                 'extraordinaria',
-                init.metodo_captura || 'manual',
                 new Date().toISOString(),
                 function(err) {
                     if (err) {
@@ -1063,9 +1062,9 @@ router.post('/cargar-sesion-precargada/:id', (req, res) => {
                         // Insertar iniciativas en la sesión activa
                         const stmt = db.prepare(`
                             INSERT INTO iniciativas (
-                                sesion_id, numero, descripcion,
+                                sesion_id, numero, titulo, descripcion,
                                 presentador, partido_presentador, tipo_mayoria,
-                                tipo_iniciativa, metodo_captura, created_at
+                                tipo_iniciativa, created_at
                             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         `);
                         
@@ -1074,12 +1073,12 @@ router.post('/cargar-sesion-precargada/:id', (req, res) => {
                             stmt.run(
                                 nuevaSesionId,
                                 init.numero,
+                                init.titulo || `Iniciativa ${init.numero}`,
                                 init.descripcion || init.titulo,
                                 init.presentador,
                                 init.partido_presentador,
                                 init.tipo_mayoria || 'simple',
                                 init.tipo_iniciativa || 'ordinaria',
-                                init.metodo_captura || 'servicios_legislativos',
                                 fecha,
                                 function(err) {
                                     if (!err) insertadas++;

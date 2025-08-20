@@ -2323,8 +2323,7 @@
                 presentador: document.getElementById('extPresentador').value,
                 partido_presentador: document.getElementById('extPartido').value,
                 tipo_mayoria: document.getElementById('extTipoMayoria').value,
-                tipo_iniciativa: 'extraordinaria',
-                metodo_captura: 'manual'
+                tipo_iniciativa: 'extraordinaria'
             };
             
             iniciativasExtraordinariasTemp.push(iniciativa);
@@ -2380,7 +2379,6 @@
                     // Agregar a la lista temporal
                     data.iniciativas.forEach(init => {
                         init.tipo_iniciativa = 'extraordinaria';
-                        init.metodo_captura = 'pdf';
                         iniciativasExtraordinariasTemp.push(init);
                     });
                     
@@ -2412,7 +2410,6 @@
                             <small class="text-muted d-block">
                                 ${init.presentador || 'Sin presentador'} 
                                 ${init.partido_presentador ? `(${init.partido_presentador})` : ''}
-                                - ${init.metodo_captura === 'pdf' ? '📄 PDF' : '⌨️ Manual'}
                             </small>
                         </div>
                         <button class="btn btn-sm btn-danger" onclick="eliminarExtraordinariaTemporal(${index})">
