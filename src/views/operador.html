@@ -700,6 +700,29 @@
         // Variable para rastrear el tipo de pantalla actual (definida al inicio)
         let currentScreenType = 'votacion';
         
+        // Función para mostrar notificaciones
+        function showNotification(message, type = 'info') {
+            const alertClass = type === 'success' ? 'alert-success' : 
+                             type === 'warning' ? 'alert-warning' : 
+                             type === 'danger' ? 'alert-danger' : 'alert-info';
+            
+            const notification = document.createElement('div');
+            notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 250px;';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-cerrar después de 3 segundos
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 150);
+            }, 3000);
+        }
+        
         // Variable para almacenar información de la sesión actual
         let sessionData = null;
         
@@ -1927,15 +1950,17 @@
             }
             
             container.innerHTML = modos.map(modo => `
-                <a href="#" class="list-group-item list-group-item-action" onclick="copiarURL('${modo.url}')">
+                <div class="list-group-item">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <strong>${modo.titulo}</strong>
                             <small class="d-block text-muted">${modo.desc}</small>
                         </div>
-                        <button class="btn btn-sm btn-outline-primary">Copiar URL</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="copiarURL('${modo.url}'); return false;">
+                            <i class="fas fa-copy"></i> Copiar URL
+                        </button>
                     </div>
-                </a>
+                </div>
             `).join('');
         }
         
@@ -1946,17 +1971,61 @@
                 path = path.replace('/pantalla', '/pantalla-asistencia');
             }
             const url = window.location.origin + path;
-            navigator.clipboard.writeText(url).then(() => {
-                alert('URL copiada al portapapeles');
-            });
-            event.preventDefault();
+            
+            // Usar la API del portapapeles con manejo de errores
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showNotification('✅ URL copiada al portapapeles', 'success');
+                }).catch(err => {
+                    console.error('Error al copiar:', err);
+                    // Fallback al método tradicional
+                    copiarConFallback(url);
+                });
+            } else {
+                // Fallback para navegadores sin soporte de clipboard API
+                copiarConFallback(url);
+            }
+            
+            if (event) event.preventDefault();
+            return false;
+        }
+        
+        // Fallback para copiar al portapapeles
+        function copiarConFallback(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showNotification('✅ URL copiada al portapapeles', 'success');
+            } catch (err) {
+                console.error('Error al copiar:', err);
+                prompt('Copia esta URL manualmente:', text);
+            }
+            document.body.removeChild(textArea);
         }
         
         function copiarCustomURL() {
             const url = document.getElementById('obsCustomURL').value;
-            navigator.clipboard.writeText(url).then(() => {
-                alert('URL personalizada copiada al portapapeles');
-            });
+            if (!url) {
+                showNotification('⚠️ No hay URL para copiar', 'warning');
+                return;
+            }
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showNotification('✅ URL personalizada copiada', 'success');
+                }).catch(err => {
+                    console.error('Error al copiar:', err);
+                    copiarConFallback(url);
+                });
+            } else {
+                copiarConFallback(url);
+            }
         }
         
         // Abrir vista previa OBS
@@ -1964,6 +2033,70 @@
             const url = document.getElementById('obsCustomURL').value;
             window.open(url, '_blank');
         }
+        
+        // Actualizar URL personalizada cuando cambian las opciones
+        function actualizarURLPersonalizada() {
+            if (!currentScreenType) return;
+            
+            const baseURL = currentScreenType === 'asistencia' ? '/pantalla-asistencia' : '/pantalla';
+            const params = [];
+            
+            // Obtener configuración
+            const resolution = document.getElementById('obsResolution')?.value;
+            const width = document.getElementById('obsWidth')?.value;
+            const height = document.getElementById('obsHeight')?.value;
+            const header = document.getElementById('obsHeader')?.checked;
+            const sidebar = document.getElementById('obsSidebar')?.checked;
+            const transparent = document.getElementById('obsTransparent')?.checked;
+            const minimal = document.getElementById('obsMinimal')?.checked;
+            
+            // Agregar parámetros según configuración
+            if (resolution && resolution !== '' && resolution !== 'custom') {
+                const [w, h] = resolution.split('x');
+                params.push(`width=${w}`);
+                params.push(`height=${h}`);
+            } else if (resolution === 'custom' && width && height) {
+                params.push(`width=${width}`);
+                params.push(`height=${height}`);
+            }
+            
+            if (!header) params.push('header=false');
+            if (!sidebar) params.push('sidebar=false');
+            if (transparent) params.push('transparent=true');
+            if (minimal) params.push('minimal=true');
+            params.push('obs=true');
+            
+            const url = `${window.location.origin}${baseURL}${params.length > 0 ? '?' + params.join('&') : ''}`;
+            const customURLInput = document.getElementById('obsCustomURL');
+            if (customURLInput) {
+                customURLInput.value = url;
+            }
+        }
+        
+        // Event listeners para actualización de URL
+        document.addEventListener('DOMContentLoaded', () => {
+            // Listeners para actualización automática de URL
+            ['obsResolution', 'obsWidth', 'obsHeight', 'obsHeader', 'obsSidebar', 'obsTransparent', 'obsMinimal'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', actualizarURLPersonalizada);
+                    if (id === 'obsWidth' || id === 'obsHeight') {
+                        element.addEventListener('input', actualizarURLPersonalizada);
+                    }
+                }
+            });
+            
+            // Habilitar campos de resolución personalizada
+            const resolutionSelect = document.getElementById('obsResolution');
+            if (resolutionSelect) {
+                resolutionSelect.addEventListener('change', function() {
+                    const isCustom = this.value === 'custom';
+                    document.getElementById('obsWidth').disabled = !isCustom;
+                    document.getElementById('obsHeight').disabled = !isCustom;
+                    actualizarURLPersonalizada();
+                });
+            }
+        });
         
         // Event listeners para actualización de URL
         // Función para cargar estado de sesión y habilitar exportación
