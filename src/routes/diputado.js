@@ -673,6 +673,45 @@ router.get('/ultima-votacion-resultado', (req, res) => {
     });
 });
 
+// Obtener estado del quórum
+router.get('/estado-quorum', (req, res) => {
+    const db = req.db;
+    
+    db.get(`
+        SELECT 
+            s.id as sesion_id,
+            s.quorum_minimo,
+            (SELECT COUNT(*) FROM usuarios WHERE role = 'diputado') as total_diputados,
+            (SELECT COUNT(*) 
+             FROM asistencia_diputados ad 
+             JOIN pase_lista pl ON ad.pase_lista_id = pl.id 
+             WHERE pl.sesion_id = s.id AND ad.presente = 1) as presentes
+        FROM sesiones s
+        WHERE s.activa = 1
+    `, (err, data) => {
+        if (err) {
+            console.error('Error obteniendo quórum:', err);
+            return res.status(500).json({ error: 'Error obteniendo estado del quórum' });
+        }
+        
+        if (!data) {
+            // Si no hay sesión activa, devolver valores por defecto
+            return res.json({
+                sesion_id: null,
+                quorum_minimo: 16, // Valor por defecto (2/3 de 24)
+                total_diputados: 24,
+                presentes: 0,
+                hay_quorum: false
+            });
+        }
+        
+        // Calcular si hay quórum
+        data.hay_quorum = data.presentes >= data.quorum_minimo;
+        
+        res.json(data);
+    });
+});
+
 // Obtener lista de iniciativas de la sesión (para presidente)
 router.get('/iniciativas-sesion', (req, res) => {
     const db = req.db;
@@ -790,8 +829,60 @@ router.post('/activar-iniciativa/:id', (req, res) => {
                     console.log(`Cerrando iniciativa activa #${iniciativaActiva.numero} para activar #${iniciativa.numero}`);
                 }
                 
-                // Desactivar TODAS las iniciativas activas de la sesión
-                db.run(`
+                // VALIDACIÓN DE QUÓRUM: Verificar asistencia antes de activar
+                db.get(`
+                    SELECT 
+                        s.quorum_minimo,
+                        s.id as sesion_id,
+                        (SELECT COUNT(*) FROM asistencia_diputados ad 
+                         JOIN pase_lista pl ON ad.pase_lista_id = pl.id 
+                         WHERE pl.sesion_id = s.id AND ad.presente = 1) as presentes,
+                        (SELECT COUNT(*) FROM usuarios WHERE role = 'diputado') as total_diputados
+                    FROM sesiones s
+                    WHERE s.id = ?
+                `, [iniciativa.sesion_id], (err, datosQuorum) => {
+                    if (err) {
+                        return res.status(500).json({ error: 'Error verificando quórum' });
+                    }
+                    
+                    // Determinar quórum requerido según tipo de mayoría
+                    let quorumRequerido = datosQuorum?.quorum_minimo || 11; // Por defecto mayoría simple (11 de 20)
+                    const totalDiputados = datosQuorum?.total_diputados || 20;
+                    const presentes = datosQuorum?.presentes || 0;
+                    
+                    // Ajustar quórum según tipo de mayoría de la iniciativa
+                    if (iniciativa.tipo_mayoria === 'calificada') {
+                        quorumRequerido = Math.ceil(totalDiputados * 2 / 3); // 2/3 del total
+                    } else if (iniciativa.tipo_mayoria === 'absoluta') {
+                        quorumRequerido = Math.ceil(totalDiputados / 2) + 1; // Mitad más uno del total
+                    } else if (iniciativa.tipo_mayoria === 'unanime') {
+                        quorumRequerido = totalDiputados; // Todos deben estar presentes
+                    }
+                    
+                    // Verificar si hay quórum suficiente
+                    if (presentes < quorumRequerido) {
+                        // Si no hay quórum pero el cliente insiste (force_quorum=true), permitir con advertencia
+                        if (!req.body.force_quorum) {
+                            return res.status(412).json({ // 412 Precondition Failed
+                                error: 'No hay quórum suficiente',
+                                quorum: {
+                                    presentes: presentes,
+                                    requerido: quorumRequerido,
+                                    total: totalDiputados,
+                                    tipo_mayoria: iniciativa.tipo_mayoria,
+                                    porcentaje: Math.round((presentes / totalDiputados) * 100)
+                                },
+                                requiere_confirmacion_quorum: true,
+                                mensaje: `No hay quórum suficiente. Se requieren ${quorumRequerido} diputados presentes pero solo hay ${presentes}. ¿Desea activar de todas formas?`,
+                                advertencia: 'La votación podría ser inválida sin el quórum requerido'
+                            });
+                        }
+                        
+                        console.log(`⚠️ Activando iniciativa SIN QUÓRUM: ${presentes}/${quorumRequerido} presentes`);
+                    }
+                    
+                    // Desactivar TODAS las iniciativas activas de la sesión
+                    db.run(`
                     UPDATE iniciativas 
                     SET activa = 0 
                     WHERE sesion_id = ? AND id != ?
@@ -1051,6 +1142,7 @@ router.post('/cerrar-votacion/:id', (req, res) => {
             });
         });
     });
+});
 });
 
 module.exports = router;

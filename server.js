@@ -5,6 +5,7 @@ const socketIo = require('socket.io');
 const path = require('path');
 const cors = require('cors');
 const { spawn } = require('child_process');
+const logger = require('./src/utils/logger');
 
 const app = express();
 const server = http.createServer(app);
@@ -53,6 +54,7 @@ const pantallaRoutes = require('./src/routes/pantalla');
 const superadminRoutes = require('./src/routes/superadmin');
 const paseListaRoutes = require('./src/routes/pase-lista');
 const exportarRoutes = require('./src/routes/exportar');
+const validacionPdfRoutes = require('./src/routes/validacion-pdf');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/operador', operadorRoutes);
@@ -63,6 +65,7 @@ app.use('/api/superadmin', superadminRoutes);
 app.use('/api/pase-lista', paseListaRoutes);
 app.use('/api/servicios-legislativos', require('./src/routes/servicios-legislativos'));
 app.use('/api/exportar', exportarRoutes);
+app.use('/api/validacion', validacionPdfRoutes);
 
 // Rutas de acceso de prueba (solo desarrollo)
 const testAccessRoutes = require('./src/routes/test-access');
@@ -158,9 +161,40 @@ app.get('/pase-lista-mejorado', (req, res) => {
 io.on('connection', (socket) => {
     console.log('Cliente conectado:', socket.id);
     
+    // Manejo de logs para consola en tiempo real
+    socket.on('console:subscribe', () => {
+        socket.join('console-logs');
+        
+        // Enviar logs históricos
+        const historicalLogs = logger.getLogs(100);
+        socket.emit('console:history', historicalLogs);
+        
+        console.log(`Cliente ${socket.id} suscrito a logs de consola`);
+    });
+    
+    socket.on('console:unsubscribe', () => {
+        socket.leave('console-logs');
+        console.log(`Cliente ${socket.id} desuscrito de logs de consola`);
+    });
+    
+    socket.on('console:clear', () => {
+        logger.clearLogs();
+        io.to('console-logs').emit('console:cleared');
+        console.log('Logs de consola limpiados');
+    });
+    
     socket.on('disconnect', () => {
         console.log('Cliente desconectado:', socket.id);
     });
+});
+
+// Escuchar nuevos logs y transmitirlos
+logger.on('newLog', (logEntry) => {
+    io.to('console-logs').emit('console:log', logEntry);
+});
+
+logger.on('logsCleared', () => {
+    io.to('console-logs').emit('console:cleared');
 });
 
 // Función para iniciar el servidor de streaming

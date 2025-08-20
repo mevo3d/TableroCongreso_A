@@ -79,6 +79,52 @@
             border-radius: 5px;
             background: #f9f9f9;
         }
+        
+        /* Estilos para la consola */
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+            border-left: 3px solid transparent;
+            line-height: 1.4;
+        }
+        .log-entry.log-log {
+            border-left-color: #888;
+            color: #d4d4d4;
+        }
+        .log-entry.log-info {
+            border-left-color: #2196F3;
+            color: #64B5F6;
+        }
+        .log-entry.log-warn {
+            border-left-color: #ff9800;
+            color: #FFB74D;
+        }
+        .log-entry.log-error {
+            border-left-color: #f44336;
+            color: #EF5350;
+        }
+        .log-entry.log-debug {
+            border-left-color: #9c27b0;
+            color: #BA68C8;
+        }
+        .log-timestamp {
+            color: #888;
+            font-size: 11px;
+            margin-right: 10px;
+        }
+        .log-type {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 11px;
+            margin-right: 8px;
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+        .log-type.type-log { background: #333; }
+        .log-type.type-info { background: #1976D2; }
+        .log-type.type-warn { background: #F57C00; }
+        .log-type.type-error { background: #D32F2F; }
+        .log-type.type-debug { background: #7B1FA2; }
     </style>
 </head>
 <body>
@@ -117,6 +163,16 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="configuracion-tab" data-bs-toggle="tab" data-bs-target="#configuracion" type="button">
                     <i class="fas fa-cog"></i> Configuración
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="consola-tab" data-bs-toggle="tab" data-bs-target="#consola" type="button">
+                    <i class="fas fa-terminal"></i> Consola
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="temas-tab" data-bs-toggle="tab" data-bs-target="#temas" type="button">
+                    <i class="fas fa-palette"></i> Personalización
                 </button>
             </li>
         </ul>
@@ -321,6 +377,245 @@
                                 <i class="fas fa-save"></i> Guardar Configuración
                             </button>
                         </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Consola Tab -->
+            <div class="tab-pane fade" id="consola" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-terminal"></i> Consola del Sistema</h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="toggleAutoScroll()">
+                                <i class="fas fa-arrows-alt-v"></i> <span id="autoScrollText">Auto-scroll: ON</span>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="clearConsole()">
+                                <i class="fas fa-trash"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="consoleOutput" style="
+                            background: #1e1e1e;
+                            color: #d4d4d4;
+                            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                            font-size: 13px;
+                            height: 600px;
+                            overflow-y: auto;
+                            padding: 10px;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        ">
+                            <div class="text-center text-muted p-3">
+                                <i class="fas fa-spinner fa-spin"></i> Conectando a la consola...
+                            </div>
+                        </div>
+                        <div class="border-top p-2 bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <span id="consoleStatus">
+                                        <i class="fas fa-circle text-danger"></i> Desconectado
+                                    </span>
+                                </small>
+                                <small class="text-muted">
+                                    Logs: <span id="logCount">0</span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Temas/Personalización Tab -->
+            <div class="tab-pane fade" id="temas" role="tabpanel">
+                <div class="row">
+                    <!-- Panel de Colores -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-palette"></i> Personalización de Colores</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <!-- Colores Principales -->
+                                    <div class="col-md-6">
+                                        <h6 class="mb-3">Colores Principales</h6>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Color Primario</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorPrimary" value="#2c3e50">
+                                                <input type="text" class="form-control" 
+                                                       id="colorPrimaryHex" value="#2c3e50" maxlength="7">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Color Secundario</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorSecondary" value="#7f8c8d">
+                                                <input type="text" class="form-control" 
+                                                       id="colorSecondaryHex" value="#7f8c8d" maxlength="7">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Color de Acento</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorAccent" value="#3498db">
+                                                <input type="text" class="form-control" 
+                                                       id="colorAccentHex" value="#3498db" maxlength="7">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Colores de Estado -->
+                                    <div class="col-md-6">
+                                        <h6 class="mb-3">Colores de Estado</h6>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Éxito (A Favor)</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorSuccess" value="#27ae60">
+                                                <input type="text" class="form-control" 
+                                                       id="colorSuccessHex" value="#27ae60" maxlength="7">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Peligro (En Contra)</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorDanger" value="#e74c3c">
+                                                <input type="text" class="form-control" 
+                                                       id="colorDangerHex" value="#e74c3c" maxlength="7">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Advertencia (Abstención)</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorWarning" value="#f39c12">
+                                                <input type="text" class="form-control" 
+                                                       id="colorWarningHex" value="#f39c12" maxlength="7">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Colores de Fondo -->
+                                    <div class="col-md-6">
+                                        <h6 class="mb-3">Fondos</h6>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Fondo Principal</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="bgPrimary" value="#f8f9fa">
+                                                <input type="text" class="form-control" 
+                                                       id="bgPrimaryHex" value="#f8f9fa" maxlength="7">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Fondo de Tarjetas</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="bgCard" value="#ffffff">
+                                                <input type="text" class="form-control" 
+                                                       id="bgCardHex" value="#ffffff" maxlength="7">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Temas Predefinidos -->
+                                    <div class="col-md-6">
+                                        <h6 class="mb-3">Temas Predefinidos</h6>
+                                        
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-outline-secondary" onclick="applyTheme('neutral')">
+                                                <i class="fas fa-circle-half-stroke"></i> Neutro (Por defecto)
+                                            </button>
+                                            <button class="btn btn-outline-primary" onclick="applyTheme('professional')">
+                                                <i class="fas fa-briefcase"></i> Profesional
+                                            </button>
+                                            <button class="btn btn-outline-dark" onclick="applyTheme('dark')">
+                                                <i class="fas fa-moon"></i> Oscuro
+                                            </button>
+                                            <button class="btn btn-outline-info" onclick="applyTheme('congress')">
+                                                <i class="fas fa-landmark"></i> Congreso
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Botones de acción -->
+                                <div class="mt-4 d-flex justify-content-between">
+                                    <button class="btn btn-secondary" onclick="resetColors()">
+                                        <i class="fas fa-undo"></i> Restablecer
+                                    </button>
+                                    <div>
+                                        <button class="btn btn-primary me-2" onclick="previewColors()">
+                                            <i class="fas fa-eye"></i> Vista Previa
+                                        </button>
+                                        <button class="btn btn-success" onclick="saveColors()">
+                                            <i class="fas fa-save"></i> Guardar Cambios
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Panel de Vista Previa -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-eye"></i> Vista Previa</h5>
+                            </div>
+                            <div class="card-body" id="themePreview">
+                                <div class="preview-container p-3" style="border-radius: 8px;">
+                                    <h6 class="preview-primary">Título Principal</h6>
+                                    <p class="preview-text">Texto de ejemplo para mostrar cómo se verán los colores.</p>
+                                    
+                                    <div class="mb-3">
+                                        <button class="btn preview-btn-primary btn-sm">Botón Primario</button>
+                                        <button class="btn preview-btn-secondary btn-sm ms-2">Secundario</button>
+                                    </div>
+                                    
+                                    <div class="preview-card p-2 mb-2">
+                                        <small>Tarjeta de ejemplo</small>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <span class="badge preview-badge-success">A Favor</span>
+                                        <span class="badge preview-badge-danger">En Contra</span>
+                                        <span class="badge preview-badge-warning">Abstención</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Información adicional -->
+                        <div class="card mt-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Información</h6>
+                                <p class="small text-muted">
+                                    Los cambios de color se aplicarán a todos los paneles del sistema 
+                                    excepto el panel de diputados.
+                                </p>
+                                <p class="small text-muted mb-0">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Los colores se guardan en la base de datos y se aplicarán 
+                                    automáticamente al iniciar sesión.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1126,6 +1421,402 @@
             localStorage.clear();
             window.location.href = '/';
         }
+        
+        // Funciones de la consola
+        let autoScroll = true;
+        let logCounter = 0;
+        
+        function initConsole() {
+            // Suscribirse a los logs de consola
+            socket.emit('console:subscribe');
+            
+            // Escuchar logs históricos
+            socket.on('console:history', (logs) => {
+                const consoleOutput = document.getElementById('consoleOutput');
+                consoleOutput.innerHTML = '';
+                logs.forEach(log => addLogToConsole(log));
+                updateStatus(true);
+            });
+            
+            // Escuchar nuevos logs
+            socket.on('console:log', (log) => {
+                addLogToConsole(log);
+            });
+            
+            // Escuchar limpieza de consola
+            socket.on('console:cleared', () => {
+                document.getElementById('consoleOutput').innerHTML = '<div class="text-center text-muted p-3">Consola limpiada</div>';
+                logCounter = 0;
+                document.getElementById('logCount').textContent = '0';
+            });
+            
+            // Manejar desconexión
+            socket.on('disconnect', () => {
+                updateStatus(false);
+            });
+            
+            socket.on('connect', () => {
+                updateStatus(true);
+                socket.emit('console:subscribe');
+            });
+        }
+        
+        function addLogToConsole(log) {
+            const consoleOutput = document.getElementById('consoleOutput');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry log-${log.type}`;
+            
+            const timestamp = new Date(log.timestamp).toLocaleTimeString('es-MX', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            
+            const typeLabel = document.createElement('span');
+            typeLabel.className = `log-type type-${log.type}`;
+            typeLabel.textContent = log.type.toUpperCase();
+            
+            const timestampSpan = document.createElement('span');
+            timestampSpan.className = 'log-timestamp';
+            timestampSpan.textContent = timestamp;
+            
+            const messageSpan = document.createElement('span');
+            messageSpan.textContent = log.message;
+            
+            logDiv.appendChild(timestampSpan);
+            logDiv.appendChild(typeLabel);
+            logDiv.appendChild(messageSpan);
+            
+            consoleOutput.appendChild(logDiv);
+            
+            // Auto-scroll si está habilitado
+            if (autoScroll) {
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+            
+            // Actualizar contador
+            logCounter++;
+            document.getElementById('logCount').textContent = logCounter;
+            
+            // Limitar el número de logs mostrados
+            const maxLogs = 1000;
+            while (consoleOutput.children.length > maxLogs) {
+                consoleOutput.removeChild(consoleOutput.firstChild);
+            }
+        }
+        
+        function updateStatus(connected) {
+            const statusEl = document.getElementById('consoleStatus');
+            if (connected) {
+                statusEl.innerHTML = '<i class="fas fa-circle text-success"></i> Conectado';
+            } else {
+                statusEl.innerHTML = '<i class="fas fa-circle text-danger"></i> Desconectado';
+            }
+        }
+        
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            document.getElementById('autoScrollText').textContent = `Auto-scroll: ${autoScroll ? 'ON' : 'OFF'}`;
+        }
+        
+        function clearConsole() {
+            Swal.fire({
+                title: '¿Limpiar consola?',
+                text: 'Se borrarán todos los logs de la consola',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, limpiar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    socket.emit('console:clear');
+                }
+            });
+        }
+        
+        // Inicializar consola cuando se hace clic en el tab
+        document.getElementById('consola-tab').addEventListener('shown.bs.tab', function() {
+            if (!socket.hasListeners('console:log')) {
+                initConsole();
+            }
+        });
+        
+        // Desuscribirse cuando se cambia de tab
+        document.getElementById('consola-tab').addEventListener('hidden.bs.tab', function() {
+            socket.emit('console:unsubscribe');
+        });
+        // ========== SISTEMA DE PERSONALIZACIÓN DE COLORES ==========
+        
+        // Sincronizar color picker con input de texto
+        document.querySelectorAll('input[type="color"]').forEach(colorInput => {
+            const hexInput = document.getElementById(colorInput.id + 'Hex');
+            
+            colorInput.addEventListener('input', (e) => {
+                hexInput.value = e.target.value;
+                updatePreview();
+            });
+            
+            hexInput.addEventListener('input', (e) => {
+                if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                    colorInput.value = e.target.value;
+                    updatePreview();
+                }
+            });
+        });
+        
+        // Temas predefinidos
+        const themes = {
+            neutral: {
+                colorPrimary: '#2c3e50',
+                colorSecondary: '#7f8c8d',
+                colorAccent: '#3498db',
+                colorSuccess: '#27ae60',
+                colorDanger: '#e74c3c',
+                colorWarning: '#f39c12',
+                bgPrimary: '#f8f9fa',
+                bgCard: '#ffffff'
+            },
+            professional: {
+                colorPrimary: '#1e3a5f',
+                colorSecondary: '#4a6fa5',
+                colorAccent: '#166fe5',
+                colorSuccess: '#00b74a',
+                colorDanger: '#f93154',
+                colorWarning: '#ffa900',
+                bgPrimary: '#f5f7fa',
+                bgCard: '#ffffff'
+            },
+            dark: {
+                colorPrimary: '#1a1d23',
+                colorSecondary: '#2c3139',
+                colorAccent: '#4a9eff',
+                colorSuccess: '#00d25b',
+                colorDanger: '#fc424a',
+                colorWarning: '#ffab00',
+                bgPrimary: '#0d0f14',
+                bgCard: '#1a1d23'
+            },
+            congress: {
+                colorPrimary: '#8b4513',
+                colorSecondary: '#cd853f',
+                colorAccent: '#daa520',
+                colorSuccess: '#228b22',
+                colorDanger: '#b22222',
+                colorWarning: '#ff8c00',
+                bgPrimary: '#faf0e6',
+                bgCard: '#ffffff'
+            }
+        };
+        
+        // Aplicar tema predefinido
+        function applyTheme(themeName) {
+            const theme = themes[themeName];
+            if (!theme) return;
+            
+            Object.keys(theme).forEach(key => {
+                const colorInput = document.getElementById(key);
+                const hexInput = document.getElementById(key + 'Hex');
+                if (colorInput && hexInput) {
+                    colorInput.value = theme[key];
+                    hexInput.value = theme[key];
+                }
+            });
+            
+            updatePreview();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Tema aplicado',
+                text: `Se ha aplicado el tema ${themeName}`,
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+        
+        // Actualizar vista previa
+        function updatePreview() {
+            const preview = document.getElementById('themePreview');
+            const container = preview.querySelector('.preview-container');
+            
+            const colors = {
+                primary: document.getElementById('colorPrimary').value,
+                secondary: document.getElementById('colorSecondary').value,
+                accent: document.getElementById('colorAccent').value,
+                success: document.getElementById('colorSuccess').value,
+                danger: document.getElementById('colorDanger').value,
+                warning: document.getElementById('colorWarning').value,
+                bgPrimary: document.getElementById('bgPrimary').value,
+                bgCard: document.getElementById('bgCard').value
+            };
+            
+            // Aplicar colores a la vista previa
+            container.style.backgroundColor = colors.bgPrimary;
+            
+            const primaryElement = container.querySelector('.preview-primary');
+            if (primaryElement) primaryElement.style.color = colors.primary;
+            
+            const cardElement = container.querySelector('.preview-card');
+            if (cardElement) {
+                cardElement.style.backgroundColor = colors.bgCard;
+                cardElement.style.border = `1px solid ${colors.secondary}40`;
+            }
+            
+            // Actualizar botones
+            const btnPrimary = container.querySelector('.preview-btn-primary');
+            if (btnPrimary) {
+                btnPrimary.style.backgroundColor = colors.primary;
+                btnPrimary.style.borderColor = colors.primary;
+            }
+            
+            const btnSecondary = container.querySelector('.preview-btn-secondary');
+            if (btnSecondary) {
+                btnSecondary.style.backgroundColor = colors.secondary;
+                btnSecondary.style.borderColor = colors.secondary;
+            }
+            
+            // Actualizar badges
+            const badges = {
+                '.preview-badge-success': colors.success,
+                '.preview-badge-danger': colors.danger,
+                '.preview-badge-warning': colors.warning
+            };
+            
+            Object.keys(badges).forEach(selector => {
+                const badge = container.querySelector(selector);
+                if (badge) {
+                    badge.style.backgroundColor = badges[selector];
+                }
+            });
+        }
+        
+        // Vista previa en tiempo real
+        function previewColors() {
+            // Aplicar temporalmente los colores al documento
+            const root = document.documentElement;
+            
+            root.style.setProperty('--primary-color', document.getElementById('colorPrimary').value);
+            root.style.setProperty('--secondary-color', document.getElementById('colorSecondary').value);
+            root.style.setProperty('--accent-color', document.getElementById('colorAccent').value);
+            root.style.setProperty('--success-color', document.getElementById('colorSuccess').value);
+            root.style.setProperty('--danger-color', document.getElementById('colorDanger').value);
+            root.style.setProperty('--warning-color', document.getElementById('colorWarning').value);
+            root.style.setProperty('--bg-primary', document.getElementById('bgPrimary').value);
+            root.style.setProperty('--bg-card', document.getElementById('bgCard').value);
+            
+            Swal.fire({
+                icon: 'info',
+                title: 'Vista previa activa',
+                text: 'Los colores se han aplicado temporalmente',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+        
+        // Guardar colores en la base de datos
+        async function saveColors() {
+            const colors = {
+                primary: document.getElementById('colorPrimary').value,
+                secondary: document.getElementById('colorSecondary').value,
+                accent: document.getElementById('colorAccent').value,
+                success: document.getElementById('colorSuccess').value,
+                danger: document.getElementById('colorDanger').value,
+                warning: document.getElementById('colorWarning').value,
+                bg_primary: document.getElementById('bgPrimary').value,
+                bg_card: document.getElementById('bgCard').value
+            };
+            
+            try {
+                const response = await fetch('/api/superadmin/theme-colors', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(colors)
+                });
+                
+                if (response.ok) {
+                    // Aplicar colores permanentemente
+                    Object.keys(colors).forEach(key => {
+                        const cssVar = '--' + key.replace('_', '-') + '-color';
+                        document.documentElement.style.setProperty(cssVar, colors[key]);
+                    });
+                    
+                    // Guardar en localStorage para persistencia
+                    localStorage.setItem('customThemeColors', JSON.stringify(colors));
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Colores guardados',
+                        text: 'Los colores se han guardado correctamente',
+                        confirmButtonText: 'Excelente'
+                    });
+                } else {
+                    throw new Error('Error al guardar colores');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudieron guardar los colores'
+                });
+            }
+        }
+        
+        // Restablecer colores por defecto
+        function resetColors() {
+            applyTheme('neutral');
+            
+            // Remover colores personalizados del localStorage
+            localStorage.removeItem('customThemeColors');
+            
+            // Restablecer variables CSS
+            const root = document.documentElement;
+            root.style.removeProperty('--primary-color');
+            root.style.removeProperty('--secondary-color');
+            root.style.removeProperty('--accent-color');
+            root.style.removeProperty('--success-color');
+            root.style.removeProperty('--danger-color');
+            root.style.removeProperty('--warning-color');
+            root.style.removeProperty('--bg-primary');
+            root.style.removeProperty('--bg-card');
+        }
+        
+        // Cargar colores guardados al iniciar
+        function loadSavedColors() {
+            const savedColors = localStorage.getItem('customThemeColors');
+            if (savedColors) {
+                const colors = JSON.parse(savedColors);
+                Object.keys(colors).forEach(key => {
+                    const inputId = key.replace('_', '').replace('bg', 'bg');
+                    const colorInput = document.getElementById(inputId === 'bgprimary' ? 'bgPrimary' : 
+                                                              inputId === 'bgcard' ? 'bgCard' : 
+                                                              'color' + inputId.charAt(0).toUpperCase() + inputId.slice(1));
+                    const hexInput = document.getElementById(colorInput ? colorInput.id + 'Hex' : null);
+                    
+                    if (colorInput && hexInput) {
+                        colorInput.value = colors[key];
+                        hexInput.value = colors[key];
+                    }
+                    
+                    // Aplicar al documento
+                    const cssVar = '--' + key.replace('_', '-') + '-color';
+                    document.documentElement.style.setProperty(cssVar, colors[key]);
+                });
+                updatePreview();
+            }
+        }
+        
+        // Cargar colores al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                loadSavedColors();
+                updatePreview();
+            }, 100);
+        });
+        
     </script>
     <script src="/js/theme-switcher.js"></script>
 </body>

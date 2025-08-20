@@ -32,9 +32,32 @@ router.post('/upload-pdf', upload.single('pdf'), async (req, res) => {
         }
         
         // Extraer iniciativas del archivo
-        const iniciativas = await pdfExtractor.extraerIniciativas(req.file.buffer, tipo);
+        const resultado = await pdfExtractor.extraerIniciativas(req.file.buffer, tipo);
         
-        if (iniciativas.length === 0) {
+        console.log('Resultado del extractor:', typeof resultado, 'Es array:', Array.isArray(resultado));
+        
+        // El extractor ahora devuelve un objeto con elementos y estadísticas
+        let iniciativasArray = [];
+        
+        // Manejar diferentes formatos de respuesta
+        if (Array.isArray(resultado)) {
+            // Es un array directo
+            iniciativasArray = resultado;
+        } else if (resultado && resultado.elementos) {
+            // Es un objeto con elementos
+            iniciativasArray = resultado.elementos;
+            console.log(`Extracción exitosa: ${resultado.estadisticas?.total || iniciativasArray.length} elementos encontrados`);
+            if (resultado.estadisticas) {
+                console.log(`Requieren votación: ${resultado.estadisticas.requierenVotacion}`);
+            }
+        } else if (resultado && resultado.iniciativas) {
+            // Compatibilidad con formato antiguo
+            iniciativasArray = resultado.iniciativas;
+        }
+        
+        console.log(`Total de iniciativas a procesar: ${iniciativasArray.length}`);
+        
+        if (!iniciativasArray || iniciativasArray.length === 0) {
             return res.status(400).json({ error: 'No se encontraron iniciativas en el archivo' });
         }
         
@@ -88,28 +111,78 @@ router.post('/upload-pdf', upload.single('pdf'), async (req, res) => {
                 
                 // Insertar iniciativas
                 let insertadas = 0;
-                iniciativas.forEach((iniciativa, index) => {
+                let errores = 0;
+                
+                console.log(`Insertando ${iniciativasArray.length} iniciativas en la sesión ${sesionId}`);
+                
+                if (iniciativasArray.length === 0) {
+                    // Si no hay iniciativas, responder inmediatamente
+                    req.io.emit('sesion-creada', { 
+                        sesionId,
+                        tipo: tipoCarga,
+                        estado: estadoSesion
+                    });
+                    return res.json({ 
+                        message: 'Sesión creada sin iniciativas',
+                        sesion_id: sesionId,
+                        iniciativas: 0,
+                        tipo_carga: tipoCarga,
+                        estado: estadoSesion
+                    });
+                }
+                
+                iniciativasArray.forEach((iniciativa, index) => {
+                    // Debug: ver qué campos tiene cada iniciativa
+                    if (index === 0) {
+                        console.log('Primera iniciativa - campos disponibles:', Object.keys(iniciativa));
+                        console.log('Valores:', iniciativa);
+                    }
+                    
+                    // Asegurar que los campos existan - CORREGIDO: titulo es requerido
+                    const numero = iniciativa.numero || (index + 1);
+                    const titulo = iniciativa.titulo || iniciativa.descripcion || `Iniciativa ${numero}`;
+                    const descripcion = iniciativa.descripcion || iniciativa.titulo || '';
+                    const presentador = iniciativa.presentador || '';
+                    const partido = iniciativa.partido || iniciativa.partido_presentador || '';
+                    const tipoMayoria = iniciativa.tipo_mayoria || 'simple';
+                    
+                    // Verificar que el título no esté vacío
+                    if (!titulo || titulo.trim() === '') {
+                        console.error(`Iniciativa ${numero} sin título, usando valor por defecto`);
+                    }
+                    
                     db.run(
-                        `INSERT INTO iniciativas (sesion_id, numero, descripcion, presentador, partido_presentador) 
-                         VALUES (?, ?, ?, ?, ?)`,
-                        [sesionId, iniciativa.numero, iniciativa.descripcion || iniciativa.titulo, 
-                         iniciativa.presentador, iniciativa.partido],
+                        `INSERT INTO iniciativas (sesion_id, numero, titulo, descripcion, presentador, partido_presentador, tipo_mayoria) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        [sesionId, numero, titulo, descripcion, presentador, partido, tipoMayoria],
                         (err) => {
-                            if (!err) insertadas++;
+                            if (err) {
+                                console.error(`Error insertando iniciativa ${numero}:`, err);
+                                errores++;
+                            } else {
+                                insertadas++;
+                            }
                             
-                            if (index === iniciativas.length - 1) {
-                                req.io.emit('sesion-creada', { 
-                                    sesionId,
-                                    tipo: tipoCarga,
-                                    estado: estadoSesion
-                                });
-                                res.json({ 
-                                    message: 'PDF procesado correctamente',
-                                    sesion_id: sesionId,
-                                    iniciativas: insertadas,
-                                    tipo_carga: tipoCarga,
-                                    estado: estadoSesion
-                                });
+                            // Verificar si es la última iniciativa
+                            if (index === iniciativasArray.length - 1) {
+                                console.log(`Inserción completada: ${insertadas} exitosas, ${errores} errores`);
+                                
+                                // Esperar un momento para asegurar que todas las inserciones terminaron
+                                setTimeout(() => {
+                                    req.io.emit('sesion-creada', { 
+                                        sesionId,
+                                        tipo: tipoCarga,
+                                        estado: estadoSesion
+                                    });
+                                    res.json({ 
+                                        message: 'PDF procesado correctamente',
+                                        sesion_id: sesionId,
+                                        iniciativas: insertadas,
+                                        errores: errores,
+                                        tipo_carga: tipoCarga,
+                                        estado: estadoSesion
+                                    });
+                                }, 500); // Esperar 500ms para asegurar todas las inserciones
                             }
                         }
                     );
@@ -437,9 +510,12 @@ router.get('/sesiones-pendientes', (req, res) => {
     
     db.all(`
         SELECT s.*, 
-               COUNT(i.id) as total_iniciativas
+               COUNT(i.id) as total_iniciativas,
+               u.nombre_completo as creado_por_nombre,
+               u.role as creado_por_role
         FROM sesiones s
         LEFT JOIN iniciativas i ON s.id = i.sesion_id
+        LEFT JOIN usuarios u ON s.iniciada_por = u.id
         WHERE s.estado IN ('indefinida', 'programada', 'preparada')
         AND s.activa = 0
         GROUP BY s.id
@@ -1232,6 +1308,190 @@ router.put('/sesion/:sesionId/iniciativas', (req, res) => {
             });
         }
     );
+});
+
+// Guardar sesión como respaldo
+router.post('/guardar-sesion-respaldo', (req, res) => {
+    const { sesion_id, nombre, descripcion } = req.body;
+    const db = req.db;
+    
+    if (!sesion_id || !nombre) {
+        return res.status(400).json({ error: 'Datos incompletos' });
+    }
+    
+    // Verificar que existe la sesión
+    db.get('SELECT * FROM sesiones WHERE id = ?', [sesion_id], (err, sesion) => {
+        if (err || !sesion) {
+            return res.status(404).json({ error: 'Sesión no encontrada' });
+        }
+        
+        // Crear una nueva sesión precargada
+        db.run(
+            `INSERT INTO sesiones_precargadas (nombre_sesion, descripcion, estado, creado_por) 
+             VALUES (?, ?, 'disponible', ?)`,
+            [nombre, descripcion || '', req.user.id],
+            function(err) {
+                if (err) {
+                    console.error('Error creando sesión precargada:', err);
+                    return res.status(500).json({ error: 'Error al guardar sesión' });
+                }
+                
+                const sesionPrecargadaId = this.lastID;
+                
+                // Copiar todas las iniciativas
+                db.all(
+                    'SELECT * FROM iniciativas WHERE sesion_id = ? ORDER BY numero',
+                    [sesion_id],
+                    (err, iniciativas) => {
+                        if (err) {
+                            return res.status(500).json({ error: 'Error obteniendo iniciativas' });
+                        }
+                        
+                        let copiadas = 0;
+                        const total = iniciativas.length;
+                        
+                        if (total === 0) {
+                            return res.json({ 
+                                success: true, 
+                                message: 'Sesión guardada sin iniciativas',
+                                sesion_precargada_id: sesionPrecargadaId
+                            });
+                        }
+                        
+                        iniciativas.forEach((init, index) => {
+                            db.run(
+                                `INSERT INTO iniciativas_precargadas 
+                                (sesion_precargada_id, numero, numero_orden_dia, titulo, descripcion, 
+                                 tipo_mayoria, presentador, partido_presentador) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                                [
+                                    sesionPrecargadaId,
+                                    init.numero,
+                                    init.numero_orden_dia,
+                                    init.titulo,
+                                    init.descripcion,
+                                    init.tipo_mayoria,
+                                    init.presentador,
+                                    init.partido_presentador
+                                ],
+                                (err) => {
+                                    if (!err) copiadas++;
+                                    
+                                    if (index === total - 1) {
+                                        res.json({ 
+                                            success: true, 
+                                            message: 'Sesión guardada correctamente',
+                                            sesion_precargada_id: sesionPrecargadaId,
+                                            iniciativas_copiadas: copiadas,
+                                            total_iniciativas: total
+                                        });
+                                    }
+                                }
+                            );
+                        });
+                    }
+                );
+            }
+        );
+    });
+});
+
+// Limpiar todas las iniciativas de una sesión
+router.delete('/limpiar-sesion/:id', (req, res) => {
+    const { id } = req.params;
+    const db = req.db;
+    
+    // Verificar que la sesión existe y está activa
+    db.get('SELECT * FROM sesiones WHERE id = ? AND activa = 1', [id], (err, sesion) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando sesión' });
+        }
+        
+        if (!sesion) {
+            return res.status(404).json({ error: 'Sesión no encontrada o no está activa' });
+        }
+        
+        // Verificar que no hay votaciones activas
+        db.get(
+            'SELECT COUNT(*) as activas FROM iniciativas WHERE sesion_id = ? AND (activa = 1 OR cerrada = 1)',
+            [id],
+            (err, row) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error verificando votaciones' });
+                }
+                
+                if (row.activas > 0) {
+                    return res.status(400).json({ 
+                        error: 'No se puede limpiar la sesión con votaciones activas o cerradas' 
+                    });
+                }
+                
+                // Eliminar todas las iniciativas
+                db.run('DELETE FROM iniciativas WHERE sesion_id = ?', [id], function(err) {
+                    if (err) {
+                        console.error('Error eliminando iniciativas:', err);
+                        return res.status(500).json({ error: 'Error al limpiar sesión' });
+                    }
+                    
+                    const eliminadas = this.changes;
+                    
+                    // Emitir evento de actualización
+                    req.io.emit('sesion-limpiada', { 
+                        sesion_id: id,
+                        eliminadas: eliminadas
+                    });
+                    
+                    res.json({ 
+                        success: true, 
+                        message: 'Sesión limpiada correctamente',
+                        eliminadas: eliminadas
+                    });
+                });
+            }
+        );
+    });
+});
+
+// Eliminar sesión (solo si no está activa)
+router.delete('/sesion/:id', (req, res) => {
+    const { id } = req.params;
+    const db = req.db;
+    
+    // Verificar que la sesión no esté activa
+    db.get('SELECT * FROM sesiones WHERE id = ?', [id], (err, sesion) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando sesión' });
+        }
+        
+        if (!sesion) {
+            return res.status(404).json({ error: 'Sesión no encontrada' });
+        }
+        
+        if (sesion.activa) {
+            return res.status(400).json({ error: 'No se puede eliminar una sesión activa' });
+        }
+        
+        // Eliminar iniciativas de la sesión
+        db.run('DELETE FROM iniciativas WHERE sesion_id = ?', [id], (err) => {
+            if (err) {
+                console.error('Error eliminando iniciativas:', err);
+                return res.status(500).json({ error: 'Error eliminando iniciativas' });
+            }
+            
+            // Eliminar la sesión
+            db.run('DELETE FROM sesiones WHERE id = ?', [id], (err) => {
+                if (err) {
+                    console.error('Error eliminando sesión:', err);
+                    return res.status(500).json({ error: 'Error eliminando sesión' });
+                }
+                
+                res.json({ 
+                    success: true, 
+                    message: 'Sesión eliminada correctamente' 
+                });
+            });
+        });
+    });
 });
 
 module.exports = router;

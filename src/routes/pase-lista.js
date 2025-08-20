@@ -386,6 +386,79 @@ router.post('/rectificar', (req, res) => {
     });
 });
 
+// Activar pase de lista
+router.post('/activar', (req, res) => {
+    const db = req.db;
+    const io = req.io;
+    
+    // Verificar si hay una sesión activa
+    db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando sesión' });
+        }
+        
+        if (!sesion) {
+            return res.status(400).json({ error: 'No hay sesión activa' });
+        }
+        
+        // Verificar si ya hay un pase de lista activo
+        db.get(
+            'SELECT * FROM pase_lista WHERE sesion_id = ? AND finalizado = 0',
+            [sesion.id],
+            (err, paseActivo) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error verificando pase de lista' });
+                }
+                
+                if (paseActivo) {
+                    // Ya hay un pase activo, solo activar la pantalla
+                    io.emit('pase-lista-activado', {
+                        activo: true,
+                        sesion_id: sesion.id,
+                        pase_id: paseActivo.id
+                    });
+                    
+                    return res.json({
+                        success: true,
+                        message: 'Pase de lista ya activo',
+                        sesion_id: sesion.id,
+                        pase_id: paseActivo.id
+                    });
+                } else {
+                    // Crear nuevo pase de lista
+                    db.run(
+                        `INSERT INTO pase_lista (sesion_id, fecha, realizado_por, visible_pantalla) 
+                         VALUES (?, CURRENT_TIMESTAMP, ?, 1)`,
+                        [sesion.id, req.user.id],
+                        function(err) {
+                            if (err) {
+                                console.error('Error creando pase de lista:', err);
+                                return res.status(500).json({ error: 'Error creando pase de lista' });
+                            }
+                            
+                            const paseId = this.lastID;
+                            
+                            // Emitir evento para activar pantalla
+                            io.emit('pase-lista-activado', {
+                                activo: true,
+                                sesion_id: sesion.id,
+                                pase_id: paseId
+                            });
+                            
+                            res.json({
+                                success: true,
+                                message: 'Pase de lista activado',
+                                sesion_id: sesion.id,
+                                pase_id: paseId
+                            });
+                        }
+                    );
+                }
+            }
+        );
+    });
+});
+
 // Obtener estado para pantalla pública
 router.get('/pantalla', (req, res) => {
     const db = req.db;

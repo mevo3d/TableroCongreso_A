@@ -10,7 +10,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Verdana&display=swap');
         
         body {
-            background: #2c2c2c;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
             color: white;
             font-family: 'Montserrat', sans-serif;
             margin: 0;
@@ -27,585 +27,530 @@
         
         /* Encabezado */
         .header {
-            background: #1a1a1a;
-            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
             text-align: center;
-            border-bottom: 2px solid #444;
+            border-bottom: 3px solid #ff6b00;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
         
         .header h1 {
             color: white;
-            font-size: 2.2em;
+            font-size: 2.5em;
             margin: 0;
-            font-family: 'Montserrat', sans-serif;
             font-weight: 700;
-            letter-spacing: 1px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .header .subtitle {
+            color: #ff6b00;
+            font-size: 1.2em;
+            margin-top: 5px;
+            font-weight: 500;
         }
         
         /* Contenedor principal */
         .content-wrapper {
             flex: 1;
             display: flex;
+            flex-direction: column;
             overflow: hidden;
-            background: #2c2c2c;
-        }
-        
-        /* Grid de asistencia */
-        .attendance-grid-container {
-            flex: 1;
-            overflow-y: auto;
             padding: 20px;
         }
         
-        .attendance-grid {
+        /* Estadísticas */
+        .stats-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+        }
+        
+        .stat-box {
+            text-align: center;
+            padding: 10px 30px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-box.present {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        
+        .stat-box.absent {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        
+        .stat-box.pending {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin: 5px 0;
+        }
+        
+        /* Lista de diputados */
+        .deputies-container {
+            flex: 1;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .deputies-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 15px;
-            max-width: 1400px;
-            margin: 0 auto;
         }
         
-        @media (max-width: 1200px) {
-            .attendance-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        
-        @media (max-width: 900px) {
-            .attendance-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        
-        .deputy-card {
-            background: #333;
+        .deputy-item {
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
             padding: 15px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 15px;
             transition: all 0.3s;
             border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
         }
         
-        .deputy-card.present {
-            background: linear-gradient(135deg, #1a472a 0%, #2d5a2d 100%);
+        .deputy-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: #666;
+            transition: all 0.3s;
+        }
+        
+        .deputy-item.present::before {
+            background: #28a745;
+            width: 8px;
+        }
+        
+        .deputy-item.absent::before {
+            background: #dc3545;
+            width: 8px;
+        }
+        
+        .deputy-item.present {
+            background: rgba(40, 167, 69, 0.1);
             border-color: #28a745;
         }
         
-        .deputy-card.absent {
-            background: linear-gradient(135deg, #4a1a1a 0%, #5a2d2d 100%);
+        .deputy-item.absent {
+            background: rgba(220, 53, 69, 0.1);
             border-color: #dc3545;
         }
         
         .deputy-photo {
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid #666;
-            flex-shrink: 0;
-        }
-        
-        .deputy-photo-placeholder {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
+            border: 3px solid #444;
+            background: #555;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 20px;
-            color: white;
-            text-transform: uppercase;
-            flex-shrink: 0;
+            color: #999;
+            font-size: 24px;
+        }
+        
+        .deputy-item.present .deputy-photo {
+            border-color: #28a745;
+        }
+        
+        .deputy-item.absent .deputy-photo {
+            border-color: #dc3545;
         }
         
         .deputy-info {
             flex: 1;
-            min-width: 0;
         }
         
         .deputy-name {
-            font-family: 'Verdana', sans-serif;
-            font-size: 1em;
-            font-weight: bold;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 5px;
             color: white;
-            margin-bottom: 3px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
         
         .deputy-party {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
             font-size: 0.85em;
-            color: #ccc;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.2);
+            margin-bottom: 3px;
         }
         
-        .attendance-indicator {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
+        .deputy-status {
+            font-size: 0.9em;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
-        .attendance-indicator.present {
-            background: #28a745;
-            color: white;
+        .status-icon {
+            margin-right: 5px;
         }
         
-        .attendance-indicator.absent {
-            background: #dc3545;
-            color: white;
+        .deputy-item.present .deputy-status {
+            color: #28a745;
         }
         
-        .attendance-indicator.pending {
-            background: #6c757d;
-            color: white;
+        .deputy-item.absent .deputy-status {
+            color: #dc3545;
         }
         
-        /* Panel de resumen */
-        .summary-panel {
-            width: 320px;
-            background: #d4d4d4;
-            color: black;
-            padding: 30px 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            border-left: 2px solid #666;
+        /* Animaciones */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
         
-        .summary-header {
+        .updating {
+            animation: pulse 1s infinite;
+        }
+        
+        /* Colores de partidos */
+        .party-MORENA { background: #8B1B1B !important; }
+        .party-PAN { background: #1B4788 !important; }
+        .party-MC { background: #FF6B00 !important; }
+        .party-PT { background: #E31E24 !important; }
+        .party-PVEM { background: #00A550 !important; }
+        .party-PRI { background: #CD1C22 !important; }
+        .party-NUEVA-ALIANZA { background: #00B8B2 !important; }
+        
+        /* Mensaje de espera */
+        .waiting-message {
             text-align: center;
-            margin-bottom: 30px;
+            padding: 100px 20px;
+            color: #999;
         }
         
-        .summary-header h2 {
-            font-size: 2em;
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 700;
-            color: #333;
-            margin: 0;
-        }
-        
-        .attendance-stats {
-            width: 100%;
-            margin-top: 30px;
-        }
-        
-        .stat-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .waiting-message i {
+            font-size: 4em;
             margin-bottom: 20px;
-            padding: 15px;
-            background: white;
-            border-radius: 10px;
+            color: #666;
         }
         
-        .stat-label {
-            font-weight: bold;
-            font-size: 1.1em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .waiting-message h2 {
+            color: #ccc;
+            margin-bottom: 10px;
         }
         
-        .stat-value {
-            font-size: 1.8em;
-            font-weight: bold;
-        }
-        
-        .stat-item.present { border-left: 5px solid #28a745; }
-        .stat-item.absent { border-left: 5px solid #dc3545; }
-        .stat-item.total { border-left: 5px solid #6c757d; }
-        
-        /* Estado sin sesión */
-        .no-session {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            flex-direction: column;
-            background: #2c2c2c;
-        }
-        
-        .no-session i {
-            font-size: 5em;
-            margin-bottom: 20px;
-            opacity: 0.5;
-            color: #888;
-        }
-        
-        .no-session h2 {
-            opacity: 0.7;
-            color: #aaa;
-        }
-        
-        /* Scrollbar personalizada */
-        .attendance-grid-container::-webkit-scrollbar {
+        /* Scrollbar personalizado */
+        .deputies-container::-webkit-scrollbar {
             width: 8px;
         }
         
-        .attendance-grid-container::-webkit-scrollbar-track {
-            background: #1a1a1a;
-        }
-        
-        .attendance-grid-container::-webkit-scrollbar-thumb {
-            background: #666;
+        .deputies-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 4px;
         }
         
-        /* Modos OBS */
-        body.standalone-mode {
-            background: transparent !important;
+        .deputies-container::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
         }
         
-        body.standalone-mode .main-container {
-            background: transparent;
-        }
-        
-        body.standalone-mode.hide-header .header {
-            display: none !important;
-        }
-        
-        body.standalone-mode.transparent-bg {
-            background: transparent !important;
-        }
-        
-        body.standalone-mode.transparent-bg .main-container,
-        body.standalone-mode.transparent-bg .content-wrapper,
-        body.standalone-mode.transparent-bg .attendance-grid-container {
-            background: transparent !important;
-        }
-        
-        body.standalone-mode.transparent-bg .deputy-card {
-            background: rgba(51, 51, 51, 0.9);
-        }
-        
-        body.standalone-mode.transparent-bg .summary-panel {
-            background: rgba(212, 212, 212, 0.95);
-        }
-        
-        body.chromakey-mode {
-            background: #00ff00 !important;
-        }
-        
-        body.chromakey-mode .main-container {
-            background: #00ff00 !important;
-        }
-        
-        body.minimal-mode .deputy-card {
-            padding: 10px;
-        }
-        
-        body.minimal-mode .deputy-photo,
-        body.minimal-mode .deputy-photo-placeholder {
-            width: 40px;
-            height: 40px;
-        }
-        
-        body.minimal-mode .deputy-name {
-            font-size: 0.9em;
-        }
-        
-        /* Info overlay para OBS */
-        .obs-info {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 12px;
-            z-index: 10000;
-            display: none;
-        }
-        
-        body.show-obs-info .obs-info {
-            display: block;
-        }
-        
-        .logo-container {
-            margin: 20px auto;
-            text-align: center;
-        }
-        
-        .logo-container img {
-            max-height: 120px;
-            object-fit: contain;
-            margin: 0 10px;
+        .deputies-container::-webkit-scrollbar-thumb:hover {
+            background: #666;
         }
     </style>
 </head>
 <body>
-    <!-- Info panel para OBS -->
-    <div class="obs-info" id="obsInfo">
-        <div>Modo: <span id="obsMode">Normal</span></div>
-        <div>Resolución: <span id="obsResolution">Auto</span></div>
+    <div class="main-container">
+        <!-- Encabezado -->
+        <div class="header">
+            <h1>CONGRESO DEL ESTADO DE MORELOS</h1>
+            <div class="subtitle">REGISTRO DE ASISTENCIA</div>
+        </div>
+        
+        <!-- Contenedor principal -->
+        <div class="content-wrapper">
+            <!-- Estadísticas -->
+            <div class="stats-container" id="statsContainer" style="display: none;">
+                <div class="stat-box present">
+                    <div class="stat-label">Presentes</div>
+                    <div class="stat-value" id="presentCount">0</div>
+                </div>
+                <div class="stat-box absent">
+                    <div class="stat-label">Ausentes</div>
+                    <div class="stat-value" id="absentCount">0</div>
+                </div>
+                <div class="stat-box pending">
+                    <div class="stat-label">Sin Marcar</div>
+                    <div class="stat-value" id="pendingCount">0</div>
+                </div>
+            </div>
+            
+            <!-- Lista de diputados -->
+            <div class="deputies-container">
+                <div id="deputiesContent">
+                    <div class="waiting-message">
+                        <i class="fas fa-clock"></i>
+                        <h2>Esperando activación del pase de lista</h2>
+                        <p>El pase de lista será iniciado por el Secretario</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
-    <div class="main-container" id="mainContainer">
-        <!-- Contenido dinámico se cargará aquí -->
-    </div>
-
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        let attendanceData = null;
-        let configuracionSistema = {};
-        let obsConfig = {
-            mode: 'normal',
-            showHeader: true,
-            transparentBg: false,
-            chromakey: false,
-            minimal: false
-        };
+        let paseListaActivo = false;
+        let diputadosData = [];
+        let asistenciaData = {};
         
-        // Parsear parámetros URL para OBS
-        function parseOBSParams() {
-            const params = new URLSearchParams(window.location.search);
-            
-            if (params.get('standalone') === 'true' || params.get('obs') === 'true') {
-                document.body.classList.add('standalone-mode');
-                obsConfig.mode = 'standalone';
-            }
-            
-            if (params.get('header') === 'false' || params.get('noheader') === 'true') {
-                document.body.classList.add('hide-header');
-                obsConfig.showHeader = false;
-            }
-            
-            if (params.get('transparent') === 'true') {
-                document.body.classList.add('transparent-bg');
-                obsConfig.transparentBg = true;
-            }
-            
-            if (params.get('chromakey') === 'true') {
-                document.body.classList.add('chromakey-mode');
-                obsConfig.chromakey = true;
-            }
-            
-            if (params.get('minimal') === 'true') {
-                document.body.classList.add('minimal-mode');
-                obsConfig.minimal = true;
-            }
-            
-            if (params.get('info') === 'true') {
-                document.body.classList.add('show-obs-info');
-                updateOBSInfo();
-            }
-            
-            const width = params.get('width');
-            const height = params.get('height');
-            if (width && height) {
-                document.body.classList.add('custom-resolution');
-                const mainContainer = document.getElementById('mainContainer');
-                if (mainContainer) {
-                    mainContainer.style.width = `${width}px`;
-                    mainContainer.style.height = `${height}px`;
-                }
-            }
-        }
+        // Conectar al servidor
+        socket.on('connect', () => {
+            console.log('Conectado al servidor');
+            // Verificar estado inicial
+            verificarEstado();
+        });
         
-        function updateOBSInfo() {
-            document.getElementById('obsMode').textContent = obsConfig.mode;
-        }
-        
-        // Cargar configuración del sistema
-        async function loadConfiguracion() {
-            try {
-                const response = await fetch('/api/configuracion/public');
-                if (response.ok) {
-                    configuracionSistema = await response.json();
-                }
-            } catch (error) {
-                console.error('Error cargando configuración:', error);
+        // Escuchar activación del pase de lista
+        socket.on('pase-lista-activado', (data) => {
+            console.log('Pase de lista activado:', data);
+            if (data.activo) {
+                paseListaActivo = true;
+                cargarDiputados();
+                document.getElementById('statsContainer').style.display = 'flex';
             }
-        }
+        });
         
-        // Cargar estado de asistencia
-        async function loadAttendanceState() {
+        // Escuchar actualizaciones de asistencia
+        socket.on('asistencia-actualizada', (data) => {
+            console.log('Asistencia actualizada:', data);
+            if (paseListaActivo) {
+                actualizarAsistencia(data.diputado_id, data.asistencia);
+            }
+        });
+        
+        // Escuchar cuando se confirma el pase de lista
+        socket.on('pase-lista-confirmado', (data) => {
+            console.log('Pase de lista confirmado:', data);
+            mostrarResumenFinal(data);
+        });
+        
+        // Escuchar fin de sesión
+        socket.on('sesion-clausurada', () => {
+            paseListaActivo = false;
+            document.getElementById('deputiesContent').innerHTML = `
+                <div class="waiting-message">
+                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                    <h2>Sesión Finalizada</h2>
+                    <p>La sesión ha sido clausurada</p>
+                </div>
+            `;
+            document.getElementById('statsContainer').style.display = 'none';
+        });
+        
+        // Verificar estado inicial
+        async function verificarEstado() {
             try {
                 const response = await fetch('/api/pase-lista/pantalla');
                 const data = await response.json();
-                updateDisplay(data);
+                
+                if (data.paseActivo) {
+                    paseListaActivo = true;
+                    diputadosData = data.diputados || [];
+                    asistenciaData = data.asistencias || {};
+                    document.getElementById('statsContainer').style.display = 'flex';
+                    renderizarDiputados();
+                    actualizarEstadisticas();
+                }
             } catch (error) {
-                console.error('Error:', error);
-                showNoSession();
+                console.error('Error verificando estado:', error);
             }
         }
         
-        function updateDisplay(data) {
-            if (!data.activo) {
-                showNoSession();
+        // Cargar lista de diputados
+        async function cargarDiputados() {
+            try {
+                const response = await fetch('/api/pase-lista/pantalla');
+                const data = await response.json();
+                
+                diputadosData = data.diputados || [];
+                asistenciaData = data.asistencias || {};
+                renderizarDiputados();
+                actualizarEstadisticas();
+            } catch (error) {
+                console.error('Error cargando diputados:', error);
+            }
+        }
+        
+        // Renderizar lista de diputados
+        function renderizarDiputados() {
+            const container = document.getElementById('deputiesContent');
+            
+            if (!diputadosData || diputadosData.length === 0) {
+                container.innerHTML = `
+                    <div class="waiting-message">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <h2>Cargando lista de diputados...</h2>
+                    </div>
+                `;
                 return;
             }
             
-            showAttendance(data);
-        }
-        
-        function showNoSession() {
-            document.getElementById('mainContainer').innerHTML = `
-                <div class="no-session">
-                    <i class="fas fa-users-slash"></i>
-                    <h2>Sin Pase de Lista Activo</h2>
-                    <p>Esperando que se inicie el pase de lista...</p>
-                </div>
-            `;
-        }
-        
-        function getPartyColor(party) {
-            const colors = {
-                'MORENA': '#8B1B1B',
-                'PAN': '#1B4788',
-                'MC': '#FF6B00',
-                'PT': '#E31E24',
-                'PVEM': '#00A550',
-                'PRI': '#CD1C22',
-                'NUEVA ALIANZA': '#00B8B2'
-            };
-            return colors[party] || '#666';
-        }
-        
-        function showAttendance(data) {
-            const presentes = data.presentes || 0;
-            const ausentes = data.ausentes || 0;
-            const total = data.diputados.length;
-            
             const html = `
-                <div class="header">
-                    <h1>PASE DE LISTA - CONGRESO DEL ESTADO</h1>
-                </div>
-                
-                <div class="content-wrapper">
-                    <div class="attendance-grid-container">
-                        <div class="attendance-grid">
-                            ${data.diputados.map(d => {
-                                const isPresent = d.asistencia === 'presente';
-                                const isAbsent = d.asistencia === 'ausente';
-                                const partyColor = getPartyColor(d.partido);
-                                
-                                return `
-                                    <div class="deputy-card ${isPresent ? 'present' : isAbsent ? 'absent' : ''}">
-                                        ${d.foto_url ? 
-                                            `<img src="${d.foto_url}" class="deputy-photo" alt="${d.nombre_completo}">` :
-                                            `<div class="deputy-photo-placeholder" style="background-color: ${partyColor}">
-                                                ${d.nombre_completo.charAt(0)}
-                                            </div>`
-                                        }
-                                        <div class="deputy-info">
-                                            <div class="deputy-name">${d.nombre_completo}</div>
-                                            <div class="deputy-party">${d.partido || 'Sin partido'}</div>
-                                        </div>
-                                        <div class="attendance-indicator ${isPresent ? 'present' : isAbsent ? 'absent' : 'pending'}">
-                                            ${isPresent ? '✓' : isAbsent ? '✗' : '?'}
-                                        </div>
+                <div class="deputies-grid">
+                    ${diputadosData.map(diputado => {
+                        const asistencia = asistenciaData[diputado.id] || 'pendiente';
+                        const statusClass = asistencia === 'presente' ? 'present' : 
+                                          asistencia === 'ausente' ? 'absent' : '';
+                        const statusIcon = asistencia === 'presente' ? 'fa-check-circle' : 
+                                         asistencia === 'ausente' ? 'fa-times-circle' : 
+                                         'fa-question-circle';
+                        const statusText = asistencia === 'presente' ? 'PRESENTE' : 
+                                         asistencia === 'ausente' ? 'AUSENTE' : 
+                                         'SIN MARCAR';
+                        
+                        // Limpiar nombre del partido para clase CSS
+                        const partyClass = diputado.partido ? 
+                            'party-' + diputado.partido.replace(/\s+/g, '-').toUpperCase() : '';
+                        
+                        return `
+                            <div class="deputy-item ${statusClass}" data-id="${diputado.id}">
+                                <div class="deputy-photo">
+                                    ${diputado.foto_url ? 
+                                        `<img src="${diputado.foto_url}" alt="${diputado.nombre_completo}">` :
+                                        `<i class="fas fa-user"></i>`
+                                    }
+                                </div>
+                                <div class="deputy-info">
+                                    <div class="deputy-name">${diputado.nombre_completo}</div>
+                                    ${diputado.partido ? 
+                                        `<span class="deputy-party ${partyClass}">${diputado.partido}</span>` : 
+                                        ''
+                                    }
+                                    <div class="deputy-status">
+                                        <i class="fas ${statusIcon} status-icon"></i>
+                                        ${statusText}
                                     </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                    
-                    <div class="summary-panel">
-                        <div class="summary-header">
-                            <h2>RESUMEN</h2>
-                            ${configuracionSistema.nombre_congreso ? 
-                                `<p style="margin-top: 10px; color: #666;">${configuracionSistema.nombre_congreso}</p>` : ''
-                            }
-                        </div>
-                        
-                        ${configuracionSistema.logo_congreso || configuracionSistema.logo_secundario ? `
-                            <div class="logo-container">
-                                ${configuracionSistema.logo_congreso ? 
-                                    `<img src="${configuracionSistema.logo_congreso}" alt="Logo Principal">` : ''}
-                                ${configuracionSistema.logo_secundario ? 
-                                    `<img src="${configuracionSistema.logo_secundario}" alt="Logo Secundario">` : ''}
-                            </div>
-                        ` : ''}
-                        
-                        <div class="attendance-stats">
-                            <div class="stat-item present">
-                                <div class="stat-label">
-                                    <i class="fas fa-check-circle"></i>
-                                    Presentes
                                 </div>
-                                <div class="stat-value" style="color: #28a745;">${presentes}</div>
                             </div>
-                            
-                            <div class="stat-item absent">
-                                <div class="stat-label">
-                                    <i class="fas fa-times-circle"></i>
-                                    Ausentes
-                                </div>
-                                <div class="stat-value" style="color: #dc3545;">${ausentes}</div>
-                            </div>
-                            
-                            <div class="stat-item total">
-                                <div class="stat-label">
-                                    <i class="fas fa-users"></i>
-                                    Total
-                                </div>
-                                <div class="stat-value">${total}</div>
-                            </div>
-                        </div>
-                        
-                        ${data.finalizado ? `
-                            <div class="alert alert-info mt-3" style="background: white; border: 2px solid #17a2b8; color: #333;">
-                                <strong>Pase de Lista Finalizado</strong>
-                            </div>
-                        ` : `
-                            <div class="alert alert-warning mt-3" style="background: white; border: 2px solid #ffc107; color: #333;">
-                                <strong>En Proceso...</strong>
-                            </div>
-                        `}
-                    </div>
+                        `;
+                    }).join('')}
                 </div>
             `;
             
-            document.getElementById('mainContainer').innerHTML = html;
+            container.innerHTML = html;
         }
         
-        // Eventos de Socket.IO
-        socket.on('asistencia-marcada', () => {
-            loadAttendanceState();
-        });
-        
-        socket.on('pase-lista-finalizado', () => {
-            loadAttendanceState();
-        });
-        
-        socket.on('sesion-creada', () => {
-            loadAttendanceState();
-        });
-        
-        socket.on('sesion-cerrada', () => {
-            showNoSession();
-        });
-        
-        // Inicializar
-        parseOBSParams();
-        Promise.all([loadConfiguracion()]).then(() => {
-            loadAttendanceState();
-        });
-        
-        // Actualizar periódicamente
-        setInterval(loadAttendanceState, 3000);
-        
-        // Pantalla completa con F11
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'F11') {
-                e.preventDefault();
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen();
-                } else {
-                    document.exitFullscreen();
+        // Actualizar asistencia de un diputado
+        function actualizarAsistencia(diputadoId, asistencia) {
+            asistenciaData[diputadoId] = asistencia;
+            
+            const deputyElement = document.querySelector(`.deputy-item[data-id="${diputadoId}"]`);
+            if (deputyElement) {
+                // Remover clases anteriores
+                deputyElement.classList.remove('present', 'absent', 'updating');
+                
+                // Agregar nueva clase
+                if (asistencia === 'presente') {
+                    deputyElement.classList.add('present');
+                } else if (asistencia === 'ausente') {
+                    deputyElement.classList.add('absent');
                 }
+                
+                // Actualizar texto de estado
+                const statusElement = deputyElement.querySelector('.deputy-status');
+                if (statusElement) {
+                    const statusIcon = asistencia === 'presente' ? 'fa-check-circle' : 
+                                     asistencia === 'ausente' ? 'fa-times-circle' : 
+                                     'fa-question-circle';
+                    const statusText = asistencia === 'presente' ? 'PRESENTE' : 
+                                     asistencia === 'ausente' ? 'AUSENTE' : 
+                                     'SIN MARCAR';
+                    
+                    statusElement.innerHTML = `
+                        <i class="fas ${statusIcon} status-icon"></i>
+                        ${statusText}
+                    `;
+                }
+                
+                // Agregar animación
+                deputyElement.classList.add('updating');
+                setTimeout(() => {
+                    deputyElement.classList.remove('updating');
+                }, 500);
             }
-        });
+            
+            actualizarEstadisticas();
+        }
+        
+        // Actualizar estadísticas
+        function actualizarEstadisticas() {
+            let presentes = 0;
+            let ausentes = 0;
+            let sinMarcar = 0;
+            
+            diputadosData.forEach(diputado => {
+                const asistencia = asistenciaData[diputado.id];
+                if (asistencia === 'presente') {
+                    presentes++;
+                } else if (asistencia === 'ausente') {
+                    ausentes++;
+                } else {
+                    sinMarcar++;
+                }
+            });
+            
+            document.getElementById('presentCount').textContent = presentes;
+            document.getElementById('absentCount').textContent = ausentes;
+            document.getElementById('pendingCount').textContent = sinMarcar;
+        }
+        
+        // Mostrar resumen final
+        function mostrarResumenFinal(data) {
+            const container = document.getElementById('deputiesContent');
+            container.innerHTML = `
+                <div class="waiting-message">
+                    <i class="fas fa-check-circle" style="color: #28a745; font-size: 5em;"></i>
+                    <h2>Pase de Lista Confirmado</h2>
+                    <div style="font-size: 1.5em; margin-top: 20px;">
+                        <p><strong>Presentes:</strong> ${data.presentes}</p>
+                        <p><strong>Ausentes:</strong> ${data.ausentes}</p>
+                        <p><strong>Total:</strong> ${data.total}</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Auto-recargar cada 30 segundos por si hay cambios
+        setInterval(() => {
+            if (paseListaActivo) {
+                verificarEstado();
+            }
+        }, 30000);
     </script>
 </body>
 </html>

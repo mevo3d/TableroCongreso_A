@@ -152,22 +152,43 @@ router.post('/cargar-excel', upload.single('archivo'), async (req, res) => {
     }
 });
 
-// Obtener sesiones del usuario
+// Obtener sesiones del usuario y sesiones pendientes compartidas
 router.get('/mis-sesiones', (req, res) => {
     const db = req.db;
     const userId = req.user.id;
     
+    // Obtener todas las sesiones: las propias del usuario y las pendientes/indefinidas
     db.all(`
         SELECT 
-            sp.*,
-            COUNT(ip.id) as num_iniciativas
+            sp.id,
+            sp.codigo_sesion,
+            sp.nombre_sesion as nombre,
+            sp.descripcion,
+            sp.fecha_propuesta,
+            sp.estado,
+            sp.fecha_carga,
+            sp.cargada_por,
+            u.nombre as nombre_usuario,
+            COUNT(ip.id) as num_iniciativas,
+            CASE 
+                WHEN sp.cargada_por = ? THEN 'propia'
+                ELSE 'compartida'
+            END as tipo_sesion,
+            CASE
+                WHEN u.rol = 'servicios_legislativos' THEN 'Servicios'
+                WHEN u.rol = 'operador' THEN 'Operador'
+                ELSE u.rol
+            END as origen
         FROM sesiones_precargadas sp
         LEFT JOIN iniciativas_precargadas ip ON sp.id = ip.sesion_precargada_id
-        WHERE sp.cargada_por = ?
+        LEFT JOIN usuarios u ON sp.cargada_por = u.id
+        WHERE sp.cargada_por = ? 
+           OR sp.estado IN ('pendiente', 'indefinida')
         GROUP BY sp.id
         ORDER BY sp.fecha_carga DESC
-    `, [userId], (err, sesiones) => {
+    `, [userId, userId], (err, sesiones) => {
         if (err) {
+            console.error('Error obteniendo sesiones:', err);
             return res.status(500).json({ error: 'Error obteniendo sesiones' });
         }
         res.json(sesiones || []);

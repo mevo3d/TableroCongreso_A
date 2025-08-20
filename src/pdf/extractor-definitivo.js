@@ -515,32 +515,9 @@ function generarEstadisticas(elementos) {
     return stats;
 }
 
-/**
- * Función wrapper para compatibilidad con código existente
- * Puede devolver solo el array de elementos o el objeto completo
- */
-async function extraerIniciativasCompatible(pdfBuffer, tipo) {
-    const resultado = await extraerIniciativasDefinitivo(pdfBuffer);
-    
-    // Si el código espera solo un array, devolver elementos
-    // Para mantener compatibilidad con código existente
-    if (resultado && resultado.elementos) {
-        // Agregar propiedades del resultado como metadata a los elementos
-        resultado.elementos._metadata = {
-            estadisticas: resultado.estadisticas,
-            metadatos: resultado.metadatos,
-            votacionesInmediatas: resultado.votacionesInmediatas
-        };
-        return resultado.elementos;
-    }
-    
-    return resultado;
-}
-
 // Exportar funciones
 module.exports = {
     extraerIniciativas: extraerIniciativasDefinitivo,
-    extraerIniciativasCompatible,
     extraerIniciativasDefinitivo,
     CONFIGURACION_SECCIONES,
     PATRONES_ESPECIALES

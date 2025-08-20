@@ -1,0 +1,105 @@
+/* Variables de tema - Colores neutros por defecto */
+:root {
+    /* Colores principales - Neutros */
+    --primary-color: #2c3e50;        /* Gris azulado oscuro */
+    --primary-dark: #1a252f;         /* Más oscuro */
+    --primary-light: #34495e;        /* Más claro */
+    
+    /* Colores secundarios */
+    --secondary-color: #7f8c8d;      /* Gris medio */
+    --secondary-dark: #5d6d7e;       /* Gris oscuro */
+    --secondary-light: #95a5a6;      /* Gris claro */
+    
+    /* Colores de acento */
+    --accent-color: #3498db;          /* Azul suave */
+    --accent-hover: #2980b9;         /* Azul hover */
+    
+    /* Colores de fondo */
+    --bg-primary: #f8f9fa;           /* Gris muy claro */
+    --bg-secondary: #e9ecef;         /* Gris claro */
+    --bg-dark: #343a40;              /* Gris oscuro */
+    --bg-card: #ffffff;              /* Blanco para tarjetas */
+    
+    /* Colores de texto */
+    --text-primary: #212529;         /* Casi negro */
+    --text-secondary: #6c757d;       /* Gris texto */
+    --text-light: #adb5bd;           /* Gris claro */
+    --text-white: #ffffff;           /* Blanco */
+    
+    /* Colores de estado */
+    --success-color: #27ae60;        /* Verde suave */
+    --warning-color: #f39c12;        /* Amarillo/Naranja */
+    --danger-color: #e74c3c;         /* Rojo suave */
+    --info-color: #3498db;           /* Azul info */
+    
+    /* Sombras */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.07);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+    --shadow-xl: 0 20px 25px rgba(0,0,0,0.1);
+    
+    /* Bordes */
+    --border-color: #dee2e6;
+    --border-radius: 8px;
+    --border-radius-sm: 4px;
+    --border-radius-lg: 12px;
+    
+    /* Transiciones */
+    --transition-fast: 150ms ease-in-out;
+    --transition-normal: 300ms ease-in-out;
+    --transition-slow: 500ms ease-in-out;
+}
+
+/* Tema oscuro (opcional) */
+[data-theme="dark"] {
+    --primary-color: #1a1d23;
+    --primary-dark: #0d0f14;
+    --primary-light: #2c3139;
+    
+    --bg-primary: #1a1d23;
+    --bg-secondary: #22252c;
+    --bg-card: #2c3139;
+    
+    --text-primary: #e9ecef;
+    --text-secondary: #adb5bd;
+    --text-light: #6c757d;
+    
+    --border-color: #495057;
+}
+
+/* Clases de utilidad */
+.bg-neutral-gradient {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+}
+
+.text-neutral {
+    color: var(--text-secondary);
+}
+
+.btn-neutral {
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    transition: all var(--transition-normal);
+}
+
+.btn-neutral:hover {
+    background-color: var(--secondary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.card-neutral {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+}
+
+.card-neutral:hover {
+    box-shadow: var(--shadow-md);
+    transition: box-shadow var(--transition-normal);
+}

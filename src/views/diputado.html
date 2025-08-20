@@ -638,6 +638,13 @@
                         <small class="text-muted">Activar votaciones</small>
                     </div>
                 </a>
+                <a href="#" class="menu-item" onclick="abrirServiciosLegislativos()">
+                    <i class="fas fa-file-alt"></i>
+                    <div>
+                        <div>Servicios Legislativos</div>
+                        <small class="text-muted">Cargar orden del día</small>
+                    </div>
+                </a>
                 <a href="#" class="menu-item" onclick="verDiputadosPresentes()">
                     <i class="fas fa-users"></i>
                     <div>
@@ -824,7 +831,7 @@
             <div class="text-center mb-4">
                 <h2 class="text-primary">INICIATIVA EN VOTACIÓN</h2>
                 <div class="badge bg-info fs-6 mb-3">
-                    Iniciativa #<span id="initiativeNumber"></span>
+                    Iniciativa <span id="initiativeNumber"></span>
                 </div>
             </div>
             
@@ -907,6 +914,41 @@
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> Como Presidente de la Mesa Directiva, puedes activar iniciativas para votación.
                     </div>
+                    
+                    <!-- Indicador de Quórum -->
+                    <div id="indicadorQuorum" class="mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title mb-3">
+                                    <i class="fas fa-users"></i> Estado del Quórum
+                                </h6>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="h4 mb-0" id="quorumPresentes">0</div>
+                                        <small class="text-muted">Presentes</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h4 mb-0" id="quorumRequerido">0</div>
+                                        <small class="text-muted">Requerido</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h4 mb-0" id="quorumTotal">0</div>
+                                        <small class="text-muted">Total</small>
+                                    </div>
+                                </div>
+                                <div class="progress mt-3" style="height: 25px;">
+                                    <div id="quorumProgressBar" class="progress-bar" role="progressbar" 
+                                         style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                        <span id="quorumProgressText">0%</span>
+                                    </div>
+                                </div>
+                                <div id="quorumStatus" class="mt-2 text-center">
+                                    <span class="badge bg-secondary">Calculando...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div id="listaIniciativasPresidente">
                         <p class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando iniciativas...</p>
                     </div>
@@ -1070,7 +1112,10 @@
             document.getElementById('noVotingPanel').style.display = 'none';
             document.getElementById('votingPanel').style.display = 'block';
             
-            document.getElementById('initiativeNumber').textContent = initiative.numero;
+            const numeroFormato = initiative.numero_orden_dia ? 
+                `${initiative.numero}/${initiative.numero_orden_dia}` : 
+                initiative.numero;
+            document.getElementById('initiativeNumber').textContent = numeroFormato;
             document.getElementById('initiativeTitle').textContent = initiative.titulo;
             document.getElementById('initiativeDescription').textContent = initiative.descripcion || 'Sin descripción';
             document.getElementById('majorityType').textContent = getMajorityLabel(initiative.tipo_mayoria);
@@ -1911,8 +1956,11 @@
                 }
                 
                 // Mostrar info de iniciativa
+                const numeroFormato = data.iniciativa.numero_orden_dia ? 
+                    `${data.iniciativa.numero}/${data.iniciativa.numero_orden_dia}` : 
+                    data.iniciativa.numero;
                 document.getElementById('iniciativaInfo').innerHTML = `
-                    <strong>Iniciativa #${data.iniciativa.numero}:</strong> ${data.iniciativa.descripcion || data.iniciativa.titulo || 'Sin descripción'}
+                    <strong>Iniciativa ${numeroFormato}:</strong> ${data.iniciativa.titulo || data.iniciativa.descripcion || 'Sin descripción'}
                 `;
                 
                 // Actualizar contador
@@ -2587,6 +2635,9 @@
             const modal = new bootstrap.Modal(document.getElementById('gestionIniciativasModal'));
             modal.show();
             
+            // Cargar estado del quórum
+            actualizarEstadoQuorum();
+            
             try {
                 const response = await fetch('/api/diputado/iniciativas-sesion', {
                     headers: {
@@ -2605,6 +2656,54 @@
                 console.error('Error:', error);
                 document.getElementById('listaIniciativasPresidente').innerHTML = 
                     '<p class="text-danger">Error de conexión</p>';
+            }
+        }
+        
+        // Función para actualizar el estado del quórum
+        async function actualizarEstadoQuorum() {
+            try {
+                const response = await fetch('/api/diputado/estado-quorum', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Actualizar números
+                    document.getElementById('quorumPresentes').textContent = data.presentes || 0;
+                    document.getElementById('quorumRequerido').textContent = data.quorum_minimo || 0;
+                    document.getElementById('quorumTotal').textContent = data.total_diputados || 0;
+                    
+                    // Calcular porcentaje
+                    const porcentaje = data.total_diputados > 0 
+                        ? Math.round((data.presentes / data.total_diputados) * 100) 
+                        : 0;
+                    
+                    // Actualizar barra de progreso
+                    const progressBar = document.getElementById('quorumProgressBar');
+                    progressBar.style.width = `${porcentaje}%`;
+                    progressBar.setAttribute('aria-valuenow', porcentaje);
+                    document.getElementById('quorumProgressText').textContent = `${porcentaje}%`;
+                    
+                    // Determinar estado y color
+                    const hayQuorum = data.presentes >= data.quorum_minimo;
+                    const statusBadge = document.getElementById('quorumStatus');
+                    
+                    if (hayQuorum) {
+                        progressBar.className = 'progress-bar bg-success';
+                        statusBadge.innerHTML = '<span class="badge bg-success">✓ Quórum alcanzado</span>';
+                    } else {
+                        const faltantes = data.quorum_minimo - data.presentes;
+                        progressBar.className = 'progress-bar bg-warning';
+                        statusBadge.innerHTML = `<span class="badge bg-warning">⚠ Faltan ${faltantes} diputados</span>`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error actualizando quórum:', error);
+                document.getElementById('quorumStatus').innerHTML = 
+                    '<span class="badge bg-danger">Error al obtener quórum</span>';
             }
         }
         
@@ -2689,6 +2788,37 @@
                         // Llamar de nuevo con force=true
                         activarIniciativaPresidente(id, true);
                     }
+                } else if (response.status === 412) {
+                    // Quórum insuficiente
+                    const data = await response.json();
+                    
+                    // Crear mensaje informativo detallado
+                    let mensajeQuorum = `⚠️ ADVERTENCIA: QUÓRUM INSUFICIENTE\n\n`;
+                    mensajeQuorum += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                    mensajeQuorum += `Diputados presentes: ${data.presentes} de ${data.total_diputados}\n`;
+                    mensajeQuorum += `Quórum requerido: ${data.quorum_requerido} diputados\n`;
+                    mensajeQuorum += `Tipo de mayoría: ${data.tipo_mayoria.toUpperCase()}\n`;
+                    mensajeQuorum += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+                    mensajeQuorum += `${data.mensaje}\n\n`;
+                    mensajeQuorum += `¿Desea forzar la activación sin quórum?\n`;
+                    mensajeQuorum += `(Esta acción quedará registrada en el sistema)`;
+                    
+                    const confirmar = confirm(mensajeQuorum);
+                    
+                    if (confirmar) {
+                        // Confirmar nuevamente por la importancia de la acción
+                        const confirmarSegundo = confirm(
+                            '⚠️ CONFIRMACIÓN FINAL\n\n' +
+                            'Está a punto de activar una iniciativa SIN el quórum necesario.\n' +
+                            'Esta acción es excepcional y quedará registrada.\n\n' +
+                            '¿Está seguro de continuar?'
+                        );
+                        
+                        if (confirmarSegundo) {
+                            // Llamar de nuevo con force=true
+                            activarIniciativaPresidente(id, true);
+                        }
+                    }
                 } else {
                     const data = await response.json();
                     alert(data.error || 'Error al activar iniciativa');
@@ -2738,6 +2868,305 @@
         function abrirConfiguracion() {
             toggleMenu();
             alert('Función de configuración en desarrollo');
+        }
+
+        // Funciones de Servicios Legislativos
+        let iniciativasExtraccion = [];
+        
+        function abrirServiciosLegislativos() {
+            toggleMenu();
+            
+            if (!isPresidente && !isSecretario) {
+                alert('Solo el Presidente o Secretario de la Mesa Directiva pueden acceder a esta función');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalServiciosLegislativos'));
+            modal.show();
+            
+            // Cargar iniciativas existentes
+            cargarIniciativasSesion();
+        }
+        
+        // Cargar iniciativas de la sesión
+        async function cargarIniciativasSesion() {
+            try {
+                const response = await fetch('/api/diputado/iniciativas-sesion', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    mostrarIniciativasSesion(data.iniciativas || []);
+                }
+            } catch (error) {
+                console.error('Error cargando iniciativas:', error);
+            }
+        }
+        
+        // Mostrar iniciativas en la tabla
+        function mostrarIniciativasSesion(iniciativas) {
+            const container = document.getElementById('listaIniciativasSesion');
+            
+            if (iniciativas.length === 0) {
+                container.innerHTML = '<p class="text-muted">No hay iniciativas cargadas para esta sesión</p>';
+                return;
+            }
+            
+            let html = `
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Título</th>
+                            <th>Presentador</th>
+                            <th>Tipo Mayoría</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            iniciativas.forEach((ini, index) => {
+                const estado = ini.activa ? 'En Votación' : (ini.cerrada ? 'Cerrada' : 'Pendiente');
+                const badgeClass = ini.activa ? 'success' : (ini.cerrada ? 'secondary' : 'warning');
+                
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${ini.titulo}</td>
+                        <td>${ini.presentador || '-'}</td>
+                        <td>${ini.tipo_mayoria}</td>
+                        <td><span class="badge bg-${badgeClass}">${estado}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="editarIniciativa(${ini.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="eliminarIniciativa(${ini.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // Descargar plantilla Excel
+        function descargarPlantillaExcel() {
+            window.location.href = '/api/diputado/servicios-legislativos/plantilla-excel';
+        }
+        
+        // Cargar Excel
+        document.getElementById('formCargarExcel').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const archivo = document.getElementById('archivoExcel').files[0];
+            formData.append('archivo', archivo);
+            
+            try {
+                const response = await fetch('/api/diputado/servicios-legislativos/cargar-excel', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(`Se cargaron ${data.iniciativas.length} iniciativas correctamente`);
+                    cargarIniciativasSesion();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error al cargar el archivo Excel');
+                console.error(error);
+            }
+        });
+        
+        // Cargar PDF
+        document.getElementById('formCargarPDF').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const archivo = document.getElementById('archivoPDF').files[0];
+            formData.append('archivo', archivo);
+            
+            try {
+                const response = await fetch('/api/diputado/servicios-legislativos/cargar-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    iniciativasExtraccion = data.iniciativas;
+                    mostrarIniciativasExtraidas(data.iniciativas);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error al procesar el archivo PDF');
+                console.error(error);
+            }
+        });
+        
+        // Mostrar iniciativas extraídas del PDF
+        function mostrarIniciativasExtraidas(iniciativas) {
+            const container = document.getElementById('listaExtraccion');
+            let html = '<div class="list-group">';
+            
+            iniciativas.forEach((ini, index) => {
+                html += `
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6>${index + 1}. ${ini.titulo}</h6>
+                                <p class="mb-1 text-muted small">${ini.descripcion || ''}</p>
+                                <small>
+                                    ${ini.presentador ? `Presentador: ${ini.presentador}` : ''}
+                                    ${ini.partido ? ` | Partido: ${ini.partido}` : ''}
+                                    | Mayoría: ${ini.tipo_mayoria}
+                                </small>
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="quitarIniciativaExtraccion(${index})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+            document.getElementById('resultadoExtraccion').style.display = 'block';
+        }
+        
+        // Quitar iniciativa de la extracción
+        function quitarIniciativaExtraccion(index) {
+            iniciativasExtraccion.splice(index, 1);
+            mostrarIniciativasExtraidas(iniciativasExtraccion);
+            
+            if (iniciativasExtraccion.length === 0) {
+                document.getElementById('resultadoExtraccion').style.display = 'none';
+            }
+        }
+        
+        // Confirmar extracción del PDF
+        async function confirmarExtraccion() {
+            if (iniciativasExtraccion.length === 0) {
+                alert('No hay iniciativas para cargar');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/diputado/servicios-legislativos/confirmar-extraccion', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ iniciativas: iniciativasExtraccion })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(`Se cargaron ${data.count} iniciativas correctamente`);
+                    document.getElementById('resultadoExtraccion').style.display = 'none';
+                    document.getElementById('archivoPDF').value = '';
+                    cargarIniciativasSesion();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error al confirmar las iniciativas');
+                console.error(error);
+            }
+        }
+        
+        // Captura manual
+        document.getElementById('formCapturaManual').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const iniciativa = {
+                titulo: document.getElementById('manualTitulo').value,
+                descripcion: document.getElementById('manualDescripcion').value,
+                presentador: document.getElementById('manualPresentador').value,
+                partido: document.getElementById('manualPartido').value,
+                tipo_mayoria: document.getElementById('manualTipoMayoria').value,
+                tipo_iniciativa: document.getElementById('manualTipoIniciativa').value
+            };
+            
+            try {
+                const response = await fetch('/api/diputado/servicios-legislativos/captura-manual', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(iniciativa)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Iniciativa guardada correctamente');
+                    document.getElementById('formCapturaManual').reset();
+                    cargarIniciativasSesion();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error al guardar la iniciativa');
+                console.error(error);
+            }
+        });
+        
+        // Editar iniciativa
+        async function editarIniciativa(id) {
+            // Por ahora solo mostramos alerta
+            alert('Función de edición en desarrollo');
+        }
+        
+        // Eliminar iniciativa
+        async function eliminarIniciativa(id) {
+            if (!confirm('¿Está seguro de eliminar esta iniciativa?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/diputado/servicios-legislativos/iniciativa/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('Iniciativa eliminada correctamente');
+                    cargarIniciativasSesion();
+                } else {
+                    const data = await response.json();
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error al eliminar la iniciativa');
+                console.error(error);
+            }
         }
     </script>
 
@@ -2928,6 +3357,168 @@
             detenerTimer();
         });
     </script>
+
+    <!-- Modal Servicios Legislativos -->
+    <div class="modal fade" id="modalServiciosLegislativos" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-alt"></i> Servicios Legislativos - Orden del Día
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tabs de navegación -->
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#tabExcel">
+                                <i class="fas fa-file-excel"></i> Cargar Excel
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#tabPDF">
+                                <i class="fas fa-file-pdf"></i> Cargar PDF
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#tabManual">
+                                <i class="fas fa-keyboard"></i> Captura Manual
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#tabIniciativas">
+                                <i class="fas fa-list"></i> Iniciativas Cargadas
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Contenido de tabs -->
+                    <div class="tab-content">
+                        <!-- Tab Excel -->
+                        <div class="tab-pane fade show active" id="tabExcel">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Cargar desde archivo Excel</h6>
+                                    <p class="text-muted">Sube un archivo Excel con las iniciativas de la sesión</p>
+                                    
+                                    <div class="mb-3">
+                                        <button class="btn btn-info btn-sm" onclick="descargarPlantillaExcel()">
+                                            <i class="fas fa-download"></i> Descargar Plantilla
+                                        </button>
+                                    </div>
+                                    
+                                    <form id="formCargarExcel">
+                                        <div class="mb-3">
+                                            <input type="file" class="form-control" id="archivoExcel" accept=".xlsx,.xls" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-upload"></i> Cargar Iniciativas
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab PDF -->
+                        <div class="tab-pane fade" id="tabPDF">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Cargar desde archivo PDF</h6>
+                                    <p class="text-muted">Sube un archivo PDF del orden del día para extraer automáticamente las iniciativas</p>
+                                    
+                                    <form id="formCargarPDF">
+                                        <div class="mb-3">
+                                            <input type="file" class="form-control" id="archivoPDF" accept=".pdf" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-upload"></i> Procesar PDF
+                                        </button>
+                                    </form>
+                                    
+                                    <div id="resultadoExtraccion" class="mt-3" style="display: none;">
+                                        <h6>Iniciativas Extraídas</h6>
+                                        <div id="listaExtraccion"></div>
+                                        <button class="btn btn-success mt-3" onclick="confirmarExtraccion()">
+                                            <i class="fas fa-check"></i> Confirmar y Cargar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab Manual -->
+                        <div class="tab-pane fade" id="tabManual">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Captura Manual de Iniciativa</h6>
+                                    
+                                    <form id="formCapturaManual">
+                                        <div class="row">
+                                            <div class="col-md-12 mb-3">
+                                                <label>Título de la Iniciativa *</label>
+                                                <input type="text" class="form-control" id="manualTitulo" required>
+                                            </div>
+                                            
+                                            <div class="col-md-12 mb-3">
+                                                <label>Descripción</label>
+                                                <textarea class="form-control" id="manualDescripcion" rows="3"></textarea>
+                                            </div>
+                                            
+                                            <div class="col-md-6 mb-3">
+                                                <label>Presentador</label>
+                                                <input type="text" class="form-control" id="manualPresentador">
+                                            </div>
+                                            
+                                            <div class="col-md-6 mb-3">
+                                                <label>Partido/Fracción</label>
+                                                <input type="text" class="form-control" id="manualPartido">
+                                            </div>
+                                            
+                                            <div class="col-md-6 mb-3">
+                                                <label>Tipo de Mayoría *</label>
+                                                <select class="form-control" id="manualTipoMayoria" required>
+                                                    <option value="simple">Mayoría Simple</option>
+                                                    <option value="absoluta">Mayoría Absoluta</option>
+                                                    <option value="calificada">Mayoría Calificada (2/3)</option>
+                                                    <option value="unanime">Unanimidad</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="col-md-6 mb-3">
+                                                <label>Tipo de Iniciativa</label>
+                                                <select class="form-control" id="manualTipoIniciativa">
+                                                    <option value="ordinaria">Iniciativa Ordinaria</option>
+                                                    <option value="decreto">Decreto</option>
+                                                    <option value="punto_acuerdo">Punto de Acuerdo</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Guardar Iniciativa
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab Iniciativas Cargadas -->
+                        <div class="tab-pane fade" id="tabIniciativas">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Iniciativas de la Sesión</h6>
+                                    <div id="listaIniciativasSesion" class="table-responsive">
+                                        <!-- Se llenará dinámicamente -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="/js/theme-switcher.js"></script>
 </body>

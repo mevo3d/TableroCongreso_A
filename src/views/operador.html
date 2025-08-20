@@ -6,9 +6,30 @@
     <title>Panel Operador - Sistema de Votación</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/dark-theme.css">
+    <link rel="stylesheet" href="/css/theme-variables.css">
     <style>
-        .navbar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        /* Colores neutros */
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .navbar { 
+            background: #2c3e50;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card {
+            background: white;
+            border: 1px solid #ddd;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background: #ecf0f1 !important;
+            color: #2c3e50 !important;
+            border-bottom: 2px solid #bdc3c7;
+        }
+        .bg-purple {
+            background-color: #9b59b6 !important;
+        }
         .initiative-card {
             transition: transform 0.2s;
             cursor: pointer;
@@ -69,9 +90,15 @@
 <body>
     <nav class="navbar navbar-dark">
         <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">
-                <i class="fas fa-user-cog"></i> Panel Operador
-            </span>
+            <div class="d-flex align-items-center">
+                <img src="/uploads/logo-congreso.png" alt="Logo" style="height: 40px; margin-right: 15px;" 
+                     onerror="this.style.display='none'">
+                <span class="navbar-brand mb-0 h1">
+                    <i class="fas fa-user-cog"></i> Panel Operador - Congreso del Estado de Morelos
+                </span>
+                <img src="/uploads/logo-secundario.png" alt="Logo Sec" style="height: 35px; margin-left: 15px;" 
+                     onerror="this.style.display='none'">
+            </div>
             <div class="d-flex align-items-center">
                 <span class="text-white me-3" id="userName"></span>
                 <button class="btn btn-outline-light btn-sm" onclick="logout()">
@@ -235,12 +262,20 @@
             <!-- Lista de iniciativas -->
             <div class="col-md-5">
                 <div class="card">
-                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-list"></i> Iniciativas Cargadas</h5>
-                        <div>
-                            <button class="btn btn-warning btn-sm" onclick="mostrarModalExtraordinarias()">
-                                <i class="fas fa-plus-circle"></i> Agregar Extraordinarias
-                            </button>
+                    <div class="card-header bg-success text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-list"></i> Iniciativas Cargadas</h5>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-warning btn-sm" onclick="mostrarModalExtraordinarias()" title="Agregar iniciativas extraordinarias">
+                                    <i class="fas fa-plus-circle"></i> Extraordinarias
+                                </button>
+                                <button class="btn btn-info btn-sm" onclick="guardarSesion()" title="Guardar sesión para uso posterior">
+                                    <i class="fas fa-save"></i> Guardar
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="limpiarSesion()" title="Eliminar todas las iniciativas de la sesión">
+                                    <i class="fas fa-trash"></i> Limpiar
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="card-body">
@@ -306,6 +341,17 @@
                     <div class="card-body">
                         <div id="sesionesPendientesList">
                             <p class="text-muted text-center">Cargando sesiones pendientes...</p>
+                        </div>
+                        <!-- Controles de paginación -->
+                        <div id="paginacionSesiones" class="d-flex justify-content-between align-items-center mt-3" style="display: none;">
+                            <div>
+                                <span class="text-muted">Mostrando <span id="showingRange">0-0</span> de <span id="totalSesiones">0</span> sesiones</span>
+                            </div>
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0" id="paginationControls">
+                                    <!-- Se llena dinámicamente -->
+                                </ul>
+                            </nav>
                         </div>
                     </div>
                 </div>
@@ -845,26 +891,58 @@
                 return;
             }
             
-            container.innerHTML = initiatives.map(init => `
-                <div class="card mb-2 initiative-card ${init.activa ? 'active' : ''} ${init.tipo_iniciativa === 'extraordinaria' ? 'extraordinary' : ''}" 
+            // Agregar controles de selección múltiple
+            let headerHtml = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="selectAllInitiatives" onchange="toggleSelectAll()">
+                        <label class="form-check-label" for="selectAllInitiatives">
+                            Seleccionar todas
+                        </label>
+                    </div>
+                    <button class="btn btn-danger btn-sm" id="deleteSelectedBtn" style="display: none;" onclick="deleteSelectedInitiatives()">
+                        <i class="fas fa-trash"></i> Eliminar seleccionadas (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
+            `;
+            
+            const initiativesHtml = initiatives.map(init => {
+                // Determinar si requiere votación
+                const requiereVotacion = init.requiere_votacion || 
+                    (init.tipo_votacion && !init.tipo_votacion.toLowerCase().includes('comisión'));
+                
+                // Clase para resaltar si requiere votación
+                const borderClass = requiereVotacion ? 'border-success border-3' : '';
+                
+                return `
+                <div class="card mb-2 initiative-card ${init.activa ? 'active' : ''} ${init.tipo_iniciativa === 'extraordinaria' ? 'extraordinary' : ''} ${borderClass}" 
                      data-id="${init.id}">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h6 class="mb-1">
-                                    ${init.numero}. ${init.descripcion || 'Sin descripción'}
-                                    ${init.tipo_iniciativa === 'extraordinaria' ? '<span class="badge badge-extraordinary ms-2">⚡ EXTRAORDINARIA</span>' : ''}
-                                </h6>
-                                ${init.presentador ? `
-                                    <div class="small mb-1">
-                                        <i class="fas fa-user"></i> 
-                                        <strong>Presentada por:</strong> ${init.presentador}
-                                        ${init.partido_presentador ? `<span class="badge bg-info ms-1">${init.partido_presentador}</span>` : ''}
+                            <div class="d-flex align-items-start">
+                                ${!init.activa && !init.cerrada ? `
+                                    <div class="form-check me-3">
+                                        <input class="form-check-input initiative-checkbox" type="checkbox" 
+                                               value="${init.id}" onchange="updateSelectedCount()">
                                     </div>
-                                ` : ''}
-                                <span class="badge bg-secondary">${init.tipo_mayoria || 'Simple'}</span>
-                                ${init.activa ? '<span class="badge bg-success ms-1">ACTIVA</span>' : ''}
-                                ${init.cerrada ? '<span class="badge bg-dark ms-1">CERRADA</span>' : ''}
+                                ` : '<div style="width: 40px;"></div>'}
+                                <div>
+                                    <h6 class="mb-1">
+                                        ${requiereVotacion ? '<i class="fas fa-vote-yea text-success me-2" title="Requiere votación"></i>' : ''}
+                                        ${init.numero_orden_dia ? `${init.numero}/${init.numero_orden_dia}` : init.numero}. ${init.titulo || init.descripcion || 'Sin descripción'}
+                                        ${init.tipo_iniciativa === 'extraordinaria' ? '<span class="badge badge-extraordinary ms-2">⚡ EXTRAORDINARIA</span>' : ''}
+                                    </h6>
+                                    ${init.presentador ? `
+                                        <div class="small mb-1">
+                                            <i class="fas fa-user"></i> 
+                                            <strong>Presentada por:</strong> ${init.presentador}
+                                            ${init.partido_presentador ? `<span class="badge bg-info ms-1">${init.partido_presentador}</span>` : ''}
+                                        </div>
+                                    ` : ''}
+                                    <span class="badge bg-secondary">${init.tipo_mayoria || 'Simple'}</span>
+                                    ${init.activa ? '<span class="badge bg-success ms-1">ACTIVA</span>' : ''}
+                                    ${init.cerrada ? '<span class="badge bg-dark ms-1">CERRADA</span>' : ''}
+                                </div>
                             </div>
                             <div class="btn-group">
                                 ${!init.activa && !init.cerrada ? `
@@ -915,7 +993,77 @@
                         ` : ''}
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
+            
+            // Combinar header y contenido
+            container.innerHTML = headerHtml + initiativesHtml;
+        }
+        
+        // Funciones para selección múltiple
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAllInitiatives');
+            const checkboxes = document.querySelectorAll('.initiative-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateSelectedCount();
+        }
+        
+        function updateSelectedCount() {
+            const checked = document.querySelectorAll('.initiative-checkbox:checked');
+            const count = checked.length;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('deleteSelectedBtn').style.display = count > 0 ? 'block' : 'none';
+        }
+        
+        // Eliminar iniciativas seleccionadas
+        async function deleteSelectedInitiatives() {
+            const checked = document.querySelectorAll('.initiative-checkbox:checked');
+            const ids = Array.from(checked).map(cb => cb.value);
+            
+            if (ids.length === 0) return;
+            
+            if (!confirm(`¿Eliminar ${ids.length} iniciativa(s) seleccionada(s)?\n\nEsta acción no se puede deshacer.`)) {
+                return;
+            }
+            
+            let eliminadas = 0;
+            let errores = 0;
+            
+            for (const id of ids) {
+                try {
+                    const response = await fetch(`/api/operador/iniciativa/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        eliminadas++;
+                    } else {
+                        errores++;
+                    }
+                } catch (error) {
+                    console.error('Error eliminando iniciativa:', error);
+                    errores++;
+                }
+            }
+            
+            // Mostrar resultado
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${errores === 0 ? 'alert-success' : 'alert-warning'} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                <strong>${eliminadas > 0 ? '✅' : '⚠️'} Operación completada</strong><br>
+                ${eliminadas} iniciativa(s) eliminada(s)${errores > 0 ? `<br>${errores} error(es) al eliminar` : ''}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => alertDiv.remove(), 5000);
+            
+            // Recargar lista
+            loadActiveSession();
         }
         
         // Activar iniciativa
@@ -1231,6 +1379,11 @@
             window.open('/historial-sesiones', '_blank');
         }
         
+        // Variables para paginación
+        let sesionesPendientesData = [];
+        let paginaActualSesiones = 1;
+        const sesionesPerPage = 5;
+        
         // Cargar sesiones pendientes
         async function loadSesionesPendientes() {
             try {
@@ -1242,7 +1395,9 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    renderSesionesPendientes(data.sesiones);
+                    sesionesPendientesData = data.sesiones || [];
+                    paginaActualSesiones = 1;
+                    renderSesionesPendientesPaginadas();
                 }
             } catch (error) {
                 console.error('Error cargando sesiones pendientes:', error);
@@ -1251,16 +1406,29 @@
             }
         }
         
-        // Renderizar sesiones pendientes
-        function renderSesionesPendientes(sesiones) {
+        // Renderizar sesiones pendientes con paginación
+        function renderSesionesPendientesPaginadas() {
             const container = document.getElementById('sesionesPendientesList');
+            const paginacionDiv = document.getElementById('paginacionSesiones');
             
-            if (!sesiones || sesiones.length === 0) {
+            if (!sesionesPendientesData || sesionesPendientesData.length === 0) {
                 container.innerHTML = '<p class="text-muted text-center">No hay sesiones pendientes</p>';
+                paginacionDiv.style.display = 'none';
                 return;
             }
             
-            container.innerHTML = sesiones.map(sesion => {
+            // Calcular páginas
+            const totalPages = Math.ceil(sesionesPendientesData.length / sesionesPerPage);
+            const startIndex = (paginaActualSesiones - 1) * sesionesPerPage;
+            const endIndex = Math.min(startIndex + sesionesPerPage, sesionesPendientesData.length);
+            const sesionesPagina = sesionesPendientesData.slice(startIndex, endIndex);
+            
+            // Actualizar rango mostrado
+            document.getElementById('showingRange').textContent = `${startIndex + 1}-${endIndex}`;
+            document.getElementById('totalSesiones').textContent = sesionesPendientesData.length;
+            
+            // Renderizar sesiones de la página actual
+            container.innerHTML = sesionesPagina.map(sesion => {
                 let tipoLabel = '';
                 let borderColor = '';
                 let descripcion = '';
@@ -1283,30 +1451,41 @@
                 const fechaCreacion = new Date(sesion.fecha).toLocaleDateString('es-MX');
                 const nombreEscapado = sesion.nombre.replace(/'/g, "\\'");
                 
+                // Badge del creador
+                const creadorBadge = sesion.creado_por_nombre ? 
+                    `<span class="badge ${sesion.creado_por_role === 'servicios_legislativos' ? 'bg-purple' : 'bg-dark'}">
+                        <i class="fas fa-user"></i> ${sesion.creado_por_role === 'servicios_legislativos' ? 'Servicios' : 'Operador'}
+                    </span>` : '';
+                
                 return `
                     <div class="card mb-2 border-start border-4 border-${borderColor}">
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div class="flex-grow-1">
-                                    <h6 class="mb-1">${sesion.nombre}</h6>
+                                    <h6 class="mb-1">${sesion.nombre} ${creadorBadge}</h6>
                                     <div class="mb-2">
                                         ${tipoLabel}
                                         <span class="badge bg-light text-dark"><i class="fas fa-file-alt"></i> ${sesion.total_iniciativas || 0} iniciativas</span>
                                     </div>
                                     <small class="text-muted">Código: <code>${sesion.codigo_sesion || 'SES-' + sesion.id}</code></small><br>
-                                    <small class="text-muted">Creada: ${fechaCreacion}</small>
+                                    <small class="text-muted">Creada: ${fechaCreacion} ${sesion.creado_por_nombre ? `por ${sesion.creado_por_nombre}` : ''}</small>
                                     ${descripcion}
                                 </div>
                                 <div class="d-flex gap-2">
-                                    <button class="btn btn-info" 
+                                    <button class="btn btn-sm btn-info" 
                                             onclick="editarIniciativasSesion(${sesion.id}, '${nombreEscapado}')"
                                             title="Ver y editar las iniciativas de esta sesión">
-                                        <i class="fas fa-edit"></i> Editar
+                                        <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-success" 
+                                    <button class="btn btn-sm btn-success" 
                                             onclick="activarSesionPendiente(${sesion.id}, '${nombreEscapado}')"
                                             title="Activar esta sesión para que el presidente pueda iniciarla">
-                                        <i class="fas fa-play"></i> Activar
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" 
+                                            onclick="eliminarSesionPendiente(${sesion.id}, '${nombreEscapado}')"
+                                            title="Eliminar esta sesión">
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                             </div>
@@ -1314,6 +1493,98 @@
                     </div>
                 `;
             }).join('');
+            
+            // Renderizar controles de paginación
+            renderPaginacionSesiones(totalPages);
+            paginacionDiv.style.display = sesionesPendientesData.length > sesionesPerPage ? 'flex' : 'none';
+        }
+        
+        // Renderizar controles de paginación
+        function renderPaginacionSesiones(totalPages) {
+            const paginationControls = document.getElementById('paginationControls');
+            let html = '';
+            
+            // Botón anterior
+            html += `
+                <li class="page-item ${paginaActualSesiones === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="cambiarPaginaSesiones(${paginaActualSesiones - 1}); return false;">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+            
+            // Números de página
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= paginaActualSesiones - 1 && i <= paginaActualSesiones + 1)) {
+                    html += `
+                        <li class="page-item ${i === paginaActualSesiones ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="cambiarPaginaSesiones(${i}); return false;">${i}</a>
+                        </li>
+                    `;
+                } else if (i === paginaActualSesiones - 2 || i === paginaActualSesiones + 2) {
+                    html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                }
+            }
+            
+            // Botón siguiente
+            html += `
+                <li class="page-item ${paginaActualSesiones === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="cambiarPaginaSesiones(${paginaActualSesiones + 1}); return false;">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            `;
+            
+            paginationControls.innerHTML = html;
+        }
+        
+        // Cambiar página
+        function cambiarPaginaSesiones(pagina) {
+            const totalPages = Math.ceil(sesionesPendientesData.length / sesionesPerPage);
+            if (pagina < 1 || pagina > totalPages) return;
+            paginaActualSesiones = pagina;
+            renderSesionesPendientesPaginadas();
+        }
+        
+        // Eliminar sesión pendiente
+        async function eliminarSesionPendiente(sesionId, nombre) {
+            if (!confirm(`¿Eliminar la sesión "${nombre}"?\n\nEsta acción eliminará permanentemente la sesión y todas sus iniciativas.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/operador/sesion/${sesionId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    // Mostrar mensaje de éxito
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+                    alertDiv.style.zIndex = '9999';
+                    alertDiv.innerHTML = `
+                        <strong>✅ Sesión eliminada</strong><br>
+                        La sesión "${nombre}" ha sido eliminada correctamente.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(alertDiv);
+                    
+                    setTimeout(() => alertDiv.remove(), 5000);
+                    
+                    // Recargar lista
+                    loadSesionesPendientes();
+                } else {
+                    const data = await response.json();
+                    alert('Error al eliminar la sesión: ' + (data.error || 'Error desconocido'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar la sesión');
+            }
         }
         
         // Activar sesión pendiente
@@ -1763,6 +2034,152 @@
             modal.show();
         }
         
+        // Guardar sesión actual
+        async function guardarSesion() {
+            try {
+                const response = await fetch('/api/operador/sesion-activa', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!data.sesion) {
+                    alert('No hay sesión activa para guardar');
+                    return;
+                }
+                
+                if (!data.iniciativas || data.iniciativas.length === 0) {
+                    alert('No hay iniciativas para guardar');
+                    return;
+                }
+                
+                const nombreSesion = prompt('Ingrese un nombre para guardar esta sesión:', 
+                    `${data.sesion.nombre} - Respaldo ${new Date().toLocaleDateString('es-MX')}`);
+                
+                if (!nombreSesion) return;
+                
+                // Guardar como sesión precargada
+                const saveResponse = await fetch('/api/operador/guardar-sesion-respaldo', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sesion_id: data.sesion.id,
+                        nombre: nombreSesion,
+                        descripcion: `Respaldo de ${data.sesion.nombre} con ${data.iniciativas.length} iniciativas`
+                    })
+                });
+                
+                if (saveResponse.ok) {
+                    const result = await saveResponse.json();
+                    
+                    // Mostrar mensaje de éxito
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+                    alertDiv.style.zIndex = '9999';
+                    alertDiv.innerHTML = `
+                        <strong>✅ Sesión guardada</strong><br>
+                        "${nombreSesion}" guardada con ${data.iniciativas.length} iniciativas.
+                        <br><small>Puede recuperarla desde "Sesiones Pendientes"</small>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(alertDiv);
+                    
+                    setTimeout(() => alertDiv.remove(), 7000);
+                    
+                    // Actualizar lista de sesiones pendientes
+                    loadSesionesPendientes();
+                } else {
+                    const error = await saveResponse.json();
+                    alert('Error al guardar la sesión: ' + (error.error || 'Error desconocido'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al guardar la sesión');
+            }
+        }
+        
+        // Limpiar/Eliminar todas las iniciativas de la sesión actual
+        async function limpiarSesion() {
+            try {
+                const response = await fetch('/api/operador/sesion-activa', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!data.sesion) {
+                    alert('No hay sesión activa');
+                    return;
+                }
+                
+                if (!data.iniciativas || data.iniciativas.length === 0) {
+                    alert('No hay iniciativas para eliminar');
+                    return;
+                }
+                
+                // Verificar si hay votaciones activas o cerradas
+                const votacionesActivas = data.iniciativas.filter(i => i.activa || i.cerrada);
+                if (votacionesActivas.length > 0) {
+                    alert('No se puede limpiar la sesión porque hay votaciones activas o cerradas.\n\n' +
+                          'Por favor, finalice todas las votaciones primero.');
+                    return;
+                }
+                
+                const confirmMessage = `¿Está seguro de eliminar TODAS las iniciativas de la sesión actual?\n\n` +
+                                      `Sesión: ${data.sesion.nombre}\n` +
+                                      `Iniciativas a eliminar: ${data.iniciativas.length}\n\n` +
+                                      `Esta acción NO se puede deshacer.`;
+                
+                if (!confirm(confirmMessage)) return;
+                
+                // Segunda confirmación para mayor seguridad
+                if (!confirm('¿Está COMPLETAMENTE SEGURO? Se eliminarán todas las iniciativas.')) return;
+                
+                // Eliminar todas las iniciativas de la sesión
+                const deleteResponse = await fetch(`/api/operador/limpiar-sesion/${data.sesion.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (deleteResponse.ok) {
+                    const result = await deleteResponse.json();
+                    
+                    // Mostrar mensaje de éxito
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 end-0 m-3';
+                    alertDiv.style.zIndex = '9999';
+                    alertDiv.innerHTML = `
+                        <strong>🗑️ Sesión limpiada</strong><br>
+                        Se eliminaron ${result.eliminadas} iniciativas de la sesión.
+                        <br><small>La sesión está lista para cargar nuevas iniciativas</small>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(alertDiv);
+                    
+                    setTimeout(() => alertDiv.remove(), 5000);
+                    
+                    // Recargar la sesión activa
+                    loadActiveSession();
+                } else {
+                    const error = await deleteResponse.json();
+                    alert('Error al limpiar la sesión: ' + (error.error || 'Error desconocido'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al limpiar la sesión');
+            }
+        }
+        
         // Manejar formulario de captura manual
         document.getElementById('extraordinariaManualForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -2088,6 +2505,538 @@
         // Verificar sesiones precargadas al cargar la página
         verificarSesionesPrecargadas();
     </script>
+    
+    <!-- Modal de Validación de PDF -->
+    <div class="modal fade" id="modalValidacion" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-check-circle"></i> Validación de Iniciativas
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Estadísticas -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white" style="cursor: pointer;" onclick="filtrarIniciativas('todas')">
+                                <div class="card-body p-2 text-center">
+                                    <h6>Total Iniciativas</h6>
+                                    <h3 id="totalIniciativas">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white" style="cursor: pointer;" onclick="filtrarIniciativas('votacion')">
+                                <div class="card-body p-2 text-center">
+                                    <h6>Requieren Votación</h6>
+                                    <h3 id="requierenVotacion">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white" style="cursor: pointer;" onclick="filtrarIniciativas('comisiones')">
+                                <div class="card-body p-2 text-center">
+                                    <h6>A Comisiones</h6>
+                                    <h3 id="aComisiones">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-secondary text-white" style="cursor: pointer;" onclick="filtrarIniciativas('otros')">
+                                <div class="card-body p-2 text-center">
+                                    <h6>Otros</h6>
+                                    <h3 id="otros">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filtro activo -->
+                    <div id="filtroActivo" class="alert alert-info mb-2" style="display: none;">
+                        <i class="fas fa-filter"></i> Filtro activo: <strong id="textoFiltro">Todas</strong>
+                        <button class="btn btn-sm btn-light float-end" onclick="filtrarIniciativas('todas')">
+                            <i class="fas fa-times"></i> Limpiar filtro
+                        </button>
+                    </div>
+                    
+                    <!-- Tipo de Carga -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tipo de Carga:</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="tipoCargaValidacion" id="cargaInmediataVal" value="inmediata" checked>
+                            <label class="form-check-label" for="cargaInmediataVal">
+                                <i class="fas fa-play"></i> Sesión Inmediata
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="tipoCargaValidacion" id="cargaProgramadaVal" value="programada">
+                            <label class="form-check-label" for="cargaProgramadaVal">
+                                <i class="fas fa-calendar"></i> Sesión Programada
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="tipoCargaValidacion" id="cargaIndefinidaVal" value="indefinida">
+                            <label class="form-check-label" for="cargaIndefinidaVal">
+                                <i class="fas fa-question"></i> Fecha Indefinida
+                            </label>
+                        </div>
+                        
+                        <div id="fechaProgramadaVal" style="display: none;" class="mt-2">
+                            <label for="fechaSesionVal" class="form-label">Fecha y Hora de la Sesión:</label>
+                            <input type="datetime-local" class="form-control" id="fechaSesionVal">
+                        </div>
+                    </div>
+                    
+                    <!-- Tabla de Iniciativas -->
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-hover table-sm">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th width="80">Núm.</th>
+                                    <th width="80">Orden</th>
+                                    <th>Título</th>
+                                    <th width="150">Presentador</th>
+                                    <th width="100">Partido</th>
+                                    <th width="100">Mayoría</th>
+                                    <th width="80">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaValidacion">
+                                <!-- Se llenará dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" id="btnGuardarValidacion">
+                        <i class="fas fa-save"></i> Guardar Iniciativas Validadas
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Edición de Iniciativa -->
+    <div class="modal fade" id="modalEditarIniciativa" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Iniciativa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formEditarIniciativa">
+                        <input type="hidden" id="editNumeroSistema">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Número Orden del Día:</label>
+                            <input type="number" class="form-control" id="editNumeroOrden" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Título:</label>
+                            <textarea class="form-control" id="editTitulo" rows="2" required></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Descripción:</label>
+                            <textarea class="form-control" id="editDescripcion" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Presentador:</label>
+                            <input type="text" class="form-control" id="editPresentador">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Partido:</label>
+                            <input type="text" class="form-control" id="editPartido">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Mayoría:</label>
+                            <select class="form-select" id="editTipoMayoria">
+                                <option value="simple">Simple</option>
+                                <option value="calificada">Calificada</option>
+                                <option value="especial">Especial</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarEdicionIniciativa()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Variables para validación
+        let sessionIdActual = null;
+        let iniciativasValidacion = [];
+        let iniciativasOriginales = []; // Copia para restaurar
+        let filtroActual = 'todas';
+        
+        // Función para filtrar iniciativas
+        function filtrarIniciativas(tipo) {
+            filtroActual = tipo;
+            const filtroDiv = document.getElementById('filtroActivo');
+            const tbody = document.getElementById('tablaValidacion');
+            
+            let iniciativasFiltradas = [...iniciativasValidacion];
+            let textoFiltro = 'Todas';
+            
+            switch(tipo) {
+                case 'votacion':
+                    iniciativasFiltradas = iniciativasValidacion.filter(i => i.requiere_votacion);
+                    textoFiltro = 'Requieren Votación';
+                    break;
+                case 'comisiones':
+                    iniciativasFiltradas = iniciativasValidacion.filter(i => 
+                        i.tipo_votacion && i.tipo_votacion.toLowerCase().includes('comisión'));
+                    textoFiltro = 'A Comisiones';
+                    break;
+                case 'otros':
+                    iniciativasFiltradas = iniciativasValidacion.filter(i => 
+                        !i.requiere_votacion && 
+                        (!i.tipo_votacion || !i.tipo_votacion.toLowerCase().includes('comisión')));
+                    textoFiltro = 'Otros';
+                    break;
+                case 'todas':
+                default:
+                    filtroDiv.style.display = 'none';
+                    break;
+            }
+            
+            if (tipo !== 'todas') {
+                filtroDiv.style.display = 'block';
+                document.getElementById('textoFiltro').textContent = textoFiltro;
+            }
+            
+            renderizarTablaValidacion(iniciativasFiltradas);
+        }
+        
+        // Función para renderizar tabla
+        function renderizarTablaValidacion(iniciativas) {
+            const tbody = document.getElementById('tablaValidacion');
+            tbody.innerHTML = '';
+            
+            iniciativas.forEach((init) => {
+                const index = iniciativasValidacion.indexOf(init);
+                const tr = document.createElement('tr');
+                
+                // Determinar si requiere votación
+                const requiereVotacion = init.requiere_votacion || false;
+                
+                // Estilo de fila para iniciativas que requieren votación
+                if (requiereVotacion) {
+                    tr.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                }
+                
+                tr.innerHTML = `
+                    <td>
+                        ${requiereVotacion ? '<i class="fas fa-vote-yea text-success me-1" title="Requiere votación"></i>' : ''}
+                        <strong>${init.numero_sistema}</strong>
+                    </td>
+                    <td>${init.numero_orden_dia || '-'}</td>
+                    <td>${init.titulo || 'Sin título'}</td>
+                    <td>${init.presentador || '-'}</td>
+                    <td>${init.partido || '-'}</td>
+                    <td>
+                        <span class="badge bg-${init.tipo_mayoria === 'calificada' ? 'warning' : 'secondary'}">
+                            ${init.tipo_mayoria || 'simple'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" 
+                                    onclick="editarIniciativaValidacion(${index})"
+                                    title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" 
+                                    onclick="eliminarIniciativaValidacion(${index})"
+                                    title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            if (iniciativas.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">
+                            No hay iniciativas ${filtroActual !== 'todas' ? 'en este filtro' : ''}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // Función para eliminar iniciativa en validación
+        function eliminarIniciativaValidacion(index) {
+            if (!confirm('¿Eliminar esta iniciativa? No se importará a la sesión.')) return;
+            
+            // Eliminar de la lista
+            iniciativasValidacion.splice(index, 1);
+            
+            // Actualizar estadísticas
+            actualizarEstadisticasValidacion();
+            
+            // Re-renderizar tabla con filtro actual
+            if (filtroActual !== 'todas') {
+                filtrarIniciativas(filtroActual);
+            } else {
+                renderizarTablaValidacion(iniciativasValidacion);
+            }
+        }
+        
+        // Función para actualizar estadísticas
+        function actualizarEstadisticasValidacion() {
+            document.getElementById('totalIniciativas').textContent = iniciativasValidacion.length;
+            
+            const requierenVot = iniciativasValidacion.filter(i => i.requiere_votacion).length;
+            document.getElementById('requierenVotacion').textContent = requierenVot;
+            
+            const aComision = iniciativasValidacion.filter(i => 
+                i.tipo_votacion && i.tipo_votacion.toLowerCase().includes('comisión')).length;
+            document.getElementById('aComisiones').textContent = aComision;
+            
+            document.getElementById('otros').textContent = 
+                iniciativasValidacion.length - requierenVot - aComision;
+        }
+        
+        // Configurar eventos de tipo de carga en modal de validación
+        document.getElementById('cargaProgramadaVal').addEventListener('change', function() {
+            document.getElementById('fechaProgramadaVal').style.display = this.checked ? 'block' : 'none';
+            if (this.checked) {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                document.getElementById('fechaSesionVal').min = now.toISOString().slice(0, 16);
+                document.getElementById('fechaSesionVal').required = true;
+            }
+        });
+        
+        document.getElementById('cargaInmediataVal').addEventListener('change', function() {
+            document.getElementById('fechaProgramadaVal').style.display = 'none';
+        });
+        
+        document.getElementById('cargaIndefinidaVal').addEventListener('change', function() {
+            document.getElementById('fechaProgramadaVal').style.display = 'none';
+        });
+        
+        // Función para mostrar modal de validación
+        async function mostrarValidacionPDF(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/api/validacion/preview-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    sessionIdActual = data.sessionId;
+                    iniciativasValidacion = data.iniciativas;
+                    iniciativasOriginales = [...data.iniciativas]; // Guardar copia
+                    filtroActual = 'todas'; // Resetear filtro
+                    
+                    // Actualizar estadísticas
+                    actualizarEstadisticasValidacion();
+                    
+                    // Renderizar tabla
+                    renderizarTablaValidacion(iniciativasValidacion);
+                    
+                    // Limpiar filtro activo
+                    document.getElementById('filtroActivo').style.display = 'none';
+                    
+                    // Mostrar modal
+                    const modal = new bootstrap.Modal(document.getElementById('modalValidacion'));
+                    modal.show();
+                } else {
+                    alert('Error al procesar el PDF: ' + (data.error || 'Error desconocido'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al procesar el PDF');
+            }
+        }
+        
+        // Función para editar iniciativa
+        function editarIniciativaValidacion(index) {
+            const init = iniciativasValidacion[index];
+            
+            document.getElementById('editNumeroSistema').value = init.numero_sistema;
+            document.getElementById('editNumeroOrden').value = init.numero_orden_dia;
+            document.getElementById('editTitulo').value = init.titulo;
+            document.getElementById('editDescripcion').value = init.descripcion;
+            document.getElementById('editPresentador').value = init.presentador;
+            document.getElementById('editPartido').value = init.partido;
+            document.getElementById('editTipoMayoria').value = init.tipo_mayoria;
+            
+            const modalEdit = new bootstrap.Modal(document.getElementById('modalEditarIniciativa'));
+            modalEdit.show();
+        }
+        
+        // Función para guardar edición
+        async function guardarEdicionIniciativa() {
+            const numeroSistema = document.getElementById('editNumeroSistema').value;
+            
+            const datosActualizados = {
+                numero_orden_dia: parseInt(document.getElementById('editNumeroOrden').value),
+                titulo: document.getElementById('editTitulo').value,
+                descripcion: document.getElementById('editDescripcion').value,
+                presentador: document.getElementById('editPresentador').value,
+                partido: document.getElementById('editPartido').value,
+                tipo_mayoria: document.getElementById('editTipoMayoria').value
+            };
+            
+            try {
+                const response = await fetch(`/api/validacion/preview-pdf/${sessionIdActual}/iniciativa/${numeroSistema}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(datosActualizados)
+                });
+                
+                if (response.ok) {
+                    // Actualizar array local
+                    const index = iniciativasValidacion.findIndex(i => i.numero_sistema == numeroSistema);
+                    if (index !== -1) {
+                        iniciativasValidacion[index] = { ...iniciativasValidacion[index], ...datosActualizados };
+                        
+                        // Actualizar estadísticas
+                        actualizarEstadisticasValidacion();
+                        
+                        // Re-renderizar tabla con filtro actual
+                        if (filtroActual !== 'todas') {
+                            filtrarIniciativas(filtroActual);
+                        } else {
+                            renderizarTablaValidacion(iniciativasValidacion);
+                        }
+                    }
+                    
+                    // Cerrar modal
+                    bootstrap.Modal.getInstance(document.getElementById('modalEditarIniciativa')).hide();
+                } else {
+                    alert('Error al actualizar la iniciativa');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al actualizar la iniciativa');
+            }
+        }
+        
+        // Guardar iniciativas validadas
+        document.getElementById('btnGuardarValidacion').addEventListener('click', async function() {
+            const tipoCarga = document.querySelector('input[name="tipoCargaValidacion"]:checked').value;
+            let fechaProgramada = null;
+            
+            if (tipoCarga === 'programada') {
+                fechaProgramada = document.getElementById('fechaSesionVal').value;
+                if (!fechaProgramada) {
+                    alert('Por favor selecciona una fecha para la sesión programada');
+                    return;
+                }
+            }
+            
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            
+            try {
+                const response = await fetch(`/api/validacion/validar-sesion/${sessionIdActual}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        tipoCarga: tipoCarga,
+                        fechaProgramada: fechaProgramada
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // Cerrar modal
+                    bootstrap.Modal.getInstance(document.getElementById('modalValidacion')).hide();
+                    
+                    // Mostrar mensaje de éxito
+                    const statusDiv = document.getElementById('uploadStatus');
+                    let mensaje = '';
+                    if (tipoCarga === 'inmediata') {
+                        mensaje = 'Las iniciativas están listas para que el presidente inicie la sesión';
+                    } else if (tipoCarga === 'programada') {
+                        mensaje = `Sesión programada para ${new Date(fechaProgramada).toLocaleString('es-MX')}`;
+                    } else if (tipoCarga === 'indefinida') {
+                        mensaje = 'Sesión guardada con fecha indefinida. Se podrá activar cuando se decida';
+                    }
+                    
+                    statusDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ Sesión validada y guardada correctamente<br>
+                            ${data.iniciativas_guardadas} iniciativas guardadas<br>
+                            <small class="text-muted">${mensaje}</small>
+                        </div>
+                    `;
+                    
+                    // Limpiar formulario
+                    document.getElementById('pdfFile').value = '';
+                    
+                    // Solo recargar si es carga inmediata
+                    if (tipoCarga === 'inmediata') {
+                        loadActiveSession();
+                    } else {
+                        // Para carga programada o indefinida, solo actualizar sesiones pendientes
+                        cargarSesionesPendientes();
+                    }
+                } else {
+                    alert('Error al guardar la sesión: ' + (data.error || 'Error desconocido'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al guardar la sesión');
+            } finally {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-save"></i> Guardar Iniciativas Validadas';
+            }
+        });
+        
+        // Modificar el evento de carga de PDF para usar validación
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('pdfFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Por favor selecciona un archivo PDF');
+                return;
+            }
+            
+            // Mostrar modal de validación en lugar de cargar directamente
+            mostrarValidacionPDF(file);
+        });
+    </script>
+    
     <script src="/js/theme-switcher.js"></script>
 </body>
 </html>

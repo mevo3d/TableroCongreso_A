@@ -72,41 +72,72 @@ function mostrarSesiones(sesiones) {
         return;
     }
     
-    container.innerHTML = sesiones.map(sesion => {
-        const badgeClass = sesion.estado === 'borrador' ? 'badge-borrador' : 
-                          sesion.estado === 'enviada' ? 'badge-enviada' : 'badge-procesada';
-        
-        return `
-            <div class="sesion-card ${sesion.estado}">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <h6 class="mb-1">
-                            ${sesion.nombre}
-                            <span class="badge ${badgeClass} ms-2">${sesion.estado.toUpperCase()}</span>
-                        </h6>
-                        <p class="text-muted small mb-1">${sesion.descripcion || 'Sin descripción'}</p>
-                        <small class="text-muted">
-                            <i class="fas fa-calendar"></i> ${new Date(sesion.fecha_propuesta || sesion.fecha_carga).toLocaleDateString('es-MX')}
-                            | <i class="fas fa-file-alt"></i> ${sesion.num_iniciativas || 0} iniciativas
-                        </small>
-                    </div>
-                    <div>
-                        <button class="btn btn-sm btn-outline-primary" onclick="verSesion(${sesion.id})">
-                            <i class="fas fa-eye"></i>
+    // Separar sesiones propias y compartidas
+    const sesionesPropias = sesiones.filter(s => s.tipo_sesion === 'propia');
+    const sesionesCompartidas = sesiones.filter(s => s.tipo_sesion === 'compartida');
+    
+    let html = '';
+    
+    // Mostrar sesiones propias
+    if (sesionesPropias.length > 0) {
+        html += '<h6 class="mb-3"><i class="fas fa-folder-open"></i> Mis Sesiones</h6>';
+        html += sesionesPropias.map(sesion => generarCardSesion(sesion)).join('');
+    }
+    
+    // Mostrar sesiones compartidas (pendientes/indefinidas)
+    if (sesionesCompartidas.length > 0) {
+        html += '<h6 class="mb-3 mt-4"><i class="fas fa-share-alt"></i> Sesiones Pendientes del Sistema</h6>';
+        html += sesionesCompartidas.map(sesion => generarCardSesion(sesion)).join('');
+    }
+    
+    container.innerHTML = html;
+}
+
+function generarCardSesion(sesion) {
+    const badgeClass = sesion.estado === 'borrador' ? 'badge-borrador' : 
+                      sesion.estado === 'enviada' ? 'badge-enviada' : 
+                      sesion.estado === 'pendiente' ? 'badge-warning' :
+                      sesion.estado === 'indefinida' ? 'badge-secondary' : 'badge-procesada';
+    
+    const origenBadge = sesion.origen ? `<span class="badge bg-info ms-2">${sesion.origen}</span>` : '';
+    
+    return `
+        <div class="sesion-card ${sesion.estado}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="mb-1">
+                        ${sesion.nombre || sesion.nombre_sesion}
+                        <span class="badge ${badgeClass} ms-2">${sesion.estado.toUpperCase()}</span>
+                        ${origenBadge}
+                    </h6>
+                    <p class="text-muted small mb-1">${sesion.descripcion || 'Sin descripción'}</p>
+                    <small class="text-muted">
+                        <i class="fas fa-calendar"></i> ${new Date(sesion.fecha_propuesta || sesion.fecha_carga).toLocaleDateString('es-MX')}
+                        | <i class="fas fa-file-alt"></i> ${sesion.num_iniciativas || 0} iniciativas
+                        ${sesion.nombre_usuario ? `| <i class="fas fa-user"></i> ${sesion.nombre_usuario}` : ''}
+                    </small>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="verSesion(${sesion.id})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${sesion.estado === 'borrador' && sesion.tipo_sesion === 'propia' ? `
+                        <button class="btn btn-sm btn-outline-warning" onclick="editarSesion(${sesion.id})">
+                            <i class="fas fa-edit"></i>
                         </button>
-                        ${sesion.estado === 'borrador' ? `
-                            <button class="btn btn-sm btn-outline-warning" onclick="editarSesion(${sesion.id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarSesion(${sesion.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        ` : ''}
-                    </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarSesion(${sesion.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : ''}
+                    ${sesion.estado === 'pendiente' || sesion.estado === 'indefinida' ? `
+                        <button class="btn btn-sm btn-outline-success" onclick="cargarSesionPendiente(${sesion.id})" title="Cargar esta sesión">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                    ` : ''}
                 </div>
             </div>
-        `;
-    }).join('');
+        </div>
+    `;
 }
 
 // Configurar Drag & Drop
@@ -605,6 +636,35 @@ async function eliminarSesion(id) {
     } catch (error) {
         console.error('Error eliminando sesión:', error);
         alert('Error al eliminar la sesión');
+    }
+}
+
+// Cargar sesión pendiente del sistema
+async function cargarSesionPendiente(sesionId) {
+    if (!confirm('¿Desea cargar esta sesión pendiente al panel del operador?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/operador/cargar-sesion-precargada/${sesionId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            alert('Sesión cargada exitosamente en el panel del operador');
+            cargarMisSesiones();
+        } else {
+            const error = await response.json();
+            alert('Error: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Error cargando sesión:', error);
+        alert('Error al cargar la sesión');
     }
 }
 

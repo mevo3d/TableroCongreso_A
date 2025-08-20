@@ -33,7 +33,7 @@ const nmsConfig = {
         ping_timeout: 60
     },
     http: {
-        port: 8000,
+        port: 5667,
         mediaroot: './media',
         allow_origin: '*'
     },
@@ -369,7 +369,7 @@ async function start() {
     
     // Iniciar Node Media Server para RTMP
     nms.run();
-    console.log('✅ Node Media Server iniciado en puerto 1935 (RTMP) y 8000 (HTTP)');
+    console.log('✅ Node Media Server iniciado en puerto 1935 (RTMP) y 5667 (HTTP)');
     
     // Iniciar servidor WebRTC
     const PORT = process.env.WEBRTC_PORT || 3001;
@@ -381,7 +381,7 @@ async function start() {
         console.log('   Stream Key: congreso');
         console.log('');
         console.log('🌐 Stream HLS disponible en:');
-        console.log('   http://localhost:8000/live/congreso/index.m3u8');
+        console.log('   http://localhost:5667/live/congreso/index.m3u8');
     });
 }
 
