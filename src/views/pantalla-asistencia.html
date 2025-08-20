@@ -210,6 +210,37 @@
             font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin-top: 8px;
+        }
+        
+        .status-button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85em;
+            cursor: default;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        .status-button.presente {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            box-shadow: 0 2px 5px rgba(40, 167, 69, 0.3);
+        }
+        
+        .status-button.ausente {
+            background: linear-gradient(135deg, #dc3545, #e74c3c);
+            color: white;
+            box-shadow: 0 2px 5px rgba(220, 53, 69, 0.3);
+        }
+        
+        .status-button.pendiente {
+            background: linear-gradient(135deg, #6c757d, #868e96);
+            color: white;
+            box-shadow: 0 2px 5px rgba(108, 117, 125, 0.3);
         }
         
         .status-icon {
@@ -451,10 +482,10 @@
                                         `<span class="deputy-party ${partyClass}">${diputado.partido}</span>` : 
                                         ''
                                     }
-                                    <div class="deputy-status">
+                                    <button class="status-button ${asistencia === 'presente' ? 'presente' : asistencia === 'ausente' ? 'ausente' : 'pendiente'}">
                                         <i class="fas ${statusIcon} status-icon"></i>
                                         ${statusText}
-                                    </div>
+                                    </button>
                                 </div>
                             </div>
                         `;
@@ -474,11 +505,31 @@
                 // Remover clases anteriores
                 deputyElement.classList.remove('present', 'absent', 'updating');
                 
-                // Agregar nueva clase
-                if (asistencia === 'presente') {
-                    deputyElement.classList.add('present');
-                } else if (asistencia === 'ausente') {
-                    deputyElement.classList.add('absent');
+                // Actualizar botón
+                const statusButton = deputyElement.querySelector('.status-button');
+                if (statusButton) {
+                    statusButton.className = 'status-button';
+                    let statusIcon = 'fa-question-circle';
+                    let statusText = 'SIN MARCAR';
+                    
+                    if (asistencia === 'presente') {
+                        statusButton.classList.add('presente');
+                        statusIcon = 'fa-check-circle';
+                        statusText = 'PRESENTE';
+                        deputyElement.classList.add('present');
+                    } else if (asistencia === 'ausente') {
+                        statusButton.classList.add('ausente');
+                        statusIcon = 'fa-times-circle';
+                        statusText = 'AUSENTE';
+                        deputyElement.classList.add('absent');
+                    } else {
+                        statusButton.classList.add('pendiente');
+                    }
+                    
+                    statusButton.innerHTML = `
+                        <i class="fas ${statusIcon} status-icon"></i>
+                        ${statusText}
+                    `;
                 }
                 
                 // Actualizar texto de estado

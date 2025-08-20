@@ -779,18 +779,26 @@
             </div>
             <!-- Menú para secretario de mesa directiva -->
             <div class="secretary-menu" id="secretaryMenu" style="display: none;">
-                <div class="dropdown">
-                    <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-tasks"></i> Funciones de Secretario
-                    </button>
-                    <ul class="dropdown-menu w-100">
-                        <li><a class="dropdown-item" href="#" onclick="goToAttendance()">
-                            <i class="fas fa-clipboard-check"></i> Pase de Lista
-                        </a></li>
-                        <li><a class="dropdown-item" href="#" onclick="backToVoting()">
-                            <i class="fas fa-vote-yea"></i> Regresar a Votación
-                        </a></li>
-                    </ul>
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0"><i class="fas fa-user-tie"></i> Panel de Diputado-Secretario</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-warning btn-lg" id="btnActivarPaseLista" onclick="activarPaseLista()">
+                                <i class="fas fa-broadcast-tower"></i> Activar Pase de Lista
+                            </button>
+                            <button class="btn btn-primary btn-lg" id="btnRealizarPaseLista" onclick="goToAttendance()" style="display: none;">
+                                <i class="fas fa-clipboard-check"></i> Realizar Pase de Lista
+                            </button>
+                            <button class="btn btn-info" onclick="verEstadoAsistencia()">
+                                <i class="fas fa-chart-pie"></i> Ver Estado de Asistencia
+                            </button>
+                            <button class="btn btn-secondary" onclick="backToVoting()">
+                                <i class="fas fa-vote-yea"></i> Regresar a Votación
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -974,7 +982,9 @@
         
         // Verificar si es presidente o secretario
         const isPresidente = user && user.cargo_mesa_directiva === 'Presidente de la Mesa Directiva';
-        const isSecretario = user && user.cargo_mesa_directiva === 'Secretario de la Mesa Directiva';
+        const isSecretario = user && (user.cargo_mesa_directiva === 'Secretario de la Mesa Directiva' || 
+                                      user.cargo_mesa_directiva === 'secretario1' || 
+                                      user.cargo_mesa_directiva === 'secretario2');
         const isVicepresidente = user && user.cargo_mesa_directiva === 'Vicepresidente';
         let sessionStartTime = null;
         let sessionTimerInterval = null;
@@ -1926,6 +1936,53 @@
                 console.error('Error:', error);
                 alert('Error al clausurar sesión');
             }
+        }
+        
+        // Activar pase de lista (para Diputados-Secretarios)
+        async function activarPaseLista() {
+            if (!confirm('¿Activar el pase de lista?\n\nEsto mostrará la pantalla de asistencia pública.')) return;
+            
+            try {
+                const response = await fetch('/api/pase-lista/activar', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Cambiar botones
+                    document.getElementById('btnActivarPaseLista').style.display = 'none';
+                    document.getElementById('btnRealizarPaseLista').style.display = 'block';
+                    
+                    // Emitir evento para actualizar pantalla pública
+                    socket.emit('pase-lista-activado', {
+                        activo: true,
+                        sesion_id: data.sesion_id
+                    });
+                    
+                    // Mostrar notificación
+                    showNotification('✅ Pase de lista activado', 'success');
+                    showNotification('La pantalla de asistencia está ahora visible', 'info');
+                    
+                    // Abrir ventana de control en nueva pestaña
+                    window.open('/pase-lista', '_blank');
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Error activando pase de lista:', error);
+                alert('Error al activar el pase de lista');
+            }
+        }
+        
+        // Ver estado de asistencia
+        function verEstadoAsistencia() {
+            window.open('/pantalla-asistencia', '_blank');
         }
         
         // Ir a pase de lista

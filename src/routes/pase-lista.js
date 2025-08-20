@@ -390,6 +390,21 @@ router.post('/rectificar', (req, res) => {
 router.post('/activar', (req, res) => {
     const db = req.db;
     const io = req.io;
+    const userId = req.user.id;
+    
+    // Verificar permisos (secretario legislativo o diputado-secretario)
+    db.get('SELECT cargo_mesa_directiva, role FROM usuarios WHERE id = ?', [userId], (err, userData) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando permisos' });
+        }
+        
+        const esSecretarioMesa = userData.cargo_mesa_directiva === 'secretario1' || 
+                                  userData.cargo_mesa_directiva === 'secretario2';
+        const esSecretarioLegislativo = userData.role === 'secretario';
+        
+        if (!esSecretarioMesa && !esSecretarioLegislativo) {
+            return res.status(403).json({ error: 'Solo secretarios pueden activar el pase de lista' });
+        }
     
     // Verificar si hay una sesión activa
     db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
@@ -457,6 +472,7 @@ router.post('/activar', (req, res) => {
             }
         );
     });
+    }); // Cerrar callback de verificación de permisos
 });
 
 // Obtener estado para pantalla pública
