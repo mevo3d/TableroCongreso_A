@@ -3647,8 +3647,17 @@
         
         // Guardar iniciativas validadas CON CONFIRMACIÓN
         document.getElementById('btnGuardarValidacion').addEventListener('click', async function() {
-            // CONFIRMACIÓN EXPLÍCITA
-            if (!confirm(`¿Confirmar la carga de ${iniciativasValidacion.length} iniciativas?\n\nEsta acción NO se puede deshacer.`)) {
+            // Filtrar solo las iniciativas seleccionadas
+            const iniciativasSeleccionadas = iniciativasValidacion.filter(i => i.seleccionada === true);
+            
+            // Verificar que hay iniciativas seleccionadas
+            if (iniciativasSeleccionadas.length === 0) {
+                alert('⚠️ Por favor selecciona al menos una iniciativa para importar');
+                return;
+            }
+            
+            // CONFIRMACIÓN EXPLÍCITA con el número correcto de iniciativas seleccionadas
+            if (!confirm(`¿Confirmar la carga de ${iniciativasSeleccionadas.length} iniciativas seleccionadas?\n\nTotal disponibles: ${iniciativasValidacion.length}\nSeleccionadas: ${iniciativasSeleccionadas.length}\n\nEsta acción NO se puede deshacer.`)) {
                 return;
             }
             
@@ -3675,7 +3684,8 @@
                     },
                     body: JSON.stringify({
                         tipoCarga: tipoCarga,
-                        fechaProgramada: fechaProgramada
+                        fechaProgramada: fechaProgramada,
+                        iniciativasSeleccionadas: iniciativasSeleccionadas  // Enviar solo las seleccionadas
                     })
                 });
                 

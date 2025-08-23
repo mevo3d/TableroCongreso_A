@@ -119,7 +119,7 @@ router.put('/preview-pdf/:sessionId/iniciativa/:numero', (req, res) => {
  */
 router.post('/validar-sesion/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
-    const { tipoCarga, fechaProgramada } = req.body;
+    const { tipoCarga, fechaProgramada, iniciativasSeleccionadas } = req.body;
     const db = req.db;
     
     const sesionPendiente = sesionesPendientes.get(sessionId);
@@ -127,6 +127,11 @@ router.post('/validar-sesion/:sessionId', async (req, res) => {
     if (!sesionPendiente) {
         return res.status(404).json({ error: 'Sesión no encontrada o expirada' });
     }
+    
+    // Usar las iniciativas seleccionadas si se proporcionan, de lo contrario usar todas
+    const iniciativasAGuardar = iniciativasSeleccionadas && iniciativasSeleccionadas.length > 0 
+        ? iniciativasSeleccionadas 
+        : sesionPendiente.iniciativas;
     
     try {
         // Preparar datos de la sesión
@@ -177,12 +182,14 @@ router.post('/validar-sesion/:sessionId', async (req, res) => {
                     db.run('UPDATE sesiones SET activa = 0 WHERE id != ?', [sesionId]);
                 }
                 
-                // Insertar iniciativas validadas
+                // Insertar iniciativas validadas (solo las seleccionadas)
                 let insertadas = 0;
                 let errores = 0;
-                const iniciativas = sesionPendiente.iniciativas;
+                const iniciativas = iniciativasAGuardar;  // Usar las iniciativas filtradas
                 
+                // Re-numerar las iniciativas seleccionadas para mantener orden consecutivo
                 iniciativas.forEach((iniciativa, index) => {
+                    iniciativa.numero_sistema = index + 1;  // Renumerar consecutivamente
                     db.run(
                         `INSERT INTO iniciativas (
                             sesion_id, numero, numero_orden_dia, titulo, descripcion, 
