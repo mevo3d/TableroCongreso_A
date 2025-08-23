@@ -376,7 +376,13 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header bg-warning bg-opacity-25 d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-clock"></i> Sesiones Pendientes / Indefinidas</h5>
+                        <div>
+                            <h5 class="mb-0"><i class="fas fa-clock"></i> Sesiones Pendientes / Indefinidas</h5>
+                            <small class="text-muted">
+                                <span class="badge bg-primary"><i class="fas fa-building"></i></span> = Cargadas por Servicios Legislativos |
+                                <span class="badge bg-dark"><i class="fas fa-user"></i></span> = Cargadas por Operador
+                            </small>
+                        </div>
                         <button class="btn btn-sm btn-outline-primary" onclick="loadSesionesPendientes()">
                             <i class="fas fa-sync"></i> Actualizar
                         </button>
@@ -1685,18 +1691,34 @@
                 const fechaCreacion = new Date(sesion.fecha).toLocaleDateString('es-MX');
                 const nombreEscapado = sesion.nombre.replace(/'/g, "\\'");
                 
-                // Badge del creador
-                const creadorBadge = sesion.creado_por_nombre ? 
-                    `<span class="badge ${sesion.creado_por_role === 'servicios_legislativos' ? 'bg-purple' : 'bg-dark'}">
-                        <i class="fas fa-user"></i> ${sesion.creado_por_role === 'servicios_legislativos' ? 'Servicios' : 'Operador'}
-                    </span>` : '';
+                // Determinar color y etiqueta según el creador
+                let creadorBadge = '';
+                let borderLeftColor = borderColor;
                 
-                // Badge de origen
+                if (sesion.creado_por_role === 'servicios_legislativos' || sesion.origen_tabla === 'sesion_precargada') {
+                    creadorBadge = `
+                        <span class="badge bg-primary">
+                            <i class="fas fa-building"></i> Servicios Legislativos
+                        </span>`;
+                    borderLeftColor = 'primary';
+                } else if (sesion.creado_por_nombre) {
+                    creadorBadge = `
+                        <span class="badge bg-dark">
+                            <i class="fas fa-user"></i> Operador: ${sesion.creado_por_nombre}
+                        </span>`;
+                }
+                
+                // Badge de origen adicional si es precargada
                 const origenBadge = sesion.origen_tabla === 'sesion_precargada' ? 
                     '<span class="badge bg-info ms-1"><i class="fas fa-database"></i> Precargada</span>' : '';
                 
+                // Información adicional del creador
+                const infoCreador = sesion.creado_por_nombre ? 
+                    `<br><small class="text-muted"><i class="fas fa-user-clock"></i> Cargada por: ${sesion.creado_por_nombre} el ${fechaCreacion}</small>` : 
+                    `<br><small class="text-muted"><i class="fas fa-calendar-alt"></i> Cargada el ${fechaCreacion}</small>`;
+                
                 return `
-                    <div class="card mb-2 border-start border-4 border-${borderColor}">
+                    <div class="card mb-2 border-start border-5 border-${borderLeftColor}">
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div class="flex-grow-1">
@@ -1705,8 +1727,8 @@
                                         ${tipoLabel}
                                         <span class="badge bg-light text-dark"><i class="fas fa-file-alt"></i> ${sesion.total_iniciativas || 0} iniciativas</span>
                                     </div>
-                                    <small class="text-muted">Código: <code>${sesion.codigo_sesion || 'SES-' + sesion.id}</code></small><br>
-                                    <small class="text-muted">Creada: ${fechaCreacion} ${sesion.creado_por_nombre ? `por ${sesion.creado_por_nombre}` : ''}</small>
+                                    <small class="text-muted">Código: <code>${sesion.codigo_sesion || 'SES-' + sesion.id}</code></small>
+                                    ${infoCreador}
                                     ${descripcion}
                                 </div>
                                 <div class="d-flex gap-2">

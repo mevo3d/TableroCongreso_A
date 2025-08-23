@@ -609,6 +609,7 @@ router.get('/sesiones-pendientes', (req, res) => {
             SELECT 
                 'sesion' as origen_tabla,
                 s.id,
+                s.codigo_sesion,
                 s.nombre,
                 s.descripcion,
                 s.estado,
@@ -635,6 +636,7 @@ router.get('/sesiones-pendientes', (req, res) => {
             SELECT 
                 'sesion_precargada' as origen_tabla,
                 sp.id,
+                sp.codigo_sesion,
                 sp.nombre_sesion as nombre,
                 sp.descripcion,
                 sp.estado,
