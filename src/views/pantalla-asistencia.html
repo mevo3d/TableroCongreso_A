@@ -412,6 +412,15 @@
             console.log('Conectado al servidor');
             // Verificar estado inicial
             verificarEstado();
+            
+            // Verificar periódicamente si no está activo
+            const checkInterval = setInterval(() => {
+                if (!paseListaActivo) {
+                    verificarEstado();
+                } else {
+                    clearInterval(checkInterval);
+                }
+            }, 3000); // Verificar cada 3 segundos
         });
         
         // Escuchar activación del pase de lista
@@ -465,13 +474,21 @@
                 const response = await fetch('/api/pase-lista/pantalla');
                 const data = await response.json();
                 
-                if (data.paseActivo) {
+                console.log('Estado del pase de lista:', data);
+                
+                // Verificar si hay datos de diputados (indica pase de lista activo)
+                if (data.diputados && data.diputados.length > 0) {
                     paseListaActivo = true;
                     diputadosData = data.diputados || [];
                     asistenciaData = data.asistencias || {};
                     document.getElementById('statsContainer').style.display = 'flex';
                     renderizarDiputados();
                     actualizarEstadisticas();
+                    console.log('Pase de lista activo con', diputadosData.length, 'diputados');
+                } else if (data.activo === false) {
+                    // No hay pase de lista activo
+                    paseListaActivo = false;
+                    console.log('No hay pase de lista activo, esperando activación...');
                 }
             } catch (error) {
                 console.error('Error verificando estado:', error);

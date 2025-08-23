@@ -555,6 +555,57 @@
             updateStats();
         }
         
+        // Variable para controlar si ya se activó la pantalla
+        let pantallaActivada = false;
+        
+        // Función para activar la pantalla de pase de lista
+        async function activarPantallaPaseLista() {
+            try {
+                const response = await fetch('/api/pase-lista/activar', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Pantalla de pase de lista activada:', data);
+                    
+                    // Emitir evento para activar pantalla pública
+                    socket.emit('pase-lista-activado', {
+                        activo: true,
+                        sesion_id: data.sesion_id
+                    });
+                    
+                    // Mostrar notificación de éxito
+                    mostrarNotificacion('✅ Pantalla de asistencia activada', 'success');
+                } else {
+                    console.error('Error activando pantalla:', await response.json());
+                }
+            } catch (error) {
+                console.error('Error activando pantalla de pase de lista:', error);
+            }
+        }
+        
+        // Función para mostrar notificaciones
+        function mostrarNotificacion(mensaje, tipo = 'info') {
+            // Crear elemento de notificación
+            const notificacion = document.createElement('div');
+            notificacion.className = `alert alert-${tipo} position-fixed top-0 start-50 translate-middle-x mt-3`;
+            notificacion.style.zIndex = '9999';
+            notificacion.style.minWidth = '300px';
+            notificacion.textContent = mensaje;
+            
+            document.body.appendChild(notificacion);
+            
+            // Remover después de 3 segundos
+            setTimeout(() => {
+                notificacion.remove();
+            }, 3000);
+        }
+        
         // Marcar asistencia
         async function markAttendance(deputyId, status, buttonElement) {
             if (isReadonly) return;
@@ -722,6 +773,16 @@
                     if (data.pase_lista) {
                         attendanceData = data.asistencias || {};
                         
+                        // Si ya hay un pase de lista, asegurar que esté activado
+                        if (!pantallaActivada) {
+                            pantallaActivada = true;
+                            // Emitir evento para asegurar que la pantalla esté activada
+                            socket.emit('pase-lista-activado', {
+                                activo: true,
+                                sesion_id: data.pase_lista.sesion_id
+                            });
+                        }
+                        
                         // Siempre mantener editable durante la sesión activa
                         if (data.sesion_activa) {
                             if (user.cargo_mesa_directiva === 'secretario1' || 
@@ -855,9 +916,29 @@
             }
         });
         
+        // Función para activar la pantalla al cargar la página
+        async function activarPantallaAlCargar() {
+            // Solo activar si el usuario tiene permisos
+            if (user.cargo_mesa_directiva === 'secretario1' || 
+                user.cargo_mesa_directiva === 'secretario2' ||
+                user.role === 'secretario') {
+                
+                console.log('Activando pantalla de pase de lista al cargar...');
+                
+                // Esperar un momento para asegurar que todo esté cargado
+                setTimeout(async () => {
+                    if (!pantallaActivada) {
+                        await activarPantallaPaseLista();
+                        pantallaActivada = true;
+                    }
+                }, 500);
+            }
+        }
+        
         // Inicializar
         checkPermissions();
         loadCurrentAttendance();
+        activarPantallaAlCargar();
     </script>
     
     <script src="/js/theme-switcher.js"></script>
