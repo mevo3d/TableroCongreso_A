@@ -34,8 +34,19 @@
         
         /* Fix para dropdown de pantalla pública */
         .dropdown-menu {
-            z-index: 9999 !important;
+            z-index: 99999 !important;
             position: absolute !important;
+            background-color: var(--bg-card, white) !important;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.175) !important;
+            border: 1px solid var(--border-color, #dee2e6) !important;
+        }
+        
+        .dropdown-menu .dropdown-item {
+            color: var(--text-primary, #212529) !important;
+        }
+        
+        .dropdown-menu .dropdown-item:hover {
+            background-color: var(--bg-hover, #f8f9fa) !important;
         }
         
         .dropdown {
@@ -43,8 +54,39 @@
         }
         
         /* Asegurar que el dropdown de pantalla esté siempre visible */
+        #screenDropdown {
+            position: relative !important;
+            z-index: 99999 !important;
+        }
+        
         #screenDropdown .dropdown-menu {
-            z-index: 10000 !important;
+            z-index: 999999 !important;
+            position: absolute !important;
+            top: 100% !important;
+            left: 0 !important;
+            right: 0 !important;
+            margin-top: 0.125rem !important;
+            display: none;
+        }
+        
+        #screenDropdown .dropdown-menu.show {
+            display: block !important;
+        }
+        
+        /* Asegurar que el botón también tenga z-index alto */
+        #screenDropdown .dropdown-toggle {
+            position: relative !important;
+            z-index: 99998 !important;
+        }
+        
+        /* Fix para que el dropdown no se oculte detrás de otros elementos */
+        .card {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .card-body {
+            overflow: visible !important;
         }
         
         .initiative-card {
