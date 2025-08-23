@@ -660,20 +660,26 @@
                     
                     // Mostrar mensaje específico para sesión no activa
                     if (error.error === 'Sesión no activa') {
-                        alert(error.message || 'Esperando a ser activada por el Presidente de la Mesa Directiva');
+                        mostrarNotificacion('⚠️ ' + (error.message || 'Esperando a ser activada por el Presidente de la Mesa Directiva'), 'warning');
                     } else {
-                        alert('Error al marcar asistencia: ' + (error.error || 'Error desconocido'));
+                        mostrarNotificacion('❌ Error al marcar asistencia: ' + (error.error || 'Error desconocido'), 'danger');
                     }
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error al marcar asistencia');
+                mostrarNotificacion('❌ Error al marcar asistencia', 'danger');
             }
         }
         
         // Confirmar pase de lista (guardar estado actual pero mantener editable)
         async function confirmAttendance() {
             if (isReadonly) return;
+            
+            // Deshabilitar botón temporalmente para evitar doble click
+            const confirmBtn = document.getElementById('confirmBtn');
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+            }
             
             try {
                 const response = await fetch('/api/pase-lista/confirmar', {
@@ -685,15 +691,26 @@
                 });
                 
                 if (response.ok) {
-                    alert('Pase de lista confirmado. Puede seguir editando si es necesario.');
+                    const data = await response.json();
+                    mostrarNotificacion('✅ Pase de lista confirmado. Puede seguir editando si es necesario.', 'success');
                     document.getElementById('attendanceStatus').textContent = 'Confirmado - Editable';
-                    // NO bloquear la edición
+                    
+                    // Mostrar resumen
+                    if (data.presentes !== undefined) {
+                        mostrarNotificacion(`📊 Presentes: ${data.presentes} | Ausentes: ${data.ausentes}`, 'info');
+                    }
+                    // NO bloquear la edición ni redirigir
                 } else {
-                    alert('Error al confirmar pase de lista');
+                    mostrarNotificacion('❌ Error al confirmar pase de lista', 'danger');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error al confirmar');
+                mostrarNotificacion('❌ Error al confirmar', 'danger');
+            } finally {
+                // Rehabilitar botón
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                }
             }
         }
         
@@ -709,13 +726,13 @@
                 });
                 
                 if (response.ok) {
-                    alert('Pase de lista visible en pantalla');
+                    mostrarNotificacion('📺 Pase de lista visible en pantalla', 'success');
                 } else {
-                    alert('Error al mostrar en pantalla');
+                    mostrarNotificacion('❌ Error al mostrar en pantalla', 'danger');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error al mostrar en pantalla');
+                mostrarNotificacion('❌ Error al mostrar en pantalla', 'danger');
             }
         }
         
