@@ -54,51 +54,77 @@ router.post('/votar', (req, res) => {
         return res.status(400).json({ error: 'Voto inválido' });
     }
     
-    // Verificar que la iniciativa está activa
-    db.get(
-        'SELECT * FROM iniciativas WHERE id = ? AND activa = 1 AND cerrada = 0',
-        [iniciativa_id],
-        (err, iniciativa) => {
-            if (err) {
-                return res.status(500).json({ error: 'Error verificando iniciativa' });
-            }
-            
-            if (!iniciativa) {
-                return res.status(400).json({ error: 'Iniciativa no disponible para votación' });
-            }
-            
-            // Insertar voto
-            db.run(
-                'INSERT OR REPLACE INTO votos (iniciativa_id, usuario_id, voto) VALUES (?, ?, ?)',
-                [iniciativa_id, userId, voto],
-                (err) => {
-                    if (err) {
-                        return res.status(500).json({ error: 'Error registrando voto' });
-                    }
-                    
-                    // Emitir evento
-                    req.io.emit('voto-emitido', {
-                        iniciativa_id,
-                        usuario_id: userId,
-                        voto
-                    });
-                    
-                    // Verificar si todos votaron
-                    db.get(
-                        'SELECT COUNT(*) as votos FROM votos WHERE iniciativa_id = ?',
-                        [iniciativa_id],
-                        (err, result) => {
-                            if (!err && result.votos === 20) {
-                                req.io.emit('votacion-completa', { iniciativa_id });
-                            }
-                        }
-                    );
-                    
-                    res.json({ message: 'Voto registrado exitosamente' });
-                }
-            );
+    // PRIMERO: Verificar que el diputado está marcado como presente en el pase de lista
+    db.get(`
+        SELECT ad.asistencia 
+        FROM asistencia_diputados ad
+        INNER JOIN asistencias a ON ad.asistencia_id = a.id
+        INNER JOIN sesiones s ON a.sesion_id = s.id
+        WHERE s.activa = 1 AND ad.diputado_id = ?
+        ORDER BY a.id DESC
+        LIMIT 1
+    `, [userId], (err, asistencia) => {
+        if (err) {
+            console.error('Error verificando asistencia:', err);
+            // Si hay error con la tabla, intentar sin validación por ahora
+            console.log('Permitiendo voto sin validación de asistencia debido a error');
+        } else if (asistencia && asistencia.asistencia !== 'presente') {
+            // Solo bloquear si existe registro y NO está presente
+            return res.status(403).json({ 
+                error: 'No puede votar sin estar presente',
+                mensaje: 'Debe estar marcado como PRESENTE en el pase de lista para poder votar.',
+                estado_asistencia: asistencia.asistencia
+            });
         }
-    );
+        
+        // Verificar que la iniciativa está activa
+        db.get(
+            'SELECT * FROM iniciativas WHERE id = ? AND activa = 1 AND cerrada = 0',
+            [iniciativa_id],
+            (err, iniciativa) => {
+                if (err) {
+                    console.error('Error verificando iniciativa:', err);
+                    return res.status(500).json({ error: 'Error verificando iniciativa' });
+                }
+                
+                if (!iniciativa) {
+                    return res.status(400).json({ error: 'Iniciativa no disponible para votación' });
+                }
+                
+                // Insertar voto
+                db.run(
+                    'INSERT OR REPLACE INTO votos (iniciativa_id, usuario_id, voto) VALUES (?, ?, ?)',
+                    [iniciativa_id, userId, voto],
+                    (err) => {
+                        if (err) {
+                            console.error('Error registrando voto:', err);
+                            return res.status(500).json({ error: 'Error registrando voto' });
+                        }
+                    
+                        // Emitir evento
+                        req.io.emit('voto-emitido', {
+                            iniciativa_id,
+                            usuario_id: userId,
+                            voto
+                        });
+                        
+                        // Verificar si todos votaron
+                        db.get(
+                            'SELECT COUNT(*) as votos FROM votos WHERE iniciativa_id = ?',
+                            [iniciativa_id],
+                            (err, result) => {
+                                if (!err && result.votos === 20) {
+                                    req.io.emit('votacion-completa', { iniciativa_id });
+                                }
+                            }
+                        );
+                        
+                        res.json({ message: 'Voto registrado exitosamente' });
+                    }
+                );
+            }
+        );
+    });
 });
 
 // Historial de votos
@@ -275,6 +301,13 @@ router.post('/iniciar-sesion', (req, res) => {
                     
                     const nuevaSesionId = this.lastID;
                     
+                    // Activar automáticamente el pase de lista
+                    db.run(`UPDATE sesiones SET pase_lista_activo = 1 WHERE id = ?`, [nuevaSesionId], (err) => {
+                        if (err) {
+                            console.error('Error activando pase de lista:', err);
+                        }
+                    });
+                    
                     // Emitir evento de sesión iniciada
                     if (io) {
                         io.emit('sesion-iniciada', {
@@ -282,13 +315,20 @@ router.post('/iniciar-sesion', (req, res) => {
                             iniciada_por: user.nombre_completo,
                             mensaje: 'El Presidente ha iniciado la sesión legislativa'
                         });
+                        
+                        // Notificar que el pase de lista está activo
+                        io.emit('pase-lista-activado', {
+                            sesion_id: nuevaSesionId,
+                            mensaje: 'Pase de lista activado automáticamente. Los secretarios pueden proceder.'
+                        });
                     }
                     
                     res.json({
                         success: true,
                         sesion_id: nuevaSesionId,
                         mensaje: 'Sesión iniciada por el Presidente (sin iniciativas cargadas)',
-                        aviso_operador: true
+                        aviso_operador: true,
+                        pase_lista_activo: true
                     });
                 });
                 return;
@@ -309,7 +349,8 @@ router.post('/iniciar-sesion', (req, res) => {
                  SET activa = 1, 
                      estado = 'activa',
                      iniciada_por = ?,
-                     fecha = ?
+                     fecha = ?,
+                     pase_lista_activo = 1
                  WHERE id = ?`,
                 [userId, fecha, sesionPreparada.id],
                 function(err) {
@@ -326,10 +367,17 @@ router.post('/iniciar-sesion', (req, res) => {
                         iniciada_por: user.cargo_mesa_directiva || user.role
                     });
                     
+                    // Notificar que el pase de lista está activo
+                    io.emit('pase-lista-activado', {
+                        sesion_id: sesionPreparada.id,
+                        mensaje: 'Pase de lista activado automáticamente. Los secretarios pueden proceder.'
+                    });
+                    
                     res.json({ 
                         success: true, 
                         sesion_id: sesionPreparada.id,
-                        mensaje: 'Sesión iniciada correctamente' 
+                        mensaje: 'Sesión iniciada correctamente',
+                        pase_lista_activo: true
                     });
                 }
             );
@@ -349,10 +397,11 @@ router.post('/clausurar-sesion', (req, res) => {
             return res.status(500).json({ error: 'Error verificando permisos' });
         }
         
-        // Verificar si es presidente, vicepresidente, o secretario legislativo
+        // Verificar si es presidente, vicepresidente, secretario legislativo o superadmin
         const canClose = user.cargo_mesa_directiva === 'presidente' || 
                         user.cargo_mesa_directiva === 'vicepresidente' ||
-                        user.role === 'secretario';
+                        user.role === 'secretario' ||
+                        user.role === 'superadmin';
         
         if (!canClose) {
             return res.status(403).json({ error: 'No tienes permisos para clausurar la sesión' });
@@ -502,7 +551,8 @@ router.get('/estado-sesion', (req, res) => {
                         puede_clausurar: user.cargo_mesa_directiva === 'presidente' || 
                                        user.cargo_mesa_directiva === 'vicepresidente' ||
                                        user.cargo_mesa_directiva === 'Presidente de la Mesa Directiva' ||
-                                       user.role === 'secretario',
+                                       user.role === 'secretario' ||
+                                       user.role === 'superadmin',
                         iniciativas_cargadas: true
                     });
                 }
@@ -901,12 +951,20 @@ router.post('/activar-iniciativa/:id', (req, res) => {
                             return res.status(500).json({ error: 'Error activando iniciativa' });
                         }
                         
-                        // Emitir evento a todos los clientes con información adicional
-                        io.emit('iniciativa-activa', {
-                            ...iniciativa,
-                            mensaje: iniciativaActiva ? 
-                                `Se cerró iniciativa #${iniciativaActiva.numero} y se activó #${iniciativa.numero}` : 
-                                `Iniciativa #${iniciativa.numero} activada para votación`
+                        // Obtener información de la sesión incluyendo el PDF
+                        db.get(`
+                            SELECT archivo_pdf 
+                            FROM sesiones 
+                            WHERE id = ?
+                        `, [iniciativa.sesion_id], (err, sesion) => {
+                            // Emitir evento a todos los clientes con información adicional
+                            io.emit('iniciativa-activa', {
+                                ...iniciativa,
+                                archivo_pdf: sesion ? sesion.archivo_pdf : null,
+                                mensaje: iniciativaActiva ? 
+                                    `Se cerró iniciativa #${iniciativaActiva.numero} y se activó #${iniciativa.numero}` : 
+                                    `Iniciativa #${iniciativa.numero} activada para votación`
+                            });
                         });
                         
                         res.json({ 
@@ -1143,6 +1201,152 @@ router.post('/cerrar-votacion/:id', (req, res) => {
         });
     });
 });
+});
+
+// Actualizar perfil del diputado
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const bcrypt = require('bcrypt');
+
+// Configurar multer para manejo de archivos
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadPath = path.join(__dirname, '../../public/uploads/diputados');
+        // Crear directorio si no existe
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'diputado-' + req.user.id + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB máximo
+    fileFilter: function (req, file, cb) {
+        const allowedTypes = /jpeg|jpg|png|gif/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        
+        if (mimetype && extname) {
+            return cb(null, true);
+        } else {
+            cb(new Error('Solo se permiten imágenes (jpeg, jpg, png, gif)'));
+        }
+    }
+});
+
+// Ruta para actualizar perfil
+router.post('/actualizar-perfil', upload.single('fotografia'), async (req, res) => {
+    const { nombre, usuario, password } = req.body;
+    const userId = req.user.id;
+    const db = req.db;
+    
+    try {
+        // Verificar que el usuario no esté duplicado
+        if (usuario && usuario !== req.user.usuario) {
+            const existingUser = await new Promise((resolve, reject) => {
+                db.get('SELECT id FROM usuarios WHERE usuario = ? AND id != ?', [usuario, userId], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+            
+            if (existingUser) {
+                // Si se subió una foto, eliminarla
+                if (req.file) {
+                    fs.unlinkSync(req.file.path);
+                }
+                return res.status(400).json({ error: 'El nombre de usuario ya está en uso' });
+            }
+        }
+        
+        // Preparar campos a actualizar
+        let updateFields = [];
+        let updateValues = [];
+        
+        if (nombre) {
+            updateFields.push('nombre_completo = ?');
+            updateValues.push(nombre);
+        }
+        
+        if (usuario) {
+            updateFields.push('usuario = ?');
+            updateValues.push(usuario);
+        }
+        
+        if (password && password.length >= 6) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            updateFields.push('password = ?', 'password_plain = ?');
+            updateValues.push(hashedPassword);
+            updateValues.push(password);
+        }
+        
+        if (req.file) {
+            // Eliminar foto anterior si existe
+            db.get('SELECT fotografia FROM usuarios WHERE id = ?', [userId], (err, row) => {
+                if (row && row.fotografia) {
+                    const oldPhotoPath = path.join(__dirname, '../../public', row.fotografia);
+                    if (fs.existsSync(oldPhotoPath)) {
+                        fs.unlinkSync(oldPhotoPath);
+                    }
+                }
+            });
+            
+            const photoPath = '/uploads/diputados/' + req.file.filename;
+            updateFields.push('fotografia = ?');
+            updateValues.push(photoPath);
+        }
+        
+        if (updateFields.length === 0) {
+            return res.status(400).json({ error: 'No hay cambios para actualizar' });
+        }
+        
+        // Agregar ID al final de los valores
+        updateValues.push(userId);
+        
+        // Actualizar en la base de datos
+        const updateQuery = `UPDATE usuarios SET ${updateFields.join(', ')} WHERE id = ?`;
+        
+        db.run(updateQuery, updateValues, function(err) {
+            if (err) {
+                console.error('Error actualizando perfil:', err);
+                // Si hubo error y se subió foto, eliminarla
+                if (req.file) {
+                    fs.unlinkSync(req.file.path);
+                }
+                return res.status(500).json({ error: 'Error al actualizar el perfil' });
+            }
+            
+            // Obtener datos actualizados
+            db.get('SELECT nombre_completo, usuario, fotografia FROM usuarios WHERE id = ?', [userId], (err, row) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error obteniendo datos actualizados' });
+                }
+                
+                res.json({
+                    success: true,
+                    message: 'Perfil actualizado correctamente',
+                    nombre: row.nombre_completo,
+                    usuario: row.usuario,
+                    fotografia: row.fotografia
+                });
+            });
+        });
+        
+    } catch (error) {
+        console.error('Error en actualizar-perfil:', error);
+        // Si hubo error y se subió foto, eliminarla
+        if (req.file) {
+            fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ error: 'Error al procesar la solicitud' });
+    }
 });
 
 module.exports = router;

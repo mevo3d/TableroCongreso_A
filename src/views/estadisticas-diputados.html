@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas de Diputados - Panel Superadmin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/global-theme.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        .stats-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .metric-box {
+            text-align: center;
+            padding: 15px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--color-primary);
+        }
+        
+        .metric-label {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        
+        .diputado-row {
+            padding: 15px;
+            margin: 10px 0;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .diputado-row:hover {
+            background: var(--bg-hover);
+            transform: translateX(5px);
+        }
+        
+        .attendance-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .badge-presente {
+            background: #28a745;
+            color: white;
+        }
+        
+        .badge-ausente {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .badge-permiso {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .filter-section {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .detail-modal {
+            max-width: 900px;
+        }
+        
+        .vote-circle {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin: 0 5px;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .vote-favor { background: #28a745; }
+        .vote-contra { background: #dc3545; }
+        .vote-abstencion { background: #ffc107; color: #000; }
+        
+        .initiative-card {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid var(--color-primary);
+        }
+        
+        .export-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand">
+                <i class="fas fa-chart-bar"></i> Estadísticas de Desempeño - Diputados
+            </span>
+            <div class="d-flex">
+                <button class="btn btn-outline-light me-2" onclick="window.location.href='/superadmin'">
+                    <i class="fas fa-arrow-left"></i> Regresar
+                </button>
+                <button class="btn btn-outline-danger" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Filtros -->
+        <div class="filter-section">
+            <h5><i class="fas fa-filter"></i> Filtros</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <label>Fecha Inicio:</label>
+                    <input type="date" id="fechaInicio" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label>Fecha Fin:</label>
+                    <input type="date" id="fechaFin" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label>Diputado:</label>
+                    <select id="selectDiputado" class="form-select">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label>Partido:</label>
+                    <select id="selectPartido" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="MORENA">MORENA</option>
+                        <option value="PAN">PAN</option>
+                        <option value="PRI">PRI</option>
+                        <option value="PT">PT</option>
+                        <option value="PVEM">PVEM</option>
+                        <option value="MC">MC</option>
+                        <option value="NUEVA ALIANZA">NUEVA ALIANZA</option>
+                    </select>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <button class="btn btn-primary" onclick="aplicarFiltros()">
+                    <i class="fas fa-search"></i> Aplicar Filtros
+                </button>
+                <button class="btn btn-secondary" onclick="limpiarFiltros()">
+                    <i class="fas fa-eraser"></i> Limpiar
+                </button>
+            </div>
+        </div>
+
+        <!-- Resumen General -->
+        <div class="stats-card">
+            <h4><i class="fas fa-tachometer-alt"></i> Resumen General</h4>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="metric-box">
+                        <div class="metric-value" id="totalSesiones">0</div>
+                        <div class="metric-label">Sesiones Totales</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-box">
+                        <div class="metric-value" id="totalIniciativas">0</div>
+                        <div class="metric-label">Iniciativas Votadas</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-box">
+                        <div class="metric-value" id="promedioAsistencia">0%</div>
+                        <div class="metric-label">Promedio Asistencia</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-box">
+                        <div class="metric-value" id="promedioParticipacion">0%</div>
+                        <div class="metric-label">Promedio Participación</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs de contenido -->
+        <ul class="nav nav-tabs" id="statsTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="asistencia-tab" data-bs-toggle="tab" data-bs-target="#asistencia" type="button">
+                    <i class="fas fa-user-check"></i> Asistencia
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="votaciones-tab" data-bs-toggle="tab" data-bs-target="#votaciones" type="button">
+                    <i class="fas fa-vote-yea"></i> Votaciones
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="iniciativas-tab" data-bs-toggle="tab" data-bs-target="#iniciativas" type="button">
+                    <i class="fas fa-file-alt"></i> Iniciativas
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="graficas-tab" data-bs-toggle="tab" data-bs-target="#graficas" type="button">
+                    <i class="fas fa-chart-pie"></i> Gráficas
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="statsTabContent">
+            <!-- Tab Asistencia -->
+            <div class="tab-pane fade show active" id="asistencia" role="tabpanel">
+                <div class="stats-card">
+                    <h5><i class="fas fa-calendar-check"></i> Registro de Asistencia por Diputado</h5>
+                    <div id="asistenciaList">
+                        <div class="text-center text-muted">Cargando datos...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Votaciones -->
+            <div class="tab-pane fade" id="votaciones" role="tabpanel">
+                <div class="stats-card">
+                    <h5><i class="fas fa-poll"></i> Historial de Votaciones</h5>
+                    <div id="votacionesList">
+                        <div class="text-center text-muted">Cargando datos...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Iniciativas -->
+            <div class="tab-pane fade" id="iniciativas" role="tabpanel">
+                <div class="stats-card">
+                    <h5><i class="fas fa-file-signature"></i> Iniciativas por Sesión</h5>
+                    <div id="iniciativasList">
+                        <div class="text-center text-muted">Cargando datos...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Gráficas -->
+            <div class="tab-pane fade" id="graficas" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="stats-card">
+                            <h5>Asistencia por Partido</h5>
+                            <div class="chart-container">
+                                <canvas id="chartAsistenciaPartido"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="stats-card">
+                            <h5>Tendencia de Votación</h5>
+                            <div class="chart-container">
+                                <canvas id="chartTendenciaVotacion"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="stats-card">
+                            <h5>Participación por Sesión</h5>
+                            <div class="chart-container">
+                                <canvas id="chartParticipacionSesion"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalle -->
+    <div class="modal fade" id="modalDetalle" tabindex="-1">
+        <div class="modal-dialog modal-lg detail-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Detalle del Diputado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalContent">
+                    <!-- Contenido dinámico -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón Exportar -->
+    <div class="export-btn">
+        <div class="btn-group dropup">
+            <button type="button" class="btn btn-success btn-lg dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-download"></i> Exportar
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" onclick="exportarExcel()">
+                    <i class="fas fa-file-excel"></i> Excel
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportarPDF()">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportarCSV()">
+                    <i class="fas fa-file-csv"></i> CSV
+                </a></li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user'));
+        
+        // Verificar permisos
+        if (!token || !user || user.role !== 'superadmin') {
+            alert('No tienes permisos para acceder a esta página');
+            window.location.href = '/';
+        }
+        
+        let estadisticasData = {};
+        let chartsInstances = {};
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarDiputados();
+            cargarEstadisticas();
+            initCharts();
+        });
+        
+        // Cargar lista de diputados
+        async function cargarDiputados() {
+            try {
+                const response = await fetch('/api/superadmin/lista-diputados', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const diputados = await response.json();
+                    const select = document.getElementById('selectDiputado');
+                    
+                    diputados.forEach(dip => {
+                        const option = document.createElement('option');
+                        option.value = dip.id;
+                        option.textContent = `${dip.nombre_completo} (${dip.partido})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando diputados:', error);
+            }
+        }
+        
+        // Cargar estadísticas
+        async function cargarEstadisticas() {
+            try {
+                const params = new URLSearchParams();
+                
+                const fechaInicio = document.getElementById('fechaInicio').value;
+                const fechaFin = document.getElementById('fechaFin').value;
+                const diputadoId = document.getElementById('selectDiputado').value;
+                const partido = document.getElementById('selectPartido').value;
+                
+                if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+                if (fechaFin) params.append('fecha_fin', fechaFin);
+                if (diputadoId) params.append('diputado_id', diputadoId);
+                if (partido) params.append('partido', partido);
+                
+                const response = await fetch(`/api/superadmin/estadisticas-diputados?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    estadisticasData = await response.json();
+                    actualizarVista();
+                }
+            } catch (error) {
+                console.error('Error cargando estadísticas:', error);
+            }
+        }
+        
+        // Actualizar vista con datos
+        function actualizarVista() {
+            // Actualizar métricas generales
+            document.getElementById('totalSesiones').textContent = estadisticasData.resumen?.total_sesiones || 0;
+            document.getElementById('totalIniciativas').textContent = estadisticasData.resumen?.total_iniciativas || 0;
+            document.getElementById('promedioAsistencia').textContent = 
+                `${(estadisticasData.resumen?.promedio_asistencia || 0).toFixed(1)}%`;
+            document.getElementById('promedioParticipacion').textContent = 
+                `${(estadisticasData.resumen?.promedio_participacion || 0).toFixed(1)}%`;
+            
+            // Actualizar lista de asistencia
+            actualizarAsistencia();
+            
+            // Actualizar lista de votaciones
+            actualizarVotaciones();
+            
+            // Actualizar lista de iniciativas
+            actualizarIniciativas();
+            
+            // Actualizar gráficas
+            actualizarGraficas();
+        }
+        
+        // Actualizar lista de asistencia
+        function actualizarAsistencia() {
+            const container = document.getElementById('asistenciaList');
+            const data = estadisticasData.asistencia || [];
+            
+            if (data.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No hay datos de asistencia</div>';
+                return;
+            }
+            
+            let html = '';
+            data.forEach(dip => {
+                const porcentaje = ((dip.presentes / dip.total_sesiones) * 100).toFixed(1);
+                html += `
+                    <div class="diputado-row" onclick="verDetalleDiputado(${dip.diputado_id})">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <strong>${dip.nombre_completo}</strong><br>
+                                <small class="text-muted">${dip.partido}</small>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="progress" style="height: 25px;">
+                                    <div class="progress-bar bg-success" style="width: ${porcentaje}%">
+                                        ${porcentaje}% Asistencia
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <span class="attendance-badge badge-presente">${dip.presentes} Presente</span>
+                                <span class="attendance-badge badge-ausente">${dip.ausentes} Ausente</span>
+                                ${dip.permisos > 0 ? `<span class="attendance-badge badge-permiso">${dip.permisos} Permiso</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Actualizar lista de votaciones
+        function actualizarVotaciones() {
+            const container = document.getElementById('votacionesList');
+            const data = estadisticasData.votaciones || [];
+            
+            if (data.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No hay datos de votaciones</div>';
+                return;
+            }
+            
+            let html = '';
+            data.forEach(vot => {
+                html += `
+                    <div class="initiative-card">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Sesión #${vot.sesion_id} - ${new Date(vot.fecha).toLocaleDateString()}</h6>
+                                <p class="mb-0">${vot.titulo}</p>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <span class="vote-circle vote-favor">${vot.votos_favor}</span>
+                                <span class="vote-circle vote-contra">${vot.votos_contra}</span>
+                                <span class="vote-circle vote-abstencion">${vot.votos_abstencion}</span>
+                                <br>
+                                <span class="badge ${vot.resultado === 'aprobado' ? 'bg-success' : 'bg-danger'} mt-2">
+                                    ${vot.resultado?.toUpperCase() || 'PENDIENTE'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Actualizar lista de iniciativas
+        function actualizarIniciativas() {
+            const container = document.getElementById('iniciativasList');
+            const data = estadisticasData.iniciativas || [];
+            
+            if (data.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">No hay datos de iniciativas</div>';
+                return;
+            }
+            
+            // Agrupar por sesión
+            const porSesion = {};
+            data.forEach(init => {
+                if (!porSesion[init.sesion_id]) {
+                    porSesion[init.sesion_id] = {
+                        fecha: init.fecha_sesion,
+                        iniciativas: []
+                    };
+                }
+                porSesion[init.sesion_id].iniciativas.push(init);
+            });
+            
+            let html = '';
+            Object.keys(porSesion).forEach(sesionId => {
+                const sesion = porSesion[sesionId];
+                html += `
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="fas fa-calendar"></i> Sesión #${sesionId} - 
+                            ${new Date(sesion.fecha).toLocaleDateString()}
+                        </h6>
+                        <div class="ms-3">
+                `;
+                
+                sesion.iniciativas.forEach(init => {
+                    html += `
+                        <div class="initiative-card">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>${init.numero}.</strong> ${init.titulo}
+                                    ${init.presentador ? `<br><small>Presentador: ${init.presentador}</small>` : ''}
+                                </div>
+                                <div>
+                                    <span class="badge ${init.resultado === 'aprobado' ? 'bg-success' : init.resultado === 'rechazado' ? 'bg-danger' : 'bg-secondary'}">
+                                        ${init.resultado?.toUpperCase() || 'PENDIENTE'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div>';
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Inicializar gráficas
+        function initCharts() {
+            // Gráfica de asistencia por partido
+            const ctxAsistencia = document.getElementById('chartAsistenciaPartido').getContext('2d');
+            chartsInstances.asistencia = new Chart(ctxAsistencia, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Promedio de Asistencia',
+                        data: [],
+                        backgroundColor: 'rgba(40, 167, 69, 0.6)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+            
+            // Gráfica de tendencia de votación
+            const ctxTendencia = document.getElementById('chartTendenciaVotacion').getContext('2d');
+            chartsInstances.tendencia = new Chart(ctxTendencia, {
+                type: 'doughnut',
+                data: {
+                    labels: ['A Favor', 'En Contra', 'Abstención'],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.8)',
+                            'rgba(220, 53, 69, 0.8)',
+                            'rgba(255, 193, 7, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            
+            // Gráfica de participación por sesión
+            const ctxParticipacion = document.getElementById('chartParticipacionSesion').getContext('2d');
+            chartsInstances.participacion = new Chart(ctxParticipacion, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Participación',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Actualizar gráficas
+        function actualizarGraficas() {
+            // Actualizar gráfica de asistencia por partido
+            if (estadisticasData.por_partido) {
+                const labels = Object.keys(estadisticasData.por_partido);
+                const data = labels.map(partido => estadisticasData.por_partido[partido].promedio_asistencia);
+                
+                chartsInstances.asistencia.data.labels = labels;
+                chartsInstances.asistencia.data.datasets[0].data = data;
+                chartsInstances.asistencia.update();
+            }
+            
+            // Actualizar gráfica de tendencia
+            if (estadisticasData.resumen) {
+                const total = estadisticasData.resumen.total_votos || 0;
+                const favor = estadisticasData.resumen.votos_favor || 0;
+                const contra = estadisticasData.resumen.votos_contra || 0;
+                const abstencion = estadisticasData.resumen.votos_abstencion || 0;
+                
+                chartsInstances.tendencia.data.datasets[0].data = [favor, contra, abstencion];
+                chartsInstances.tendencia.update();
+            }
+            
+            // Actualizar gráfica de participación
+            if (estadisticasData.por_sesion) {
+                const labels = estadisticasData.por_sesion.map(s => `Sesión ${s.sesion_id}`);
+                const data = estadisticasData.por_sesion.map(s => s.participacion);
+                
+                chartsInstances.participacion.data.labels = labels;
+                chartsInstances.participacion.data.datasets[0].data = data;
+                chartsInstances.participacion.update();
+            }
+        }
+        
+        // Ver detalle de diputado
+        async function verDetalleDiputado(diputadoId) {
+            try {
+                const response = await fetch(`/api/superadmin/detalle-diputado/${diputadoId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    mostrarModalDetalle(data);
+                }
+            } catch (error) {
+                console.error('Error cargando detalle:', error);
+            }
+        }
+        
+        // Mostrar modal con detalle
+        function mostrarModalDetalle(data) {
+            document.getElementById('modalTitle').textContent = `Detalle: ${data.nombre_completo}`;
+            
+            let html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Información General</h6>
+                        <p><strong>Partido:</strong> ${data.partido}</p>
+                        <p><strong>Cargo:</strong> ${data.cargo_mesa_directiva || 'Diputado'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Estadísticas</h6>
+                        <p><strong>Asistencia:</strong> ${data.estadisticas.porcentaje_asistencia}%</p>
+                        <p><strong>Participación:</strong> ${data.estadisticas.porcentaje_participacion}%</p>
+                    </div>
+                </div>
+                <hr>
+                <h6>Historial de Asistencia</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Sesión</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            data.asistencia.forEach(a => {
+                html += `
+                    <tr>
+                        <td>${new Date(a.fecha).toLocaleDateString()}</td>
+                        <td>Sesión #${a.sesion_id}</td>
+                        <td>
+                            <span class="badge ${a.estado === 'presente' ? 'bg-success' : a.estado === 'ausente' ? 'bg-danger' : 'bg-warning'}">
+                                ${a.estado.toUpperCase()}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('modalContent').innerHTML = html;
+            const modal = new bootstrap.Modal(document.getElementById('modalDetalle'));
+            modal.show();
+        }
+        
+        // Aplicar filtros
+        function aplicarFiltros() {
+            cargarEstadisticas();
+        }
+        
+        // Limpiar filtros
+        function limpiarFiltros() {
+            document.getElementById('fechaInicio').value = '';
+            document.getElementById('fechaFin').value = '';
+            document.getElementById('selectDiputado').value = '';
+            document.getElementById('selectPartido').value = '';
+            cargarEstadisticas();
+        }
+        
+        // Exportar a Excel
+        async function exportarExcel() {
+            try {
+                const params = new URLSearchParams();
+                
+                const fechaInicio = document.getElementById('fechaInicio').value;
+                const fechaFin = document.getElementById('fechaFin').value;
+                
+                if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+                if (fechaFin) params.append('fecha_fin', fechaFin);
+                
+                const response = await fetch(`/api/superadmin/exportar-estadisticas?formato=excel&${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `estadisticas_diputados_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                }
+            } catch (error) {
+                console.error('Error exportando:', error);
+                alert('Error al exportar el archivo');
+            }
+        }
+        
+        // Exportar a PDF
+        function exportarPDF() {
+            alert('Función de exportación a PDF en desarrollo');
+        }
+        
+        // Exportar a CSV
+        function exportarCSV() {
+            alert('Función de exportación a CSV en desarrollo');
+        }
+        
+        // Logout
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

@@ -116,7 +116,7 @@ router.get('/partidos', (req, res) => {
 
 // Función auxiliar para obtener votos
 function obtenerVotosIniciativa(db, iniciativaId, req, callback) {
-    // Obtener TODOS los diputados con sus votos (si existen)
+    // Obtener TODOS los diputados con sus votos (si existen) en orden alfabético
     db.all(`
         SELECT 
             u.id,
@@ -125,35 +125,13 @@ function obtenerVotosIniciativa(db, iniciativaId, req, callback) {
             u.comision,
             u.cargo_legislativo,
             u.foto_url,
+            u.orden_alfabetico,
             COALESCE(v.voto, 'sin_voto') as voto,
             v.fecha_voto
         FROM usuarios u
         LEFT JOIN votos v ON u.id = v.usuario_id AND v.iniciativa_id = ?
         WHERE u.role = 'diputado'
-        ORDER BY 
-            CASE 
-                WHEN u.nombre_completo LIKE '%Abarca Peña%' THEN 1
-                WHEN u.nombre_completo LIKE '%Domínguez Mandujano%' THEN 2
-                WHEN u.nombre_completo LIKE '%Espinoza López%' THEN 3
-                WHEN u.nombre_completo LIKE '%Gordillo Vega%' THEN 4
-                WHEN u.nombre_completo LIKE '%Livera Chavarría%' THEN 5
-                WHEN u.nombre_completo LIKE '%Martínez Gómez%' THEN 6
-                WHEN u.nombre_completo LIKE '%Martínez Terrazas%' THEN 7
-                WHEN u.nombre_completo LIKE '%Maya Rendón%' THEN 8
-                WHEN u.nombre_completo LIKE '%Montes de Oca%' THEN 9
-                WHEN u.nombre_completo LIKE '%Pedrero González%' THEN 10
-                WHEN u.nombre_completo LIKE '%Pimentel Mejía%' THEN 11
-                WHEN u.nombre_completo LIKE '%Quevedo Maldonado%' THEN 12
-                WHEN u.nombre_completo LIKE '%Reyes Reyes%' THEN 13
-                WHEN u.nombre_completo LIKE '%Rodríguez López%' THEN 14
-                WHEN u.nombre_completo LIKE '%Rodríguez Ruiz%' THEN 15
-                WHEN u.nombre_completo LIKE '%Ruíz Rodríguez%' THEN 16
-                WHEN u.nombre_completo LIKE '%Sánchez Ortega%' THEN 17
-                WHEN u.nombre_completo LIKE '%Sánchez Zavala%' THEN 18
-                WHEN u.nombre_completo LIKE '%Solano López%' THEN 19
-                WHEN u.nombre_completo LIKE '%Sotelo Martínez%' THEN 20
-                ELSE 99
-            END
+        ORDER BY u.orden_alfabetico, u.nombre_completo
     `, [iniciativaId], (err, votos) => {
         if (err) {
             callback([], null);

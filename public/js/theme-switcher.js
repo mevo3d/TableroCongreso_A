@@ -15,6 +15,19 @@
 
     // Actualizar el botón de tema
     function updateThemeButton(theme) {
+        // Actualizar el botón del header principal
+        const themeIcon = document.getElementById('theme-icon');
+        if (themeIcon) {
+            if (theme === 'dark') {
+                themeIcon.className = 'fas fa-moon';
+                themeIcon.parentElement.title = 'Cambiar a modo día';
+            } else {
+                themeIcon.className = 'fas fa-sun';
+                themeIcon.parentElement.title = 'Cambiar a modo noche';
+            }
+        }
+        
+        // También actualizar el botón antiguo si existe
         const button = document.getElementById('themeToggle');
         if (button) {
             const icon = button.querySelector('i');
@@ -119,4 +132,7 @@
         apply: applyTheme,
         getCurrent: getCurrentTheme
     };
+    
+    // Exponer toggleTheme directamente para el onclick
+    window.toggleTheme = toggleTheme;
 })();

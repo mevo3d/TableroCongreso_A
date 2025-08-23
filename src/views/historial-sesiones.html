@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Sesiones - Sistema de Votación</title>
-    <link rel="stylesheet" href="/styles/base.css">
+    <link rel="stylesheet" href="/css/global-theme.css">
     <style>
         .historial-container {
             max-width: 1400px;
@@ -49,10 +49,10 @@
         }
 
         .filtros-section {
-            background: white;
+            background: var(--bg-card);
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             margin-bottom: 20px;
         }
 
@@ -71,15 +71,17 @@
         .form-group label {
             font-weight: 500;
             margin-bottom: 5px;
-            color: #333;
+            color: var(--text-primary);
         }
 
         .form-group input,
         .form-group select {
             padding: 10px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 5px;
             font-size: 14px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
         }
 
         .btn-buscar {
@@ -105,10 +107,10 @@
         }
 
         .stat-card {
-            background: white;
+            background: var(--bg-card);
             padding: 15px;
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             text-align: center;
         }
 
@@ -119,21 +121,21 @@
         }
 
         .stat-card .label {
-            color: #666;
+            color: var(--text-secondary);
             margin-top: 5px;
         }
 
         .tabla-section {
-            background: white;
+            background: var(--bg-card);
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
             overflow: hidden;
         }
 
         .tabla-header {
             padding: 15px 20px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -142,7 +144,7 @@
         .tabla-titulo {
             font-size: 1.2em;
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
         }
 
         .btn-exportar {
@@ -168,24 +170,25 @@
         }
 
         thead {
-            background: #f8f9fa;
+            background: var(--bg-tertiary);
         }
 
         th {
             padding: 12px;
             text-align: left;
             font-weight: 600;
-            color: #495057;
-            border-bottom: 2px solid #dee2e6;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
         }
 
         td {
             padding: 12px;
-            border-bottom: 1px solid #dee2e6;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
         }
 
         tbody tr:hover {
-            background: #f8f9fa;
+            background: var(--bg-hover);
         }
 
         .codigo-sesion {
@@ -271,16 +274,17 @@
             align-items: center;
             gap: 10px;
             padding: 20px;
-            background: #f8f9fa;
+            background: var(--bg-tertiary);
         }
 
         .paginacion button {
             padding: 8px 12px;
-            border: 1px solid #dee2e6;
-            background: white;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
             cursor: pointer;
             border-radius: 4px;
             transition: all 0.3s;
+            color: var(--text-primary);
         }
 
         .paginacion button:hover:not(:disabled) {
@@ -294,13 +298,13 @@
         }
 
         .paginacion .info {
-            color: #666;
+            color: var(--text-secondary);
         }
 
         .sin-resultados {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: var(--text-secondary);
         }
 
         .loading {

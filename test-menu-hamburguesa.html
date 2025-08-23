@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Menú Hamburguesa</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        
+        .menu-button {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .menu-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .side-menu {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 350px;
+            height: 100%;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            z-index: 1100;
+            overflow-y: auto;
+        }
+
+        .side-menu.active {
+            right: 0;
+        }
+
+        .side-menu-header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .side-menu-content {
+            padding: 20px;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1040;
+        }
+
+        .menu-overlay.active {
+            display: block;
+        }
+        
+        .test-info {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-info">
+        <h1>Test del Menú Hamburguesa</h1>
+        <p>Este es un test para verificar que el menú hamburguesa funciona correctamente.</p>
+        
+        <div id="testResults">
+            <h3>Resultados del Test:</h3>
+        </div>
+        
+        <button onclick="runTests()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Ejecutar Pruebas
+        </button>
+    </div>
+
+    <!-- Botón de menú hamburguesa -->
+    <button class="menu-button" onclick="toggleMenu()">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Overlay del menú -->
+    <div class="menu-overlay" onclick="toggleMenu()"></div>
+    
+    <!-- Menú lateral -->
+    <div class="side-menu" id="sideMenu">
+        <div class="side-menu-header">
+            <h5 class="mb-0">Opciones</h5>
+            <button class="btn btn-sm btn-light" onclick="toggleMenu()" style="position: absolute; right: 20px; background: white; color: #333; border: none; padding: 5px 10px; border-radius: 4px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="side-menu-content">
+            <h6>Menú de Prueba</h6>
+            <p>El menú está funcionando correctamente si puedes ver este texto.</p>
+            
+            <div style="margin-top: 20px;">
+                <button onclick="alert('Opción 1 clickeada'); toggleMenu();" style="display: block; width: 100%; padding: 10px; margin: 5px 0; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Opción 1
+                </button>
+                <button onclick="alert('Opción 2 clickeada'); toggleMenu();" style="display: block; width: 100%; padding: 10px; margin: 5px 0; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Opción 2
+                </button>
+                <button onclick="alert('Opción 3 clickeada'); toggleMenu();" style="display: block; width: 100%; padding: 10px; margin: 5px 0; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Opción 3
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para toggle del menú
+        function toggleMenu() {
+            const menu = document.getElementById('sideMenu');
+            const overlay = document.querySelector('.menu-overlay');
+            
+            menu.classList.toggle('active');
+            overlay.classList.toggle('active');
+            
+            console.log('Toggle ejecutado - Menu activo:', menu.classList.contains('active'));
+        }
+        
+        // Función para ejecutar pruebas
+        function runTests() {
+            const results = document.getElementById('testResults');
+            let html = '<h3>Resultados del Test:</h3>';
+            
+            // Test 1: Verificar que existen los elementos
+            const menuButton = document.querySelector('.menu-button');
+            const sideMenu = document.getElementById('sideMenu');
+            const overlay = document.querySelector('.menu-overlay');
+            
+            if (menuButton) {
+                html += '<div class="status success">✓ Botón del menú encontrado</div>';
+            } else {
+                html += '<div class="status error">✗ Botón del menú NO encontrado</div>';
+            }
+            
+            if (sideMenu) {
+                html += '<div class="status success">✓ Menú lateral encontrado</div>';
+            } else {
+                html += '<div class="status error">✗ Menú lateral NO encontrado</div>';
+            }
+            
+            if (overlay) {
+                html += '<div class="status success">✓ Overlay encontrado</div>';
+            } else {
+                html += '<div class="status error">✗ Overlay NO encontrado</div>';
+            }
+            
+            // Test 2: Verificar función toggleMenu
+            if (typeof toggleMenu === 'function') {
+                html += '<div class="status success">✓ Función toggleMenu definida</div>';
+            } else {
+                html += '<div class="status error">✗ Función toggleMenu NO definida</div>';
+            }
+            
+            // Test 3: Simular click y verificar cambio de clases
+            const initialState = sideMenu.classList.contains('active');
+            toggleMenu();
+            const afterToggle = sideMenu.classList.contains('active');
+            
+            if (initialState !== afterToggle) {
+                html += '<div class="status success">✓ Toggle funciona correctamente</div>';
+            } else {
+                html += '<div class="status error">✗ Toggle NO funciona</div>';
+            }
+            
+            // Restaurar estado
+            if (afterToggle) {
+                toggleMenu();
+            }
+            
+            results.innerHTML = html;
+        }
+        
+        // Ejecutar pruebas al cargar
+        window.addEventListener('load', () => {
+            console.log('Página de prueba cargada');
+            console.log('Elementos encontrados:', {
+                menuButton: !!document.querySelector('.menu-button'),
+                sideMenu: !!document.getElementById('sideMenu'),
+                overlay: !!document.querySelector('.menu-overlay'),
+                toggleFunction: typeof toggleMenu === 'function'
+            });
+        });
+    </script>
+</body>
+</html>

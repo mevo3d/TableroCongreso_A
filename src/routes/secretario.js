@@ -27,7 +27,7 @@ router.get('/estado-sesion', (req, res) => {
     const db = req.db;
     
     db.get(`
-        SELECT * FROM sesiones 
+        SELECT *, archivo_pdf FROM sesiones 
         WHERE activa = 1
     `, (err, sesion) => {
         if (err) {
@@ -104,6 +104,31 @@ router.get('/dashboard', (req, res) => {
                 iniciativas_votadas: stats.votadas,
                 total_diputados: 20
             });
+        });
+    });
+});
+
+// Verificar estado del pase de lista
+router.get('/estado-pase-lista', (req, res) => {
+    const db = req.db;
+    
+    db.get('SELECT id, pase_lista_activo FROM sesiones WHERE activa = 1', (err, sesion) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando estado' });
+        }
+        
+        if (!sesion) {
+            return res.json({ 
+                pase_lista_activo: false, 
+                sesion_activa: false,
+                mensaje: 'No hay sesión activa'
+            });
+        }
+        
+        res.json({ 
+            pase_lista_activo: sesion.pase_lista_activo === 1,
+            sesion_activa: true,
+            sesion_id: sesion.id
         });
     });
 });

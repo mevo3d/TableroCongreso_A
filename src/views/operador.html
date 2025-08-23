@@ -6,38 +6,55 @@
     <title>Panel Operador - Sistema de Votación</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/theme-variables.css">
+    <link rel="stylesheet" href="/css/global-theme.css">
     <style>
         /* Colores neutros */
         body {
-            background-color: #f5f5f5;
-            color: #333;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
         }
         .navbar { 
-            background: #2c3e50;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: var(--navbar-bg) !important;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
         }
         .card {
-            background: white;
-            border: 1px solid #ddd;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
         }
         .card-header {
-            background: #ecf0f1 !important;
-            color: #2c3e50 !important;
-            border-bottom: 2px solid #bdc3c7;
+            background: var(--bg-tertiary) !important;
+            color: var(--text-primary) !important;
+            border-bottom: 1px solid var(--border-color);
         }
         .bg-purple {
             background-color: #9b59b6 !important;
         }
+        
+        /* Fix para dropdown de pantalla pública */
+        .dropdown-menu {
+            z-index: 9999 !important;
+            position: absolute !important;
+        }
+        
+        .dropdown {
+            position: relative !important;
+        }
+        
+        /* Asegurar que el dropdown de pantalla esté siempre visible */
+        #screenDropdown .dropdown-menu {
+            z-index: 10000 !important;
+        }
+        
         .initiative-card {
             transition: transform 0.2s;
             cursor: pointer;
         }
         .initiative-card:hover { transform: translateY(-5px); }
         .initiative-card.active {
-            border: 2px solid #667eea;
-            background: #f0f3ff;
+            border: 2px solid var(--color-primary);
+            background: var(--bg-hover);
         }
         
         /* Estilos mejorados para iniciativas extraordinarias */
@@ -224,11 +241,11 @@
                         <h6 class="mb-0"><i class="fas fa-tv"></i> Pantalla Pública</h6>
                     </div>
                     <div class="card-body">
-                        <div class="dropdown w-100">
-                            <button class="btn btn-dark w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <div class="dropdown w-100" id="screenDropdown">
+                            <button class="btn btn-dark w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
                                 <i class="fas fa-desktop"></i> Seleccionar Pantalla
                             </button>
-                            <ul class="dropdown-menu w-100">
+                            <ul class="dropdown-menu w-100" data-bs-popper="static">
                                 <li>
                                     <a class="dropdown-item" href="#" onclick="abrirPantalla('votacion')">
                                         <i class="fas fa-vote-yea"></i> Pantalla de Votación
@@ -281,6 +298,17 @@
                     <div class="card-body">
                         <div id="initiativesList">
                             <p class="text-muted text-center">No hay iniciativas cargadas</p>
+                        </div>
+                        <!-- Botón para notificar a mesa directiva -->
+                        <div id="notificarMesaContainer" class="mt-3" style="display: none;">
+                            <div class="d-grid">
+                                <button class="btn btn-success btn-lg" onclick="notificarMesaDirectiva()">
+                                    <i class="fas fa-bell"></i> Notificar Mesa Directiva - Sesión Lista
+                                </button>
+                                <small class="text-muted text-center mt-2">
+                                    Notifica al presidente y secretarios que las iniciativas están listas
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -352,6 +380,25 @@
                                     <!-- Se llena dinámicamente -->
                                 </ul>
                             </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Consulta Sesiones Previas -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-secondary bg-opacity-25 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-file-pdf"></i> Consulta Sesiones Previas</h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadSesionesConDocumentos()">
+                            <i class="fas fa-sync"></i> Actualizar
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="sesionesDocumentosList">
+                            <p class="text-muted text-center">Cargando sesiones con documentos...</p>
                         </div>
                     </div>
                 </div>
@@ -599,17 +646,22 @@
                             <form id="extraordinariaManualForm">
                                 <div class="mb-3">
                                     <label class="form-label">Número de Iniciativa</label>
-                                    <input type="number" class="form-control" id="extNumero" required>
+                                    <select class="form-select" id="extNumero" required>
+                                        <option value="">Seleccionar posición...</option>
+                                    </select>
+                                    <small class="text-muted">La iniciativa extraordinaria se insertará en esta posición y recorrerá las demás</small>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Descripción de la Iniciativa</label>
-                                    <textarea class="form-control" id="extDescripcion" rows="4" required></textarea>
+                                    <textarea class="form-control" id="extDescripcion" rows="3" required></textarea>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
                                             <label class="form-label">Presentada por</label>
-                                            <input type="text" class="form-control" id="extPresentador">
+                                            <select class="form-select" id="extPresentador" onchange="actualizarPartidoAutomatico()">
+                                                <option value="">Seleccionar diputado...</option>
+                                            </select>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -623,22 +675,23 @@
                                                 <option value="PT">PT</option>
                                                 <option value="PVEM">PVEM</option>
                                                 <option value="MC">MC</option>
-                                                <option value="NUEVA ALIANZA">NUEVA ALIANZA</option>
+                                                <option value="PRD">PRD</option>
+                                                <option value="PNA">PNA</option>
                                             </select>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Tipo de Mayoría</label>
-                                    <select class="form-select" id="extTipoMayoria">
+                                    <select class="form-select" id="extTipoMayoria" required>
                                         <option value="simple">Mayoría Simple</option>
                                         <option value="absoluta">Mayoría Absoluta</option>
                                         <option value="calificada">Mayoría Calificada (2/3)</option>
                                         <option value="unanime">Unanimidad</option>
                                     </select>
                                 </div>
-                                <button type="submit" class="btn btn-warning w-100">
-                                    <i class="fas fa-plus"></i> Agregar Iniciativa Extraordinaria
+                                <button type="button" class="btn btn-warning" onclick="agregarExtraordinaria()">
+                                    <i class="fas fa-plus"></i> Agregar a la lista
                                 </button>
                             </form>
                             
@@ -681,9 +734,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-success" onclick="guardarTodasExtraordinarias()">
-                        <i class="fas fa-save"></i> Guardar Todas
+                        <i class="fas fa-save"></i> Guardar todas las extraordinarias
                     </button>
                 </div>
             </div>
@@ -696,6 +749,14 @@
         const socket = io();
         const user = JSON.parse(localStorage.getItem('user'));
         const token = localStorage.getItem('token');
+        
+        // Identificar usuario al conectarse
+        if (user) {
+            socket.emit('identificar-usuario', {
+                nombre: user.nombre_completo || user.username,
+                rol: 'Operador'
+            });
+        }
         
         // Variable para rastrear el tipo de pantalla actual (definida al inicio)
         let currentScreenType = 'votacion';
@@ -736,6 +797,7 @@
         loadActiveSession();
         loadEstadisticasSesiones();
         loadSesionesPendientes();
+        loadSesionesConDocumentos();
         verificarSesionesPrecargadas();
         
         // Escuchar notificaciones de nuevas sesiones precargadas
@@ -907,6 +969,11 @@
         
         // Mostrar iniciativas
         function displayInitiatives(initiatives) {
+            // Mostrar/ocultar botón de notificar si hay iniciativas
+            const notificarContainer = document.getElementById('notificarMesaContainer');
+            if (notificarContainer) {
+                notificarContainer.style.display = initiatives.length > 0 ? 'block' : 'none';
+            }
             const container = document.getElementById('initiativesList');
             
             if (initiatives.length === 0) {
@@ -1402,6 +1469,133 @@
             window.open('/historial-sesiones', '_blank');
         }
         
+        // Cargar sesiones con documentos PDF
+        async function loadSesionesConDocumentos() {
+            try {
+                const response = await fetch('/api/operador/sesiones-con-documentos', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const container = document.getElementById('sesionesDocumentosList');
+                    
+                    if (!data.sesiones || data.sesiones.length === 0) {
+                        container.innerHTML = '<p class="text-muted text-center">No hay sesiones con documentos disponibles</p>';
+                        return;
+                    }
+                    
+                    let html = '<div class="table-responsive"><table class="table table-sm table-hover">';
+                    html += `
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Sesión</th>
+                                <th>Estado</th>
+                                <th>Iniciativas</th>
+                                <th>Resultados</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    `;
+                    
+                    data.sesiones.forEach(sesion => {
+                        const fecha = new Date(sesion.fecha).toLocaleDateString('es-MX');
+                        const estadoBadge = sesion.estado === 'clausurada' ? 
+                            '<span class="badge bg-secondary">Clausurada</span>' :
+                            '<span class="badge bg-info">Activa</span>';
+                        
+                        html += `
+                            <tr>
+                                <td>${fecha}</td>
+                                <td>
+                                    <strong>${sesion.nombre}</strong><br>
+                                    <small class="text-muted">${sesion.codigo_sesion}</small>
+                                </td>
+                                <td>${estadoBadge}</td>
+                                <td class="text-center">${sesion.total_iniciativas || 0}</td>
+                                <td>
+                                    <small>
+                                        <span class="text-success">✓ ${sesion.aprobadas || 0}</span> | 
+                                        <span class="text-danger">✗ ${sesion.rechazadas || 0}</span>
+                                    </small>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="consultarDocumentoPDF('${sesion.archivo_pdf}')">
+                                        <i class="fas fa-file-pdf"></i> Ver PDF
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += '</tbody></table></div>';
+                    container.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('Error cargando sesiones con documentos:', error);
+                document.getElementById('sesionesDocumentosList').innerHTML = 
+                    '<p class="text-danger text-center">Error al cargar sesiones con documentos</p>';
+            }
+        }
+        
+        // Función para consultar documento PDF
+        function consultarDocumentoPDF(archivo) {
+            if (archivo) {
+                window.open(`/documentos-sesion/${archivo}`, '_blank');
+            } else {
+                alert('No hay documento PDF disponible');
+            }
+        }
+        
+        // Función para notificar a la mesa directiva
+        async function notificarMesaDirectiva() {
+            try {
+                const response = await fetch('/api/operador/notificar-mesa-directiva', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Mostrar notificación de éxito
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+                    alertDiv.style.zIndex = '9999';
+                    alertDiv.innerHTML = `
+                        <strong>✅ Notificación enviada</strong><br>
+                        Se notificó al presidente y secretarios que hay ${data.totalIniciativas} iniciativas listas.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(alertDiv);
+                    
+                    // Deshabilitar el botón temporalmente
+                    const btn = event.target;
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-check"></i> Notificación Enviada';
+                    
+                    setTimeout(() => {
+                        alertDiv.remove();
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-bell"></i> Notificar Mesa Directiva - Sesión Lista';
+                    }, 5000);
+                } else {
+                    const data = await response.json();
+                    alert('Error: ' + (data.error || 'No se pudo enviar la notificación'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al enviar la notificación');
+            }
+        }
+        
         // Variables para paginación
         let sesionesPendientesData = [];
         let paginaActualSesiones = 1;
@@ -1480,12 +1674,16 @@
                         <i class="fas fa-user"></i> ${sesion.creado_por_role === 'servicios_legislativos' ? 'Servicios' : 'Operador'}
                     </span>` : '';
                 
+                // Badge de origen
+                const origenBadge = sesion.origen_tabla === 'sesion_precargada' ? 
+                    '<span class="badge bg-info ms-1"><i class="fas fa-database"></i> Precargada</span>' : '';
+                
                 return `
                     <div class="card mb-2 border-start border-4 border-${borderColor}">
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div class="flex-grow-1">
-                                    <h6 class="mb-1">${sesion.nombre} ${creadorBadge}</h6>
+                                    <h6 class="mb-1">${sesion.nombre} ${creadorBadge} ${origenBadge}</h6>
                                     <div class="mb-2">
                                         ${tipoLabel}
                                         <span class="badge bg-light text-dark"><i class="fas fa-file-alt"></i> ${sesion.total_iniciativas || 0} iniciativas</span>
@@ -1496,17 +1694,17 @@
                                 </div>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-sm btn-info" 
-                                            onclick="editarIniciativasSesion(${sesion.id}, '${nombreEscapado}')"
+                                            onclick="editarIniciativasSesion(${sesion.id}, '${nombreEscapado}', '${sesion.origen_tabla}')"
                                             title="Ver y editar las iniciativas de esta sesión">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn btn-sm btn-success" 
-                                            onclick="activarSesionPendiente(${sesion.id}, '${nombreEscapado}')"
+                                            onclick="activarSesionPendiente(${sesion.id}, '${nombreEscapado}', '${sesion.origen_tabla}')"
                                             title="Activar esta sesión para que el presidente pueda iniciarla">
                                         <i class="fas fa-play"></i>
                                     </button>
                                     <button class="btn btn-sm btn-danger" 
-                                            onclick="eliminarSesionPendiente(${sesion.id}, '${nombreEscapado}')"
+                                            onclick="eliminarSesionPendiente(${sesion.id}, '${nombreEscapado}', '${sesion.origen_tabla}')"
                                             title="Eliminar esta sesión">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -1611,7 +1809,7 @@
         }
         
         // Activar sesión pendiente
-        async function activarSesionPendiente(sesionId, nombre) {
+        async function activarSesionPendiente(sesionId, nombre, origenTabla = 'sesion') {
             if (!confirm(`¿Activar la sesión "${nombre}"?\n\nEsto desactivará cualquier otra sesión activa y permitirá al presidente iniciar esta sesión inmediatamente.`)) {
                 return;
             }
@@ -1622,7 +1820,8 @@
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    body: JSON.stringify({ origen_tabla: origenTabla })
                 });
                 
                 const data = await response.json();
@@ -1644,15 +1843,21 @@
         
         // Variables para edición de iniciativas
         let sesionEditandoId = null;
+        let sesionEditandoOrigen = 'sesion';
         let iniciativasEditando = [];
         
         // Editar iniciativas de sesión
-        async function editarIniciativasSesion(sesionId, nombreSesion) {
+        async function editarIniciativasSesion(sesionId, nombreSesion, origenTabla = 'sesion') {
             sesionEditandoId = sesionId;
+            sesionEditandoOrigen = origenTabla; // Guardar el origen
             document.getElementById('sesionNombreEdit').textContent = nombreSesion;
             
             try {
-                const response = await fetch(`/api/operador/sesion/${sesionId}/iniciativas`, {
+                const endpoint = origenTabla === 'sesion_precargada' 
+                    ? `/api/operador/sesion-precargada/${sesionId}/iniciativas`
+                    : `/api/operador/sesion/${sesionId}/iniciativas`;
+                    
+                const response = await fetch(endpoint, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1742,7 +1947,11 @@
             if (!sesionEditandoId) return;
             
             try {
-                const response = await fetch(`/api/operador/sesion/${sesionEditandoId}/iniciativas`, {
+                const endpoint = sesionEditandoOrigen === 'sesion_precargada' 
+                    ? `/api/operador/sesion-precargada/${sesionEditandoId}/iniciativas`
+                    : `/api/operador/sesion/${sesionEditandoId}/iniciativas`;
+                    
+                const response = await fetch(endpoint, {
                     method: 'PUT',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -2163,8 +2372,82 @@
         let iniciativasExtraordinariasTemp = [];
         
         function mostrarModalExtraordinarias() {
+            cargarListaDiputadosParaExtraordinarias();
+            cargarNumerosDisponibles();
             const modal = new bootstrap.Modal(document.getElementById('extraordinariasModal'));
             modal.show();
+        }
+        
+        function cargarListaDiputadosParaExtraordinarias() {
+            fetch('/api/diputados')
+                .then(response => response.json())
+                .then(diputados => {
+                    const select = document.getElementById('extPresentador');
+                    select.innerHTML = '<option value="">Seleccionar diputado...</option>';
+                    
+                    diputados.forEach(dip => {
+                        const option = document.createElement('option');
+                        option.value = dip.nombre;
+                        option.textContent = dip.nombre;
+                        option.dataset.partido = dip.partido;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error cargando diputados:', error));
+        }
+        
+        function cargarNumerosDisponibles() {
+            fetch('/api/iniciativas')
+                .then(response => response.json())
+                .then(iniciativas => {
+                    const select = document.getElementById('extNumero');
+                    select.innerHTML = '<option value="">Seleccionar posición...</option>';
+                    
+                    // Agregar opciones del 1 al total de iniciativas + 5
+                    const maxNum = iniciativas.length + 5;
+                    for (let i = 1; i <= maxNum; i++) {
+                        const option = document.createElement('option');
+                        option.value = i;
+                        option.textContent = `Posición ${i}`;
+                        select.appendChild(option);
+                    }
+                })
+                .catch(error => console.error('Error cargando números disponibles:', error));
+        }
+        
+        function actualizarPartidoAutomatico() {
+            const select = document.getElementById('extPresentador');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (selectedOption && selectedOption.dataset.partido) {
+                document.getElementById('extPartido').value = selectedOption.dataset.partido;
+            }
+        }
+        
+        function agregarExtraordinaria() {
+            const iniciativa = {
+                numero: document.getElementById('extNumero').value,
+                descripcion: document.getElementById('extDescripcion').value,
+                presentador: document.getElementById('extPresentador').value,
+                partido_presentador: document.getElementById('extPartido').value,
+                tipo_mayoria: document.getElementById('extTipoMayoria').value,
+                tipo_iniciativa: 'extraordinaria'
+            };
+            
+            if (!iniciativa.numero || !iniciativa.descripcion) {
+                alert('Por favor complete los campos obligatorios');
+                return;
+            }
+            
+            iniciativasExtraordinariasTemp.push(iniciativa);
+            actualizarListaExtraordinarias();
+            
+            // Limpiar formulario
+            document.getElementById('extNumero').value = '';
+            document.getElementById('extDescripcion').value = '';
+            document.getElementById('extPresentador').value = '';
+            document.getElementById('extPartido').value = '';
+            document.getElementById('extTipoMayoria').value = 'simple';
         }
         
         // Guardar sesión actual
@@ -2313,25 +2596,7 @@
             }
         }
         
-        // Manejar formulario de captura manual
-        document.getElementById('extraordinariaManualForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const iniciativa = {
-                numero: document.getElementById('extNumero').value,
-                descripcion: document.getElementById('extDescripcion').value,
-                presentador: document.getElementById('extPresentador').value,
-                partido_presentador: document.getElementById('extPartido').value,
-                tipo_mayoria: document.getElementById('extTipoMayoria').value,
-                tipo_iniciativa: 'extraordinaria'
-            };
-            
-            iniciativasExtraordinariasTemp.push(iniciativa);
-            actualizarListaExtraordinarias();
-            
-            // Limpiar formulario
-            this.reset();
-        });
+        // El formulario ya no necesita un event listener porque usamos onclick en el botón
         
         // Manejar formulario de PDF
         document.getElementById('extraordinariaPdfForm').addEventListener('submit', async function(e) {
@@ -2719,11 +2984,34 @@
                         </div>
                     </div>
                     
+                    <!-- Controles de selección -->
+                    <div class="mb-2 d-flex justify-content-between align-items-center">
+                        <div>
+                            <button class="btn btn-sm btn-outline-success" onclick="seleccionarTodasVotables()">
+                                <i class="fas fa-check-square"></i> Seleccionar Votables
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="seleccionarTodas()">
+                                <i class="fas fa-check-double"></i> Seleccionar Todas
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="deseleccionarTodas()">
+                                <i class="fas fa-times"></i> Quitar Selección
+                            </button>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary">
+                                <span id="contadorSeleccionadas">0</span> seleccionadas
+                            </span>
+                        </div>
+                    </div>
+                    
                     <!-- Tabla de Iniciativas -->
                     <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                         <table class="table table-hover table-sm">
                             <thead class="table-light sticky-top">
                                 <tr>
+                                    <th width="40">
+                                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" title="Seleccionar todas">
+                                    </th>
                                     <th width="80">Núm.</th>
                                     <th width="80">Orden</th>
                                     <th>Título</th>
@@ -2740,11 +3028,14 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-secondary" onclick="cancelarValidacion()">
                         <i class="fas fa-times"></i> Cancelar
                     </button>
+                    <button type="button" class="btn btn-warning" onclick="mostrarVistaPrevia()">
+                        <i class="fas fa-eye"></i> Vista Previa
+                    </button>
                     <button type="button" class="btn btn-primary" id="btnGuardarValidacion">
-                        <i class="fas fa-save"></i> Guardar Iniciativas Validadas
+                        <i class="fas fa-save"></i> Confirmar y Cargar Iniciativas
                     </button>
                 </div>
             </div>
@@ -2869,7 +3160,17 @@
                     tr.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
                 }
                 
+                // Verificar si está seleccionada
+                const isSelected = init.seleccionada || false;
+                
                 tr.innerHTML = `
+                    <td>
+                        <input type="checkbox" 
+                               class="form-check-input iniciativa-checkbox" 
+                               data-index="${index}"
+                               ${isSelected ? 'checked' : ''}
+                               onchange="toggleIniciativaSeleccion(${index})">
+                    </td>
                     <td>
                         ${requiereVotacion ? '<i class="fas fa-vote-yea text-success me-1" title="Requiere votación"></i>' : ''}
                         <strong>${init.numero_sistema}</strong>
@@ -2904,12 +3205,14 @@
             if (iniciativas.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="text-center text-muted">
+                        <td colspan="8" class="text-center text-muted">
                             No hay iniciativas ${filtroActual !== 'todas' ? 'en este filtro' : ''}
                         </td>
                     </tr>
                 `;
             }
+            
+            actualizarContadorSeleccionadas();
         }
         
         // Función para eliminar iniciativa en validación
@@ -2943,6 +3246,76 @@
             
             document.getElementById('otros').textContent = 
                 iniciativasValidacion.length - requierenVot - aComision;
+        }
+        
+        // Funciones de selección de iniciativas
+        function toggleIniciativaSeleccion(index) {
+            iniciativasValidacion[index].seleccionada = !iniciativasValidacion[index].seleccionada;
+            actualizarContadorSeleccionadas();
+        }
+        
+        function actualizarContadorSeleccionadas() {
+            const seleccionadas = iniciativasValidacion.filter(i => i.seleccionada).length;
+            document.getElementById('contadorSeleccionadas').textContent = seleccionadas;
+            
+            // Actualizar estado del checkbox principal
+            const totalCheckboxes = document.querySelectorAll('.iniciativa-checkbox').length;
+            const checkedCheckboxes = document.querySelectorAll('.iniciativa-checkbox:checked').length;
+            document.getElementById('selectAllCheckbox').checked = totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes;
+            document.getElementById('selectAllCheckbox').indeterminate = checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes;
+        }
+        
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAllCheckbox').checked;
+            iniciativasValidacion.forEach(init => {
+                init.seleccionada = selectAll;
+            });
+            renderizarTablaValidacion(iniciativasValidacion);
+        }
+        
+        function seleccionarTodasVotables() {
+            iniciativasValidacion.forEach(init => {
+                if (init.requiere_votacion) {
+                    init.seleccionada = true;
+                }
+            });
+            renderizarTablaValidacion(iniciativasValidacion);
+        }
+        
+        function seleccionarTodas() {
+            iniciativasValidacion.forEach(init => {
+                init.seleccionada = true;
+            });
+            renderizarTablaValidacion(iniciativasValidacion);
+        }
+        
+        function deseleccionarTodas() {
+            iniciativasValidacion.forEach(init => {
+                init.seleccionada = false;
+            });
+            renderizarTablaValidacion(iniciativasValidacion);
+        }
+        
+        // Modificar la función de guardar para usar solo las seleccionadas
+        async function guardarIniciativasSeleccionadas() {
+            const iniciativasSeleccionadas = iniciativasValidacion.filter(i => i.seleccionada);
+            
+            if (iniciativasSeleccionadas.length === 0) {
+                alert('Por favor selecciona al menos una iniciativa para importar');
+                return;
+            }
+            
+            // Marcar las iniciativas votables para que se muestren con el icono verde
+            iniciativasSeleccionadas.forEach(init => {
+                if (init.requiere_votacion) {
+                    init.es_votable = true;
+                }
+            });
+            
+            // Aquí continúa el código de guardado con solo las iniciativas seleccionadas
+            console.log('Iniciativas a importar:', iniciativasSeleccionadas);
+            
+            // El resto del código de guardado...
         }
         
         // Configurar eventos de tipo de carga en modal de validación
@@ -3074,8 +3447,28 @@
             }
         }
         
-        // Guardar iniciativas validadas
+        // Cancelar validación sin guardar
+        function cancelarValidacion() {
+            if (confirm('¿Estas seguro de cancelar? Se perderán todos los cambios no guardados.')) {
+                // Limpiar todo y cerrar modal
+                iniciativasValidacion = [];
+                sessionIdActual = null;
+                bootstrap.Modal.getInstance(document.getElementById('modalValidacion')).hide();
+            }
+        }
+        
+        // Mostrar vista previa antes de confirmar
+        function mostrarVistaPrevia() {
+            alert(`Vista Previa:\n\nTotal de iniciativas: ${iniciativasValidacion.length}\nIniciativas para votación: ${iniciativasValidacion.filter(i => i.requiere_votacion).length}\n\n¿Proceder con la carga?`);
+        }
+        
+        // Guardar iniciativas validadas CON CONFIRMACIÓN
         document.getElementById('btnGuardarValidacion').addEventListener('click', async function() {
+            // CONFIRMACIÓN EXPLÍCITA
+            if (!confirm(`¿Confirmar la carga de ${iniciativasValidacion.length} iniciativas?\n\nEsta acción NO se puede deshacer.`)) {
+                return;
+            }
+            
             const tipoCarga = document.querySelector('input[name="tipoCargaValidacion"]:checked').value;
             let fechaProgramada = null;
             

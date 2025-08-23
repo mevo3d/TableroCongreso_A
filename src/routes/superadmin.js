@@ -134,7 +134,7 @@ router.get('/usuarios', (req, res) => {
     db.all(`
         SELECT id, username, role, nombre_completo, cargo_mesa_directiva, 
                cargo_coordinador, partido, comision, cargo_legislativo, 
-               foto_url, activo 
+               foto_url, activo, password_plain 
         FROM usuarios 
         ORDER BY role, id
     `, (err, usuarios) => {
@@ -168,17 +168,82 @@ router.get('/sesiones', (req, res) => {
     });
 });
 
-// Cerrar sesión activa
+// Clausurar sesión activa (con todos los permisos de superadmin)
 router.post('/cerrar-sesion', (req, res) => {
     const db = req.db;
+    const io = req.io;
+    const userId = req.user.id;
     
-    db.run('UPDATE sesiones SET activa = 0', (err) => {
+    // Obtener sesión activa
+    db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
         if (err) {
-            return res.status(500).json({ error: 'Error cerrando sesión' });
+            return res.status(500).json({ error: 'Error obteniendo sesión' });
         }
         
-        req.io.emit('sesion-cerrada');
-        res.json({ message: 'Sesión cerrada' });
+        if (!sesion) {
+            return res.status(400).json({ error: 'No hay sesión activa' });
+        }
+        
+        // Cerrar todas las votaciones activas
+        db.run(
+            `UPDATE iniciativas 
+             SET activa = 0, cerrada = 1 
+             WHERE sesion_id = ? AND activa = 1`,
+            [sesion.id],
+            (err) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error cerrando votaciones' });
+                }
+                
+                // Clausurar la sesión formalmente
+                const fechaClausura = new Date().toISOString();
+                db.run(
+                    `UPDATE sesiones 
+                     SET activa = 0, 
+                         fecha_clausura = ?,
+                         clausurada_por = ?,
+                         estado = 'clausurada'
+                     WHERE id = ?`,
+                    [fechaClausura, userId, sesion.id],
+                    (err) => {
+                        if (err) {
+                            return res.status(500).json({ error: 'Error clausurando sesión' });
+                        }
+                        
+                        // Obtener estadísticas finales
+                        db.get(
+                            `SELECT 
+                                COUNT(DISTINCT i.id) as total_iniciativas,
+                                COUNT(DISTINCT CASE WHEN i.resultado = 'aprobada' THEN i.id END) as aprobadas,
+                                COUNT(DISTINCT CASE WHEN i.resultado = 'rechazada' THEN i.id END) as rechazadas,
+                                COUNT(DISTINCT v.diputado_id) as participacion
+                            FROM iniciativas i
+                            LEFT JOIN votaciones v ON i.id = v.iniciativa_id
+                            WHERE i.sesion_id = ?`,
+                            [sesion.id],
+                            (err, stats) => {
+                                if (err) {
+                                    console.error('Error obteniendo estadísticas:', err);
+                                }
+                                
+                                // Emitir evento de sesión clausurada
+                                io.emit('sesion-clausurada', {
+                                    sesion_id: sesion.id,
+                                    clausurada_por: 'Superadmin',
+                                    fecha_clausura: fechaClausura,
+                                    estadisticas: stats || {}
+                                });
+                                
+                                res.json({ 
+                                    message: 'Sesión clausurada correctamente',
+                                    estadisticas: stats || {}
+                                });
+                            }
+                        );
+                    }
+                );
+            }
+        );
     });
 });
 
@@ -247,10 +312,10 @@ router.post('/usuarios', upload.single('foto'), async (req, res) => {
     const foto_url = req.file ? '/uploads/' + req.file.filename : '';
     
     db.run(
-        `INSERT INTO usuarios (username, password, role, nombre_completo, cargo_mesa_directiva, 
+        `INSERT INTO usuarios (username, password, password_plain, role, nombre_completo, cargo_mesa_directiva, 
                               cargo_coordinador, partido, comision, cargo_legislativo, foto_url) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [username, hashedPassword, role, nombre_completo, cargo_mesa_directiva || '', 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [username, hashedPassword, password, role, nombre_completo, cargo_mesa_directiva || '', 
          cargo_coordinador || '', partido || '', comision || '', cargo_legislativo || '', foto_url],
         function(err) {
             if (err) {
@@ -279,8 +344,9 @@ router.put('/usuarios/:id', upload.single('foto'), async (req, res) => {
     
     if (password) {
         const hashedPassword = await bcrypt.hash(password, 10);
-        query += ', password = ?';
+        query += ', password = ?, password_plain = ?';
         params.push(hashedPassword);
+        params.push(password);
     }
     
     if (req.file) {
@@ -371,6 +437,293 @@ router.put('/configuracion', upload.fields([
         }
         
         res.json({ message: 'Configuración actualizada' });
+    });
+});
+
+// ============= ENDPOINTS DE ESTADÍSTICAS DE DIPUTADOS =============
+
+// Obtener lista de diputados para select
+router.get('/lista-diputados', (req, res) => {
+    const db = req.db;
+    
+    db.all(`
+        SELECT id, nombre_completo, partido, cargo_mesa_directiva
+        FROM usuarios 
+        WHERE role = 'diputado'
+        ORDER BY nombre_completo
+    `, (err, diputados) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error obteniendo diputados' });
+        }
+        res.json(diputados);
+    });
+});
+
+// Obtener estadísticas generales de diputados
+router.get('/estadisticas-diputados', (req, res) => {
+    const db = req.db;
+    const { fecha_inicio, fecha_fin, diputado_id, partido } = req.query;
+    
+    let whereClause = ' WHERE 1=1 ';
+    let params = [];
+    
+    if (fecha_inicio) {
+        whereClause += ' AND DATE(s.fecha_inicio) >= ? ';
+        params.push(fecha_inicio);
+    }
+    
+    if (fecha_fin) {
+        whereClause += ' AND DATE(s.fecha_inicio) <= ? ';
+        params.push(fecha_fin);
+    }
+    
+    if (diputado_id) {
+        whereClause += ' AND u.id = ? ';
+        params.push(diputado_id);
+    }
+    
+    if (partido) {
+        whereClause += ' AND u.partido = ? ';
+        params.push(partido);
+    }
+    
+    const estadisticas = {};
+    
+    // Resumen general
+    db.get(`
+        SELECT 
+            COUNT(DISTINCT s.id) as total_sesiones,
+            COUNT(DISTINCT i.id) as total_iniciativas,
+            (SELECT COUNT(DISTINCT ad.diputado_id) 
+             FROM asistencia_diputados ad 
+             WHERE ad.asistencia = 'presente') as total_presentes,
+            (SELECT COUNT(*) FROM usuarios WHERE role = 'diputado') as total_diputados
+        FROM sesiones s
+        LEFT JOIN iniciativas i ON i.sesion_id = s.id
+        ${whereClause}
+    `, params, (err, resumen) => {
+        if (err) {
+            console.error('Error en resumen:', err);
+            return res.status(500).json({ error: 'Error obteniendo estadísticas' });
+        }
+        
+        estadisticas.resumen = {
+            total_sesiones: resumen.total_sesiones || 0,
+            total_iniciativas: resumen.total_iniciativas || 0,
+            promedio_asistencia: resumen.total_diputados > 0 ? 
+                ((resumen.total_presentes / (resumen.total_diputados * resumen.total_sesiones)) * 100) : 0
+        };
+        
+        // Asistencia por diputado
+        db.all(`
+            SELECT 
+                u.id as diputado_id,
+                u.nombre_completo,
+                u.partido,
+                COUNT(DISTINCT a.id) as total_sesiones,
+                SUM(CASE WHEN ad.asistencia = 'presente' THEN 1 ELSE 0 END) as presentes,
+                SUM(CASE WHEN ad.asistencia = 'ausente' THEN 1 ELSE 0 END) as ausentes,
+                SUM(CASE WHEN ad.asistencia = 'permiso' THEN 1 ELSE 0 END) as permisos
+            FROM usuarios u
+            LEFT JOIN asistencia_diputados ad ON ad.diputado_id = u.id
+            LEFT JOIN asistencias a ON a.id = ad.asistencia_id
+            LEFT JOIN sesiones s ON s.id = a.sesion_id
+            WHERE u.role = 'diputado'
+            ${partido ? ' AND u.partido = ? ' : ''}
+            ${diputado_id ? ' AND u.id = ? ' : ''}
+            GROUP BY u.id
+            ORDER BY u.nombre_completo
+        `, partido ? [partido] : (diputado_id ? [diputado_id] : []), (err, asistencia) => {
+            if (err) {
+                console.error('Error en asistencia:', err);
+                return res.status(500).json({ error: 'Error obteniendo asistencia' });
+            }
+            
+            estadisticas.asistencia = asistencia;
+            
+            // Votaciones
+            db.all(`
+                SELECT 
+                    i.id,
+                    i.numero,
+                    i.titulo,
+                    i.sesion_id,
+                    s.fecha_inicio as fecha,
+                    i.resultado,
+                    (SELECT COUNT(*) FROM votos WHERE iniciativa_id = i.id AND voto = 'favor') as votos_favor,
+                    (SELECT COUNT(*) FROM votos WHERE iniciativa_id = i.id AND voto = 'contra') as votos_contra,
+                    (SELECT COUNT(*) FROM votos WHERE iniciativa_id = i.id AND voto = 'abstencion') as votos_abstencion
+                FROM iniciativas i
+                JOIN sesiones s ON s.id = i.sesion_id
+                ${whereClause}
+                ORDER BY s.fecha_inicio DESC, i.numero
+            `, params, (err, votaciones) => {
+                if (err) {
+                    console.error('Error en votaciones:', err);
+                    return res.status(500).json({ error: 'Error obteniendo votaciones' });
+                }
+                
+                estadisticas.votaciones = votaciones;
+                
+                // Iniciativas
+                db.all(`
+                    SELECT 
+                        i.*,
+                        s.fecha_inicio as fecha_sesion
+                    FROM iniciativas i
+                    JOIN sesiones s ON s.id = i.sesion_id
+                    ${whereClause}
+                    ORDER BY s.fecha_inicio DESC, i.numero
+                `, params, (err, iniciativas) => {
+                    if (err) {
+                        console.error('Error en iniciativas:', err);
+                        return res.status(500).json({ error: 'Error obteniendo iniciativas' });
+                    }
+                    
+                    estadisticas.iniciativas = iniciativas;
+                    
+                    // Estadísticas por partido
+                    db.all(`
+                        SELECT 
+                            u.partido,
+                            COUNT(DISTINCT u.id) as total_diputados,
+                            AVG(CASE WHEN ad.asistencia = 'presente' THEN 100.0 ELSE 0 END) as promedio_asistencia
+                        FROM usuarios u
+                        LEFT JOIN asistencia_diputados ad ON ad.diputado_id = u.id
+                        WHERE u.role = 'diputado'
+                        GROUP BY u.partido
+                    `, (err, porPartido) => {
+                        if (err) {
+                            console.error('Error en por partido:', err);
+                            return res.status(500).json({ error: 'Error obteniendo datos por partido' });
+                        }
+                        
+                        estadisticas.por_partido = {};
+                        porPartido.forEach(p => {
+                            estadisticas.por_partido[p.partido] = p;
+                        });
+                        
+                        // Calcular totales de votos
+                        db.get(`
+                            SELECT 
+                                COUNT(*) as total_votos,
+                                SUM(CASE WHEN voto = 'favor' THEN 1 ELSE 0 END) as votos_favor,
+                                SUM(CASE WHEN voto = 'contra' THEN 1 ELSE 0 END) as votos_contra,
+                                SUM(CASE WHEN voto = 'abstencion' THEN 1 ELSE 0 END) as votos_abstencion
+                            FROM votos v
+                            JOIN iniciativas i ON i.id = v.iniciativa_id
+                            JOIN sesiones s ON s.id = i.sesion_id
+                            ${whereClause}
+                        `, params, (err, totales) => {
+                            if (err) {
+                                console.error('Error en totales:', err);
+                                return res.status(500).json({ error: 'Error obteniendo totales' });
+                            }
+                            
+                            estadisticas.resumen = {
+                                ...estadisticas.resumen,
+                                ...totales
+                            };
+                            
+                            // Calcular promedio de participación
+                            const totalPosiblesVotos = estadisticas.resumen.total_iniciativas * 20; // 20 diputados
+                            estadisticas.resumen.promedio_participacion = totalPosiblesVotos > 0 ?
+                                ((estadisticas.resumen.total_votos / totalPosiblesVotos) * 100) : 0;
+                            
+                            res.json(estadisticas);
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
+// Obtener detalle de un diputado específico
+router.get('/detalle-diputado/:id', (req, res) => {
+    const db = req.db;
+    const diputadoId = req.params.id;
+    
+    db.get(`
+        SELECT * FROM usuarios WHERE id = ? AND role = 'diputado'
+    `, [diputadoId], (err, diputado) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error obteniendo diputado' });
+        }
+        
+        if (!diputado) {
+            return res.status(404).json({ error: 'Diputado no encontrado' });
+        }
+        
+        // Obtener historial de asistencia
+        db.all(`
+            SELECT 
+                a.sesion_id,
+                s.fecha_inicio as fecha,
+                ad.asistencia as estado
+            FROM asistencia_diputados ad
+            JOIN asistencias a ON a.id = ad.asistencia_id
+            JOIN sesiones s ON s.id = a.sesion_id
+            WHERE ad.diputado_id = ?
+            ORDER BY s.fecha_inicio DESC
+        `, [diputadoId], (err, asistencia) => {
+            if (err) {
+                return res.status(500).json({ error: 'Error obteniendo asistencia' });
+            }
+            
+            // Obtener historial de votos
+            db.all(`
+                SELECT 
+                    i.numero,
+                    i.titulo,
+                    v.voto,
+                    s.fecha_inicio as fecha
+                FROM votos v
+                JOIN iniciativas i ON i.id = v.iniciativa_id
+                JOIN sesiones s ON s.id = i.sesion_id
+                WHERE v.usuario_id = ?
+                ORDER BY s.fecha_inicio DESC, i.numero
+            `, [diputadoId], (err, votos) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error obteniendo votos' });
+                }
+                
+                // Calcular estadísticas
+                const totalAsistencias = asistencia.length;
+                const presentes = asistencia.filter(a => a.estado === 'presente').length;
+                const totalVotos = votos.length;
+                const votosFavor = votos.filter(v => v.voto === 'favor').length;
+                const votosContra = votos.filter(v => v.voto === 'contra').length;
+                const votosAbstencion = votos.filter(v => v.voto === 'abstencion').length;
+                
+                res.json({
+                    ...diputado,
+                    estadisticas: {
+                        porcentaje_asistencia: totalAsistencias > 0 ? 
+                            ((presentes / totalAsistencias) * 100).toFixed(1) : 0,
+                        porcentaje_participacion: totalVotos > 0 ? 100 : 0,
+                        votos_favor: votosFavor,
+                        votos_contra: votosContra,
+                        votos_abstencion: votosAbstencion
+                    },
+                    asistencia,
+                    votos
+                });
+            });
+        });
+    });
+});
+
+// Exportar estadísticas (Excel/PDF/CSV)
+router.get('/exportar-estadisticas', async (req, res) => {
+    const { formato = 'excel', fecha_inicio, fecha_fin } = req.query;
+    
+    // Por ahora solo implementamos la descarga básica
+    // En producción usarías librerías como exceljs, pdfkit, etc.
+    
+    res.json({ 
+        mensaje: 'Función de exportación en desarrollo',
+        formato_solicitado: formato
     });
 });
 

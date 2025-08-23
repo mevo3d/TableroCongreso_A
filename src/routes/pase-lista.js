@@ -590,12 +590,15 @@ router.post('/guardar', (req, res) => {
     const puedeHacerPaseLista = 
         user.cargo_mesa_directiva === 'Presidente de la Mesa Directiva' ||
         user.cargo_mesa_directiva === 'Secretario de la Mesa Directiva' ||
+        user.cargo_mesa_directiva === 'secretario1' ||
+        user.cargo_mesa_directiva === 'secretario2' ||
         user.nombre_completo === 'Alberto Sánchez Ortega' ||
         user.nombre_completo === 'Guillermina Maya' ||
         user.role === 'secretario' ||
         user.role === 'operador';
     
     if (!puedeHacerPaseLista) {
+        console.log('Usuario sin permisos:', user.nombre_completo, 'Cargo:', user.cargo_mesa_directiva, 'Role:', user.role);
         return res.status(403).json({ error: 'No tienes permisos para realizar pase de lista' });
     }
     

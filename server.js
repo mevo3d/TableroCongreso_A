@@ -25,6 +25,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use('/documentos-sesion', express.static(path.join(__dirname, 'uploads/sesiones')));
 
 // Servir archivos PWA con headers correctos
 app.get('/manifest.json', (req, res) => {
@@ -108,6 +109,109 @@ app.get('/api/configuracion/public', (req, res) => {
     });
 });
 
+// Ruta de autologin (solo para localhost)
+app.get('/autologin/:username', (req, res) => {
+    // Solo permitir desde localhost por seguridad
+    const clientIp = req.ip || req.connection.remoteAddress;
+    const isLocalhost = clientIp === '127.0.0.1' || 
+                       clientIp === '::1' || 
+                       clientIp === '::ffff:127.0.0.1' ||
+                       req.hostname === 'localhost';
+    
+    if (!isLocalhost) {
+        return res.status(403).send('Acceso denegado - Solo disponible desde localhost');
+    }
+    
+    const username = req.params.username;
+    const db = req.db;
+    
+    // Buscar el usuario
+    db.get('SELECT id, username, role, nombre_completo FROM usuarios WHERE username = ?', 
+        [username], (err, user) => {
+        if (err || !user) {
+            return res.redirect('/');
+        }
+        
+        // Generar token temporal
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign(
+            { id: user.id, username: user.username, role: user.role },
+            process.env.JWT_SECRET || 'tu_clave_secreta_aqui',
+            { expiresIn: '24h' }
+        );
+        
+        // Determinar la ruta de redirección según el rol
+        let redirectPath = '/';
+        switch(user.role) {
+            case 'superadmin': redirectPath = '/superadmin'; break;
+            case 'servicios_legislativos': redirectPath = '/servicios-legislativos'; break;
+            case 'operador': redirectPath = '/operador'; break;
+            case 'secretario': redirectPath = '/secretario'; break;
+            case 'diputado': redirectPath = '/diputado'; break;
+        }
+        
+        // Enviar HTML con el token y redirección automática
+        res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Autologin - ${user.nombre_completo}</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        margin: 0;
+                        background: #f0f0f0;
+                    }
+                    .loading {
+                        text-align: center;
+                        padding: 2rem;
+                        background: white;
+                        border-radius: 10px;
+                        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    }
+                    .spinner {
+                        border: 3px solid #f3f3f3;
+                        border-top: 3px solid #3498db;
+                        border-radius: 50%;
+                        width: 40px;
+                        height: 40px;
+                        animation: spin 1s linear infinite;
+                        margin: 0 auto 1rem;
+                    }
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <h3>Iniciando sesión como ${user.nombre_completo}</h3>
+                    <p>Redirigiendo al panel...</p>
+                </div>
+                <script>
+                    localStorage.setItem('token', '${token}');
+                    localStorage.setItem('user', '${JSON.stringify({
+                        id: user.id,
+                        username: user.username,
+                        nombre: user.nombre_completo,
+                        role: user.role
+                    }).replace(/'/g, "\\'")}');
+                    setTimeout(() => {
+                        window.location.href = '${redirectPath}';
+                    }, 1000);
+                </script>
+            </body>
+            </html>
+        `);
+    });
+});
+
 // Rutas de vistas
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'src/views/login.html'));
@@ -145,6 +249,14 @@ app.get('/pantalla-asistencia', (req, res) => {
     res.sendFile(path.join(__dirname, 'src/views/pantalla-asistencia.html'));
 });
 
+app.get('/tablero-diputado', (req, res) => {
+    res.sendFile(path.join(__dirname, 'src/views/tablero-diputado.html'));
+});
+
+app.get('/estadisticas-diputados', (req, res) => {
+    res.sendFile(path.join(__dirname, 'src/views/estadisticas-diputados.html'));
+});
+
 app.get('/historial-sesiones', (req, res) => {
     res.sendFile(path.join(__dirname, 'src/views/historial-sesiones.html'));
 });
@@ -157,9 +269,39 @@ app.get('/pase-lista-mejorado', (req, res) => {
     res.sendFile(path.join(__dirname, 'src/views/pase-lista-mejorado.html'));
 });
 
+// Endpoint para obtener usuarios conectados
+app.get('/api/usuarios-conectados', (req, res) => {
+    const usuarios = Array.from(usuariosConectados.values());
+    res.json({ 
+        usuarios: usuarios,
+        total: usuarios.length,
+        timestamp: new Date()
+    });
+});
+
+// Mapa para rastrear usuarios conectados
+const usuariosConectados = new Map();
+
 // Socket.IO
 io.on('connection', (socket) => {
-    console.log('Cliente conectado:', socket.id);
+    console.log('🔌 Nueva conexión - Socket ID:', socket.id);
+    
+    // Registrar usuario cuando se identifica
+    socket.on('identificar-usuario', (userData) => {
+        if (userData && userData.nombre) {
+            usuariosConectados.set(socket.id, {
+                nombre: userData.nombre,
+                rol: userData.rol || 'Usuario',
+                conectadoEn: new Date(),
+                socketId: socket.id
+            });
+            
+            console.log(`✅ Usuario conectado: ${userData.nombre} (${userData.rol}) - Socket: ${socket.id}`);
+            
+            // Emitir lista actualizada a superadmin
+            io.emit('usuarios-conectados-actualizado', Array.from(usuariosConectados.values()));
+        }
+    });
     
     // Manejo de logs para consola en tiempo real
     socket.on('console:subscribe', () => {
@@ -169,22 +311,56 @@ io.on('connection', (socket) => {
         const historicalLogs = logger.getLogs(100);
         socket.emit('console:history', historicalLogs);
         
-        console.log(`Cliente ${socket.id} suscrito a logs de consola`);
+        const usuario = usuariosConectados.get(socket.id);
+        const nombreUsuario = usuario ? usuario.nombre : 'Desconocido';
+        console.log(`📊 ${nombreUsuario} (${socket.id}) suscrito a logs de consola`);
     });
     
     socket.on('console:unsubscribe', () => {
         socket.leave('console-logs');
-        console.log(`Cliente ${socket.id} desuscrito de logs de consola`);
+        const usuario = usuariosConectados.get(socket.id);
+        const nombreUsuario = usuario ? usuario.nombre : 'Desconocido';
+        console.log(`📊 ${nombreUsuario} (${socket.id}) desuscrito de logs de consola`);
     });
     
     socket.on('console:clear', () => {
         logger.clearLogs();
         io.to('console-logs').emit('console:cleared');
-        console.log('Logs de consola limpiados');
+        const usuario = usuariosConectados.get(socket.id);
+        const nombreUsuario = usuario ? usuario.nombre : 'Desconocido';
+        console.log(`🗑️ Logs limpiados por ${nombreUsuario}`);
+    });
+    
+    // Manejo de eventos de pase de lista
+    socket.on('pase-lista-activado', (data) => {
+        console.log('📋 Pase de lista activado:', data);
+        // Reenviar a todos los clientes
+        io.emit('pase-lista-activado', data);
+    });
+    
+    socket.on('asistencia-marcada', (data) => {
+        console.log('✅ Asistencia marcada:', data);
+        // Reenviar a todos los clientes
+        io.emit('asistencia-marcada', data);
+    });
+    
+    socket.on('pase-lista-confirmado', (data) => {
+        console.log('📋 Pase de lista confirmado:', data);
+        // Reenviar a todos los clientes
+        io.emit('pase-lista-confirmado', data);
     });
     
     socket.on('disconnect', () => {
-        console.log('Cliente desconectado:', socket.id);
+        const usuario = usuariosConectados.get(socket.id);
+        if (usuario) {
+            console.log(`❌ Usuario desconectado: ${usuario.nombre} (${usuario.rol}) - Socket: ${socket.id}`);
+            usuariosConectados.delete(socket.id);
+            
+            // Emitir lista actualizada a superadmin
+            io.emit('usuarios-conectados-actualizado', Array.from(usuariosConectados.values()));
+        } else {
+            console.log(`❌ Cliente desconectado (no identificado) - Socket: ${socket.id}`);
+        }
     });
 });
 

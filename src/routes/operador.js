@@ -1,5 +1,7 @@
 const express = require('express');
 const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 const { authenticateToken, authorize } = require('../auth/middleware');
 const pdfExtractor = require('../pdf/extractor');
 const PDFDocument = require('pdfkit');
@@ -103,6 +105,15 @@ router.post('/upload-pdf', upload.single('pdf'), async (req, res) => {
                 }
                 
                 const sesionId = this.lastID;
+                
+                // Guardar el PDF en el servidor
+                const pdfFileName = `sesion_${sesionId}_${Date.now()}.pdf`;
+                const pdfPath = path.join(__dirname, '..', '..', 'uploads', 'sesiones', pdfFileName);
+                
+                fs.writeFileSync(pdfPath, req.file.buffer);
+                
+                // Actualizar la sesión con la ruta del documento
+                db.run('UPDATE sesiones SET archivo_pdf = ? WHERE id = ?', [pdfFileName, sesionId]);
                 
                 // Si es inmediata, desactivar otras sesiones
                 if (tipoCarga === 'inmediata') {
@@ -504,30 +515,150 @@ router.get('/estadisticas-sesiones', (req, res) => {
     });
 });
 
+// Notificar a la mesa directiva que las iniciativas están listas
+router.post('/notificar-mesa-directiva', (req, res) => {
+    const db = req.db;
+    const io = req.io;
+    const operadorId = req.user.id;
+    
+    // Obtener sesión activa y sus iniciativas
+    db.get(`
+        SELECT s.*, COUNT(i.id) as total_iniciativas
+        FROM sesiones s
+        LEFT JOIN iniciativas i ON s.id = i.sesion_id
+        WHERE s.activa = 1
+        GROUP BY s.id
+    `, (err, sesion) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error obteniendo sesión' });
+        }
+        
+        if (!sesion || sesion.total_iniciativas === 0) {
+            return res.status(400).json({ error: 'No hay sesión activa con iniciativas' });
+        }
+        
+        // Obtener información del operador
+        db.get('SELECT nombre_completo FROM usuarios WHERE id = ?', [operadorId], (err, operador) => {
+            if (err) {
+                return res.status(500).json({ error: 'Error obteniendo operador' });
+            }
+            
+            // Emitir notificación a presidente y secretarios
+            io.emit('sesion-lista-para-iniciar', {
+                sesion: sesion.nombre,
+                totalIniciativas: sesion.total_iniciativas,
+                operador: operador.nombre_completo,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Registrar en historial
+            db.run(`
+                INSERT INTO historial_sesiones (sesion_id, fecha_evento, tipo_evento, descripcion, usuario_id)
+                VALUES (?, datetime('now'), 'notificacion_mesa', ?, ?)
+            `, [sesion.id, `Operador notificó que ${sesion.total_iniciativas} iniciativas están listas`, operadorId]);
+            
+            res.json({
+                success: true,
+                totalIniciativas: sesion.total_iniciativas,
+                mensaje: 'Mesa directiva notificada exitosamente'
+            });
+        });
+    });
+});
+
+// Obtener sesiones con documentos PDF
+router.get('/sesiones-con-documentos', (req, res) => {
+    const db = req.db;
+    
+    db.all(`
+        SELECT 
+            s.id,
+            s.codigo_sesion,
+            s.nombre,
+            s.fecha,
+            s.fecha_clausura,
+            s.estado,
+            s.archivo_pdf,
+            COUNT(i.id) as total_iniciativas,
+            SUM(CASE WHEN i.resultado = 'aprobada' THEN 1 ELSE 0 END) as aprobadas,
+            SUM(CASE WHEN i.resultado = 'rechazada' THEN 1 ELSE 0 END) as rechazadas
+        FROM sesiones s
+        LEFT JOIN iniciativas i ON s.id = i.sesion_id
+        WHERE s.archivo_pdf IS NOT NULL
+        GROUP BY s.id
+        ORDER BY s.fecha DESC
+        LIMIT 20
+    `, (err, sesiones) => {
+        if (err) {
+            console.error('Error obteniendo sesiones con documentos:', err);
+            return res.status(500).json({ error: 'Error obteniendo sesiones' });
+        }
+        
+        res.json({ sesiones: sesiones || [] });
+    });
+});
+
 // Obtener sesiones pendientes (indefinidas y programadas)
 router.get('/sesiones-pendientes', (req, res) => {
     const db = req.db;
     
+    // Combinar sesiones de la tabla 'sesiones' y 'sesiones_precargadas'
+    // Usamos una subquery para poder hacer ORDER BY correctamente con UNION ALL
     db.all(`
-        SELECT s.*, 
-               COUNT(i.id) as total_iniciativas,
-               u.nombre_completo as creado_por_nombre,
-               u.role as creado_por_role
-        FROM sesiones s
-        LEFT JOIN iniciativas i ON s.id = i.sesion_id
-        LEFT JOIN usuarios u ON s.iniciada_por = u.id
-        WHERE s.estado IN ('indefinida', 'programada', 'preparada')
-        AND s.activa = 0
-        GROUP BY s.id
-        ORDER BY 
-            CASE 
-                WHEN s.estado = 'preparada' THEN 1
-                WHEN s.estado = 'programada' THEN 2
-                WHEN s.estado = 'indefinida' THEN 3
-            END,
-            s.fecha_programada ASC, s.fecha DESC
+        SELECT * FROM (
+            SELECT 
+                'sesion' as origen_tabla,
+                s.id,
+                s.nombre,
+                s.descripcion,
+                s.estado,
+                s.fecha_programada,
+                s.fecha,
+                COUNT(i.id) as total_iniciativas,
+                u.nombre_completo as creado_por_nombre,
+                u.role as creado_por_role,
+                CASE 
+                    WHEN s.estado = 'pendiente' THEN 1
+                    WHEN s.estado = 'preparada' THEN 2
+                    WHEN s.estado = 'programada' THEN 3
+                    WHEN s.estado = 'indefinida' THEN 4
+                END as orden_estado
+            FROM sesiones s
+            LEFT JOIN iniciativas i ON s.id = i.sesion_id
+            LEFT JOIN usuarios u ON s.iniciada_por = u.id
+            WHERE s.estado IN ('indefinida', 'programada', 'preparada')
+            AND s.activa = 0
+            GROUP BY s.id
+            
+            UNION ALL
+            
+            SELECT 
+                'sesion_precargada' as origen_tabla,
+                sp.id,
+                sp.nombre_sesion as nombre,
+                sp.descripcion,
+                sp.estado,
+                sp.fecha_propuesta as fecha_programada,
+                sp.fecha_carga as fecha,
+                COUNT(ip.id) as total_iniciativas,
+                u.nombre_completo as creado_por_nombre,
+                u.role as creado_por_role,
+                CASE 
+                    WHEN sp.estado = 'pendiente' THEN 1
+                    WHEN sp.estado = 'preparada' THEN 2
+                    WHEN sp.estado = 'programada' THEN 3
+                    WHEN sp.estado = 'indefinida' THEN 4
+                END as orden_estado
+            FROM sesiones_precargadas sp
+            LEFT JOIN iniciativas_precargadas ip ON sp.id = ip.sesion_precargada_id
+            LEFT JOIN usuarios u ON sp.cargada_por = u.id
+            WHERE sp.estado IN ('pendiente', 'indefinida', 'programada')
+            GROUP BY sp.id
+        ) AS combined_sessions
+        ORDER BY orden_estado, fecha_programada ASC, fecha DESC
     `, (err, sesiones) => {
         if (err) {
+            console.error('Error obteniendo sesiones pendientes:', err);
             return res.status(500).json({ error: 'Error obteniendo sesiones pendientes' });
         }
         
@@ -538,10 +669,97 @@ router.get('/sesiones-pendientes', (req, res) => {
 // Activar sesión pendiente
 router.post('/activar-sesion-pendiente/:id', (req, res) => {
     const { id } = req.params;
+    const { origen_tabla } = req.body || { origen_tabla: 'sesion' };
     const db = req.db;
     const io = req.io;
     
-    // Verificar que la sesión existe y está pendiente
+    // Si la sesión es de tipo sesion_precargada, primero copiarla a sesiones
+    if (origen_tabla === 'sesion_precargada') {
+        // Obtener la sesión precargada
+        db.get(`
+            SELECT * FROM sesiones_precargadas 
+            WHERE id = ? 
+            AND estado IN ('pendiente', 'indefinida', 'programada')
+        `, [id], (err, sesionPrecargada) => {
+            if (err || !sesionPrecargada) {
+                return res.status(404).json({ error: 'Sesión precargada no encontrada' });
+            }
+            
+            // Desactivar otras sesiones activas
+            db.run('UPDATE sesiones SET activa = 0 WHERE activa = 1', (err) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error desactivando sesiones' });
+                }
+                
+                // Crear nueva sesión desde la precargada
+                const codigo = sesionPrecargada.codigo_sesion || `SES-${Date.now()}`;
+                db.run(`
+                    INSERT INTO sesiones (
+                        codigo_sesion, nombre, descripcion, estado, 
+                        activa, ejecutar_inmediato, fecha, iniciada_por
+                    ) VALUES (?, ?, ?, 'preparada', 1, 1, ?, ?)
+                `, [codigo, sesionPrecargada.nombre_sesion, sesionPrecargada.descripcion, 
+                    new Date().toISOString(), req.user.id], function(err) {
+                    if (err) {
+                        return res.status(500).json({ error: 'Error creando sesión activa' });
+                    }
+                    
+                    const nuevaSesionId = this.lastID;
+                    
+                    // Copiar iniciativas
+                    db.all(`
+                        SELECT * FROM iniciativas_precargadas 
+                        WHERE sesion_precargada_id = ?
+                    `, [id], (err, iniciativas) => {
+                        if (err) {
+                            return res.status(500).json({ error: 'Error obteniendo iniciativas' });
+                        }
+                        
+                        if (iniciativas.length > 0) {
+                            const stmt = db.prepare(`
+                                INSERT INTO iniciativas (
+                                    sesion_id, numero, titulo, descripcion, 
+                                    presentador, partido, tipo_mayoria
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                            `);
+                            
+                            iniciativas.forEach(init => {
+                                stmt.run(
+                                    nuevaSesionId, init.numero, init.titulo, init.descripcion,
+                                    init.presentador || '', init.partido_presentador || '', 
+                                    init.tipo_mayoria || 'simple'
+                                );
+                            });
+                            
+                            stmt.finalize();
+                        }
+                        
+                        // Marcar la sesión precargada como procesada
+                        db.run(`
+                            UPDATE sesiones_precargadas 
+                            SET estado = 'procesada' 
+                            WHERE id = ?
+                        `, [id]);
+                        
+                        // Emitir evento
+                        io.emit('sesion-activada', {
+                            sesion_id: nuevaSesionId,
+                            nombre: sesionPrecargada.nombre_sesion
+                        });
+                        
+                        res.json({ 
+                            success: true,
+                            message: 'Sesión activada correctamente',
+                            sesion_id: nuevaSesionId
+                        });
+                    });
+                });
+            });
+        });
+        return;
+    }
+    
+    // Si es una sesión normal, proceder como antes
     db.get(`
         SELECT * FROM sesiones 
         WHERE id = ? 
@@ -1211,6 +1429,121 @@ router.get('/sesion/:sesionId/iniciativas', (req, res) => {
             }
             
             res.json({ iniciativas: iniciativas || [] });
+        }
+    );
+});
+
+// Obtener iniciativas de una sesión precargada
+router.get('/sesion-precargada/:sesionId/iniciativas', (req, res) => {
+    const { sesionId } = req.params;
+    const db = req.db;
+    
+    db.all(
+        `SELECT id, numero, titulo, descripcion, tipo_mayoria, 
+                presentador, partido_presentador 
+         FROM iniciativas_precargadas 
+         WHERE sesion_precargada_id = ? 
+         ORDER BY numero`,
+        [sesionId],
+        (err, iniciativas) => {
+            if (err) {
+                console.error('Error al obtener iniciativas precargadas:', err);
+                return res.status(500).json({ error: 'Error al obtener iniciativas' });
+            }
+            
+            res.json({ iniciativas: iniciativas || [] });
+        }
+    );
+});
+
+// Actualizar iniciativas de una sesión precargada
+router.put('/sesion-precargada/:sesionId/iniciativas', (req, res) => {
+    const { sesionId } = req.params;
+    const { iniciativas } = req.body;
+    const db = req.db;
+    
+    if (!iniciativas || !Array.isArray(iniciativas)) {
+        return res.status(400).json({ error: 'Datos de iniciativas inválidos' });
+    }
+    
+    // Verificar que la sesión precargada existe y no está procesada
+    db.get(
+        'SELECT estado FROM sesiones_precargadas WHERE id = ?',
+        [sesionId],
+        (err, sesion) => {
+            if (err) {
+                return res.status(500).json({ error: 'Error al verificar sesión' });
+            }
+            
+            if (!sesion) {
+                return res.status(404).json({ error: 'Sesión no encontrada' });
+            }
+            
+            if (sesion.estado === 'procesada') {
+                return res.status(400).json({ error: 'No se puede editar una sesión ya procesada' });
+            }
+            
+            // Iniciar transacción
+            db.serialize(() => {
+                // Eliminar iniciativas existentes
+                db.run(
+                    'DELETE FROM iniciativas_precargadas WHERE sesion_precargada_id = ?',
+                    [sesionId],
+                    (err) => {
+                        if (err) {
+                            console.error('Error eliminando iniciativas:', err);
+                            return res.status(500).json({ error: 'Error al actualizar iniciativas' });
+                        }
+                        
+                        // Insertar nuevas iniciativas
+                        if (iniciativas.length > 0) {
+                            const stmt = db.prepare(`
+                                INSERT INTO iniciativas_precargadas (
+                                    sesion_precargada_id, numero, titulo, descripcion, 
+                                    tipo_mayoria, presentador, partido_presentador
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                            `);
+                            
+                            let insertErrors = false;
+                            iniciativas.forEach((iniciativa, index) => {
+                                stmt.run(
+                                    sesionId,
+                                    iniciativa.numero || (index + 1),
+                                    iniciativa.titulo || '',
+                                    iniciativa.descripcion || '',
+                                    iniciativa.tipo_mayoria || 'simple',
+                                    iniciativa.presentador || '',
+                                    iniciativa.partido_presentador || iniciativa.partido || '',
+                                    (err) => {
+                                        if (err) {
+                                            console.error('Error insertando iniciativa:', err);
+                                            insertErrors = true;
+                                        }
+                                    }
+                                );
+                            });
+                            
+                            stmt.finalize((err) => {
+                                if (err || insertErrors) {
+                                    return res.status(500).json({ error: 'Error al guardar iniciativas' });
+                                }
+                                
+                                res.json({ 
+                                    success: true, 
+                                    message: 'Iniciativas actualizadas correctamente',
+                                    count: iniciativas.length
+                                });
+                            });
+                        } else {
+                            res.json({ 
+                                success: true, 
+                                message: 'Iniciativas actualizadas correctamente',
+                                count: 0
+                            });
+                        }
+                    }
+                );
+            });
         }
     );
 });

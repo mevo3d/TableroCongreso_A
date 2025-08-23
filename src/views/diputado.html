@@ -2,28 +2,41 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Panel Diputado - Sistema de Votación</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/dark-theme.css">
+    <link rel="stylesheet" href="/css/global-theme.css">
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: var(--bg-primary);
+            /* Prevenir zoom con pinch */
+            touch-action: pan-x pan-y;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* Permitir zoom solo en visualizador de PDF */
+        .pdf-viewer, .pdf-container, iframe[src*="documentos-sesion"] {
+            touch-action: auto !important;
+            -webkit-user-select: text !important;
+            user-select: text !important;
         }
         .navbar {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            background: var(--navbar-bg) !important;
+            border-bottom: 1px solid var(--border-color);
         }
         
         /* Header del diputado */
         .deputy-header {
-            background: white;
+            background: var(--bg-card);
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-md);
             padding: 25px;
             margin: 20px auto;
             max-width: 900px;
-            border-left: 5px solid #007bff;
+            border-left: 5px solid var(--color-primary);
             transition: all 0.3s;
         }
         
@@ -66,19 +79,19 @@
         .deputy-name {
             font-size: 24px;
             font-weight: bold;
-            color: #2c3e50;
+            color: var(--text-primary);
             margin-bottom: 5px;
         }
         
         .deputy-cargo {
             font-size: 16px;
-            color: #6c757d;
+            color: var(--text-secondary);
             margin-bottom: 3px;
         }
         
         .deputy-commission {
             font-size: 14px;
-            color: #6c757d;
+            color: var(--text-secondary);
             margin-bottom: 8px;
         }
         
@@ -110,9 +123,9 @@
         }
         
         .vote-card {
-            background: white;
+            background: var(--bg-card);
             border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-md);
             padding: 30px;
             margin-top: 20px;
             position: relative;
@@ -135,6 +148,66 @@
             align-items: center;
             justify-content: center;
             gap: 15px;
+        }
+        
+        /* Botones de asistencia */
+        .attendance-btn {
+            width: 100%;
+            height: 100px;
+            position: relative;
+            font-size: 26px;
+            font-weight: bold;
+            margin: 15px 0;
+            border: 3px solid transparent;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            color: white;
+        }
+        
+        .attendance-btn.btn-presente {
+            background: linear-gradient(135deg, #28A745 0%, #20c997 100%);
+            border-color: #28A745;
+        }
+        
+        .attendance-btn.btn-presente:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(40, 167, 69, 0.4);
+            background: linear-gradient(135deg, #20c997 0%, #28A745 100%);
+        }
+        
+        .attendance-btn.btn-presente:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+        
+        .attendance-btn.btn-ausente {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            border-color: #6c757d;
+        }
+        
+        .attendance-btn.btn-ausente:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(108, 117, 125, 0.4);
+            background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+        }
+        
+        .attendance-btn.btn-ausente:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+        
+        .attendance-btn i {
+            font-size: 35px;
+        }
+        
+        .attendance-btn.selected {
+            box-shadow: 0 0 0 5px rgba(0, 123, 255, 0.5);
+            animation: pulse 1.5s infinite;
         }
         
         .vote-btn i {
@@ -349,6 +422,94 @@
             height: calc(100vh - 100px);
         }
         
+        /* Responsive para móviles */
+        @media (max-width: 767px) {
+            .navbar-collapse {
+                background-color: rgba(0, 0, 0, 0.1);
+                padding: 1rem;
+                margin-top: 1rem;
+                border-radius: 8px;
+            }
+            
+            .navbar-nav {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+            }
+            
+            .navbar-nav > span {
+                margin-bottom: 0.5rem;
+            }
+            
+            /* Fix para mesa directiva */
+            .president-controls {
+                position: relative;
+                z-index: 1;
+            }
+            
+            .navbar-toggler {
+                z-index: 2000 !important;
+                position: relative !important;
+                pointer-events: auto !important;
+                cursor: pointer !important;
+                border: 1px solid rgba(255,255,255,0.5) !important;
+                padding: 0.25rem 0.5rem !important;
+                background-color: transparent !important;
+                transition: all 0.3s ease !important;
+            }
+            
+            .navbar-toggler:hover {
+                background-color: rgba(255,255,255,0.1) !important;
+                border-color: rgba(255,255,255,0.8) !important;
+            }
+            
+            .navbar-toggler:focus {
+                box-shadow: 0 0 0 0.25rem rgba(255,255,255,0.25) !important;
+                outline: none !important;
+            }
+            
+            #navbarContent {
+                z-index: 1099;
+                background-color: inherit;
+            }
+            
+            #navbarContent.show {
+                display: block !important;
+            }
+            
+            /* Asegurar que el botón sea clickeable */
+            .navbar-toggler-icon {
+                pointer-events: none;
+                display: inline-block;
+                width: 1.5em;
+                height: 1.5em;
+                vertical-align: middle;
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: 100%;
+            }
+            
+            /* Fix específico para mesa directiva */
+            .navbar.navbar-expand-lg .navbar-toggler {
+                display: none !important;
+            }
+            
+            @media (max-width: 991.98px) {
+                .navbar.navbar-expand-lg .navbar-toggler {
+                    display: inline-block !important;
+                }
+                
+                .navbar-collapse {
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    right: 0;
+                    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+                    padding: 1rem;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                }
+            }
+        }
+        
         /* Responsive para tablets */
         @media (min-width: 768px) and (max-width: 1024px) {
             .vote-btn {
@@ -373,6 +534,42 @@
             padding: 5px 10px;
             background: rgba(255,255,255,0.2);
             border-radius: 5px;
+        }
+        
+        /* Botón flotante discreto para PDF */
+        .floating-pdf-btn {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b6b, #dc3545);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+        
+        .floating-pdf-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.5);
+        }
+        
+        .floating-pdf-btn.active {
+            display: flex;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3); }
+            50% { box-shadow: 0 4px 25px rgba(220, 53, 69, 0.6); }
+            100% { box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3); }
         }
         
         .congress-logos {
@@ -608,6 +805,7 @@
         .menu-overlay.active {
             display: block;
         }
+        
     </style>
 </head>
 <body>
@@ -655,6 +853,33 @@
                 <hr>
             </div>
             
+            <!-- Panel de Control del Secretario -->
+            <div id="panelSecretario" style="display: none;">
+                <h6 class="text-warning mb-3"><i class="fas fa-user-tie"></i> Panel de Control - Secretario</h6>
+                <a href="#" class="menu-item" onclick="abrirPaseLista()">
+                    <i class="fas fa-user-check"></i>
+                    <div>
+                        <div>Pase de Lista</div>
+                        <small class="text-muted">Realizar toma de asistencia</small>
+                    </div>
+                </a>
+                <a href="#" class="menu-item" onclick="verEstadoAsistencia()">
+                    <i class="fas fa-chart-pie"></i>
+                    <div>
+                        <div>Ver Estado del Sistema</div>
+                        <small class="text-muted">Estado actual de asistencia y sesión</small>
+                    </div>
+                </a>
+                <a href="#" class="menu-item" onclick="backToVoting()">
+                    <i class="fas fa-vote-yea"></i>
+                    <div>
+                        <div>Regresar a Votación</div>
+                        <small class="text-muted">Volver al panel de votación</small>
+                    </div>
+                </a>
+                <hr>
+            </div>
+            
             <a href="#" class="menu-item" onclick="verTableroSimplificado()">
                 <i class="fas fa-th"></i>
                 <div>
@@ -662,53 +887,69 @@
                     <small class="text-muted">Vista simplificada del tablero</small>
                 </div>
             </a>
-            <a href="#" class="menu-item" onclick="verHistorialVotaciones()">
-                <i class="fas fa-history"></i>
+            <a href="#" class="menu-item" onclick="consultarOrdenDelDia()">
+                <i class="fas fa-file-pdf"></i>
                 <div>
-                    <div>Historial de Votaciones</div>
-                    <small class="text-muted">Mis votaciones anteriores</small>
-                </div>
-            </a>
-            <a href="#" class="menu-item" onclick="verEstadisticas()">
-                <i class="fas fa-chart-bar"></i>
-                <div>
-                    <div>Estadísticas</div>
-                    <small class="text-muted">Resumen de participación</small>
+                    <div>Orden del Día</div>
+                    <small class="text-muted">Consultar documento de la sesión</small>
                 </div>
             </a>
             <a href="#" class="menu-item" onclick="abrirConfiguracion()">
                 <i class="fas fa-cog"></i>
                 <div>
                     <div>Configuración</div>
-                    <small class="text-muted">Preferencias personales</small>
+                    <small class="text-muted">Mis datos personales</small>
                 </div>
             </a>
         </div>
     </div>
     
-    <nav class="navbar navbar-dark">
+    <nav class="navbar navbar-dark navbar-expand-lg">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1">
                 <i class="fas fa-user"></i> Panel de Votación - Diputado
             </span>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">
-                    <i class="fas fa-clock"></i> <span id="currentTime">00:00:00</span>
-                </span>
-                <span class="text-white me-3" id="sessionTimerContainer" style="display: none;">
-                    <i class="fas fa-hourglass-half"></i> Sesión: <span id="sessionTimer">00:00:00</span>
-                </span>
-                <span class="text-white me-3" id="coordinatorInfo" style="display: none;">
-                    <span style="font-size: 0.9em; opacity: 0.8;">Coordinador:</span>
-                    <img id="coordinatorPartyLogo" src="" alt="" style="height: 20px; margin: 0 5px; display: none;">
-                    <span id="coordinatorName" style="font-weight: 500;"></span>
-                </span>
-                <button class="btn btn-outline-light btn-sm" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i> Salir
-                </button>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" 
+                    aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <div class="navbar-nav ms-auto d-flex align-items-center">
+                    <span class="text-white me-3">
+                        <i class="fas fa-clock"></i> <span id="currentTime">00:00:00</span>
+                    </span>
+                    <span class="text-white me-3" id="sessionTimerContainer" style="display: none;">
+                        <i class="fas fa-hourglass-half"></i> Sesión: <span id="sessionTimer">00:00:00</span>
+                    </span>
+                        <span class="text-white me-3" id="coordinatorInfo" style="display: none;">
+                        <span style="font-size: 0.9em; opacity: 0.8;">Coordinador:</span>
+                        <img id="coordinatorPartyLogo" src="" alt="" style="height: 20px; margin: 0 5px; display: none;">
+                        <span id="coordinatorName" style="font-weight: 500;"></span>
+                    </span>
+                    <button id="btnConsultarSesionMenu" class="btn btn-outline-warning btn-sm me-2" style="display: none;" onclick="consultarDocumentoOriginal()">
+                        <i class="fas fa-file-pdf"></i> Consultar Sesión
+                    </button>
+                    <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Salir
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
+    
+    <!-- Indicador de Estado de Asistencia -->
+    <div id="asistenciaStatus" class="alert m-3" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i id="iconoAsistencia" class="fas fa-user-check"></i> 
+                <strong>Estado de Asistencia:</strong> 
+                <span id="estadoAsistenciaTexto">No registrado</span>
+            </div>
+            <div id="mensajeAsistencia" class="text-muted small">
+                <!-- Mensaje dinámico según estado -->
+            </div>
+        </div>
+    </div>
 
     <!-- Botón EN VIVO flotante -->
     <div class="live-button-container" id="liveButtonContainer" style="display: none;">
@@ -717,6 +958,11 @@
             <span>EN VIVO</span>
         </button>
     </div>
+    
+    <!-- Botón flotante para consultar PDF -->
+    <button class="floating-pdf-btn" id="floatingPdfBtn" onclick="consultarDocumentoOriginal()" title="Ver documento PDF de la sesión">
+        <i class="fas fa-file-pdf fa-lg"></i>
+    </button>
 
     <!-- Contenedor del Stream -->
     <div class="stream-container" id="streamContainer">
@@ -777,30 +1023,6 @@
                     </div>
                 </div>
             </div>
-            <!-- Menú para secretario de mesa directiva -->
-            <div class="secretary-menu" id="secretaryMenu" style="display: none;">
-                <div class="card border-warning">
-                    <div class="card-header bg-warning text-dark">
-                        <h6 class="mb-0"><i class="fas fa-user-tie"></i> Panel de Diputado-Secretario</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-warning btn-lg" id="btnActivarPaseLista" onclick="activarPaseLista()">
-                                <i class="fas fa-broadcast-tower"></i> Activar Pase de Lista
-                            </button>
-                            <button class="btn btn-primary btn-lg" id="btnRealizarPaseLista" onclick="goToAttendance()" style="display: none;">
-                                <i class="fas fa-clipboard-check"></i> Realizar Pase de Lista
-                            </button>
-                            <button class="btn btn-info" onclick="verEstadoAsistencia()">
-                                <i class="fas fa-chart-pie"></i> Ver Estado de Asistencia
-                            </button>
-                            <button class="btn btn-secondary" onclick="backToVoting()">
-                                <i class="fas fa-vote-yea"></i> Regresar a Votación
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
             
             <!-- Panel de control para presidente/vicepresidente -->
             <div class="president-controls" id="presidentControls" style="display: none;">
@@ -845,9 +1067,22 @@
             
             <div class="card mb-4">
                 <div class="card-body">
-                    <h4 id="initiativeTitle" class="card-title"></h4>
-                    <p id="initiativeDescription" class="card-text text-muted"></p>
-                    <span class="badge bg-secondary" id="majorityType"></span>
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h4 id="initiativeTitle" class="card-title flex-grow-1"></h4>
+                        <button id="btnConsultarPDF" class="btn btn-outline-primary btn-sm" style="display: none;" onclick="consultarDocumentoOriginal()">
+                            <i class="fas fa-file-pdf"></i> Consultar Sesión Impresa
+                        </button>
+                    </div>
+                    <div id="initiativeDescriptionContainer">
+                        <p id="initiativeDescription" class="card-text text-muted" style="max-height: 150px; overflow: hidden; position: relative;"></p>
+                        <button id="btnVerMasTexto" class="btn btn-link btn-sm" style="display: none;" onclick="toggleTextoCompleto()">
+                            <i class="fas fa-chevron-down"></i> Ver más
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-secondary" id="majorityType"></span>
+                        <span class="badge bg-info ms-2" id="presentadorBadge" style="display: none;"></span>
+                    </div>
                 </div>
             </div>
             
@@ -887,6 +1122,10 @@
             </div>
         </div>
         
+        <!-- Panel removido - Los diputados NO pueden marcar su propia asistencia -->
+        <!-- Solo los secretarios pueden marcar la asistencia desde su panel -->
+        <!-- El estado de asistencia se muestra en la barra superior -->
+        
         <!-- Mensaje sin votación -->
         <div class="vote-card no-voting" id="noVotingPanel">
             <i class="fas fa-clock fa-4x mb-3"></i>
@@ -910,9 +1149,27 @@
         </div>
     </div>
     
+    <!-- Modal para Ver Detalle de Iniciativa -->
+    <div class="modal fade" id="modalDetalleIniciativa" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="detalleIniciativaTitulo">Detalle de Iniciativa</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detalleIniciativaContenido">
+                    <!-- Contenido dinámico -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Modal para Gestión de Iniciativas (Solo Presidente) -->
     <div class="modal fade" id="gestionIniciativasModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title"><i class="fas fa-crown"></i> Gestión de Iniciativas - Presidente</h5>
@@ -957,7 +1214,53 @@
                         </div>
                     </div>
                     
-                    <div id="listaIniciativasPresidente">
+                    <!-- FILTROS MEJORADOS -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-outline-primary active" onclick="filtrarIniciativasPresidente('todas')">
+                                            <i class="fas fa-list"></i> Todas
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success" onclick="filtrarIniciativasPresidente('votadas')">
+                                            <i class="fas fa-check-circle"></i> Votadas
+                                        </button>
+                                        <button type="button" class="btn btn-outline-warning" onclick="filtrarIniciativasPresidente('pendientes')">
+                                            <i class="fas fa-clock"></i> Pendientes
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info" onclick="filtrarIniciativasPresidente('activas')">
+                                            <i class="fas fa-play-circle"></i> En Votación
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="seleccionMultiple" onchange="toggleSeleccionMultiple()">
+                                        <label class="form-check-label" for="seleccionMultiple">
+                                            <i class="fas fa-check-double"></i> Selección Múltiple
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-2" id="accionesMultiples" style="display: none;">
+                                <div class="col-12">
+                                    <button class="btn btn-sm btn-success" onclick="votarSeleccionadas()">
+                                        <i class="fas fa-vote-yea"></i> Votar Seleccionadas
+                                    </button>
+                                    <button class="btn btn-sm btn-info" onclick="seleccionarTodas()">
+                                        <i class="fas fa-check-square"></i> Seleccionar Todas
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary" onclick="deseleccionarTodas()">
+                                        <i class="fas fa-square"></i> Deseleccionar
+                                    </button>
+                                    <span class="ms-3 badge bg-primary" id="contadorSeleccionadas">0 seleccionadas</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="listaIniciativasPresidente" style="max-height: 400px; overflow-y: auto;">
                         <p class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando iniciativas...</p>
                     </div>
                 </div>
@@ -973,6 +1276,33 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://unpkg.com/mediasoup-client@3/lib/mediasoup-client.min.js"></script>
     <script>
+        // ================ FUNCIONES GLOBALES DEL MENÚ (deben estar antes del HTML) ================
+        
+        function toggleMenu() {
+            const menu = document.getElementById('sideMenu');
+            const overlay = document.getElementById('menuOverlay');
+            
+            if (menu.classList.contains('show')) {
+                menu.classList.remove('show');
+                overlay.classList.remove('show');
+            } else {
+                menu.classList.add('show');
+                overlay.classList.add('show');
+            }
+        }
+        
+        function verTableroSimplificado() {
+            toggleMenu();
+            window.location.href = '/tablero-diputado';
+        }
+        
+        // Esta función se redefine más adelante pero la declaramos aquí para evitar errores
+        window.abrirConfiguracion = function() {
+            alert('La función de configuración se está cargando. Por favor, intente de nuevo en un momento.');
+        }
+        
+        // ================ INICIALIZACIÓN DE VARIABLES ================
+        
         const socket = io();
         const user = JSON.parse(localStorage.getItem('user'));
         const token = localStorage.getItem('token');
@@ -988,6 +1318,15 @@
         const isVicepresidente = user && user.cargo_mesa_directiva === 'Vicepresidente';
         let sessionStartTime = null;
         let sessionTimerInterval = null;
+        
+        // Identificar usuario al conectarse
+        if (user) {
+            socket.emit('identificar-usuario', {
+                nombre: user.nombre_completo || user.username,
+                rol: 'Diputado',
+                cargo: user.cargo_mesa_directiva || user.cargo_legislativo || ''
+            });
+        }
         
         if (!token || !user || user.role !== 'diputado') {
             window.location.href = '/';
@@ -1009,6 +1348,10 @@
             if (isPresidente) {
                 document.getElementById('panelPresidente').style.display = 'block';
             }
+            // Asegurar que la función de configuración esté disponible
+            if (typeof window.abrirConfiguracion === 'function') {
+                console.log('Función abrirConfiguracion cargada correctamente');
+            }
         }, 100);
         
         // También cargar información de partidos (en paralelo)
@@ -1022,6 +1365,19 @@
         
         // Iniciar cronómetro de sesión
         startSessionTimer();
+        
+        // Función para toggle del menú (debe estar disponible globalmente)
+        window.toggleMenu = function() {
+            const menu = document.getElementById('sideMenu');
+            const overlay = document.querySelector('.menu-overlay');
+            
+            if (menu && overlay) {
+                menu.classList.toggle('active');
+                overlay.classList.toggle('active');
+            } else {
+                console.error('Elementos del menú no encontrados');
+            }
+        }
         
         // Agregar atajos de teclado para votación rápida
         document.addEventListener('keydown', function(event) {
@@ -1127,8 +1483,38 @@
                 initiative.numero;
             document.getElementById('initiativeNumber').textContent = numeroFormato;
             document.getElementById('initiativeTitle').textContent = initiative.titulo;
-            document.getElementById('initiativeDescription').textContent = initiative.descripcion || 'Sin descripción';
+            
+            // Manejar texto largo con botón "Ver más"
+            const descripcion = initiative.descripcion || 'Sin descripción';
+            const descElement = document.getElementById('initiativeDescription');
+            const btnVerMas = document.getElementById('btnVerMasTexto');
+            
+            descElement.textContent = descripcion;
+            descElement.setAttribute('data-texto-completo', descripcion);
+            
+            // Si el texto es muy largo, mostrar botón "Ver más"
+            if (descripcion.length > 300) {
+                descElement.style.maxHeight = '150px';
+                descElement.style.overflow = 'hidden';
+                btnVerMas.style.display = 'inline-block';
+                btnVerMas.innerHTML = '<i class="fas fa-chevron-down"></i> Ver más';
+                descElement.setAttribute('data-expandido', 'false');
+            } else {
+                descElement.style.maxHeight = 'none';
+                descElement.style.overflow = 'visible';
+                btnVerMas.style.display = 'none';
+            }
+            
             document.getElementById('majorityType').textContent = getMajorityLabel(initiative.tipo_mayoria);
+            
+            // Mostrar presentador si existe
+            const presentadorBadge = document.getElementById('presentadorBadge');
+            if (initiative.presentador) {
+                presentadorBadge.textContent = `Por: ${initiative.presentador}`;
+                presentadorBadge.style.display = 'inline-block';
+            } else {
+                presentadorBadge.style.display = 'none';
+            }
             
             if (alreadyVoted) {
                 document.getElementById('votingButtons').style.display = 'none';
@@ -1146,8 +1532,19 @@
         
         // Mostrar mensaje sin votación
         function showNoVoting() {
-            document.getElementById('votingPanel').style.display = 'none';
-            document.getElementById('noVotingPanel').style.display = 'block';
+            const votingPanel = document.getElementById('votingPanel');
+            const noVotingPanel = document.getElementById('noVotingPanel');
+            
+            if (votingPanel) {
+                votingPanel.style.display = 'none';
+            }
+            
+            // El panel de asistencia ya no existe en esta versión
+            // Se removió la línea: document.getElementById('attendancePanel').style.display = 'none';
+            
+            if (noVotingPanel) {
+                noVotingPanel.style.display = 'block';
+            }
         }
         
         // Cambiar voto
@@ -1157,6 +1554,186 @@
             document.getElementById('votedMessage').style.display = 'none';
             document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = false);
             hasVoted = false;
+        }
+        
+        // ================ FUNCIONES DE PASE DE LISTA ================
+        
+        let hasMarkedAttendance = false;
+        let myAttendanceStatus = null;
+        
+        // Funciones de panel de asistencia removidas
+        // Los diputados solo pueden ver su estado, no modificarlo
+        
+        // Verificar mi asistencia actual
+        async function checkMyAttendance() {
+            try {
+                const response = await fetch('/api/pase-lista/mi-asistencia', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.asistencia) {
+                        hasMarkedAttendance = true;
+                        myAttendanceStatus = data.asistencia;
+                        
+                        // Actualizar indicador visual de asistencia
+                        mostrarEstadoAsistencia(data.asistencia);
+                        showAttendanceRegistered(data.asistencia);
+                    }
+                }
+            } catch (error) {
+                console.error('Error verificando asistencia:', error);
+            }
+        }
+        
+        // Funciones removidas - Los diputados no pueden marcar su propia asistencia
+        // Solo los secretarios marcan la asistencia desde su panel
+        
+        // Variable para almacenar información de la sesión actual
+        let sesionActualInfo = null;
+        
+        // Función para consultar el documento PDF original
+        function consultarDocumentoOriginal() {
+            if (sesionActualInfo && sesionActualInfo.archivo_pdf) {
+                // Abrir el PDF en una nueva ventana
+                window.open(`/documentos-sesion/${sesionActualInfo.archivo_pdf}`, '_blank');
+            } else {
+                alert('No hay documento PDF disponible para esta sesión');
+            }
+        }
+        
+        // Función para consultar la orden del día desde el menú
+        async function consultarOrdenDelDia() {
+            toggleMenu(); // Cerrar el menú
+            
+            try {
+                // Obtener información de la sesión actual
+                const response = await fetch('/api/secretario/estado-sesion', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.sesion_activa && data.sesion.archivo_pdf) {
+                        // Abrir el PDF en una nueva ventana
+                        window.open(`/documentos-sesion/${data.sesion.archivo_pdf}`, '_blank');
+                    } else if (data.sesion_activa) {
+                        alert('La sesión está activa pero no hay documento PDF disponible');
+                    } else {
+                        alert('No hay sesión activa en este momento');
+                    }
+                } else {
+                    alert('Error al obtener información de la sesión');
+                }
+            } catch (error) {
+                console.error('Error consultando orden del día:', error);
+                alert('Error al consultar la orden del día');
+            }
+        }
+        
+        // Prevenir zoom con pinch en toda la aplicación excepto PDFs
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('gesturechange', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('gestureend', function(e) {
+            e.preventDefault();
+        });
+        
+        // Prevenir doble tap para zoom (excepto en elementos de navegación)
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            // No prevenir en elementos de navegación
+            if (event.target.closest('.navbar-toggler') || 
+                event.target.closest('.navbar-collapse') ||
+                event.target.closest('.btn')) {
+                return;
+            }
+            
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+        
+        // Prevenir zoom con ctrl + scroll
+        document.addEventListener('wheel', function(event) {
+            if (event.ctrlKey) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Función para expandir/contraer texto de descripción
+        function toggleTextoCompleto() {
+            const descElement = document.getElementById('initiativeDescription');
+            const btnVerMas = document.getElementById('btnVerMasTexto');
+            const expandido = descElement.getAttribute('data-expandido') === 'true';
+            
+            if (expandido) {
+                // Contraer
+                descElement.style.maxHeight = '150px';
+                descElement.style.overflow = 'hidden';
+                btnVerMas.innerHTML = '<i class="fas fa-chevron-down"></i> Ver más';
+                descElement.setAttribute('data-expandido', 'false');
+            } else {
+                // Expandir
+                descElement.style.maxHeight = 'none';
+                descElement.style.overflow = 'visible';
+                btnVerMas.innerHTML = '<i class="fas fa-chevron-up"></i> Ver menos';
+                descElement.setAttribute('data-expandido', 'true');
+            }
+        }
+        
+        // Función para mostrar estado de asistencia
+        function mostrarEstadoAsistencia(estado) {
+            const statusDiv = document.getElementById('asistenciaStatus');
+            const icono = document.getElementById('iconoAsistencia');
+            const texto = document.getElementById('estadoAsistenciaTexto');
+            const mensaje = document.getElementById('mensajeAsistencia');
+            
+            if (!statusDiv) return;
+            
+            statusDiv.style.display = 'block';
+            
+            switch(estado) {
+                case 'presente':
+                    statusDiv.className = 'alert alert-success m-3';
+                    icono.className = 'fas fa-check-circle text-success';
+                    texto.textContent = 'PRESENTE';
+                    mensaje.innerHTML = '<i class="fas fa-vote-yea"></i> Puede participar en las votaciones';
+                    break;
+                    
+                case 'ausente':
+                    statusDiv.className = 'alert alert-danger m-3';
+                    icono.className = 'fas fa-user-times text-danger';
+                    texto.textContent = 'AUSENTE';
+                    mensaje.innerHTML = '<i class="fas fa-ban"></i> No puede votar (marcado como ausente)';
+                    break;
+                    
+                case 'permiso':
+                    statusDiv.className = 'alert alert-info m-3';
+                    icono.className = 'fas fa-user-clock text-info';
+                    texto.textContent = 'CON PERMISO';
+                    mensaje.innerHTML = '<i class="fas fa-info-circle"></i> Ausente con justificación';
+                    break;
+                    
+                default:
+                    statusDiv.className = 'alert alert-warning m-3';
+                    icono.className = 'fas fa-exclamation-triangle text-warning';
+                    texto.textContent = 'NO REGISTRADO';
+                    mensaje.innerHTML = '<i class="fas fa-exclamation"></i> Esperando pase de lista';
+            }
         }
         
         // Emitir voto
@@ -1195,7 +1772,13 @@
                     // Recargar historial
                     setTimeout(loadHistory, 1000);
                 } else {
-                    alert(data.error);
+                    // Verificar si es error de asistencia
+                    if (data.estado_asistencia) {
+                        mostrarEstadoAsistencia(data.estado_asistencia);
+                        alert(`⚠️ ${data.error}\n\n${data.mensaje}`);
+                    } else {
+                        alert(data.error);
+                    }
                     document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = false);
                 }
             } catch (error) {
@@ -1297,6 +1880,34 @@
         socket.on('iniciativa-activa', (iniciativa) => {
             currentInitiative = iniciativa;
             hasVoted = false;
+            
+            // Guardar información de la sesión incluyendo el PDF
+            sesionActualInfo = {
+                archivo_pdf: iniciativa.archivo_pdf
+            };
+            
+            // Mostrar/ocultar botón de consultar PDF en la tarjeta
+            const btnPDF = document.getElementById('btnConsultarPDF');
+            if (btnPDF) {
+                btnPDF.style.display = iniciativa.archivo_pdf ? 'block' : 'none';
+            }
+            
+            // Mostrar/ocultar botón en el menú
+            const btnPDFMenu = document.getElementById('btnConsultarSesionMenu');
+            if (btnPDFMenu) {
+                btnPDFMenu.style.display = iniciativa.archivo_pdf ? 'inline-block' : 'none';
+            }
+            
+            // Mostrar/ocultar botón flotante
+            const floatingBtn = document.getElementById('floatingPdfBtn');
+            if (floatingBtn) {
+                if (iniciativa.archivo_pdf) {
+                    floatingBtn.classList.add('active');
+                } else {
+                    floatingBtn.classList.remove('active');
+                }
+            }
+            
             // Re-habilitar botones cuando se activa una nueva iniciativa
             document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = false);
             showVotingPanel(iniciativa, false, null);
@@ -1402,6 +2013,48 @@
             }
         });
         
+        // Escuchar notificación del operador para mesa directiva
+        socket.on('sesion-lista-para-iniciar', (data) => {
+            if (user.cargo_mesa_directiva === 'presidente' || 
+                user.cargo_mesa_directiva === 'secretario1' || 
+                user.cargo_mesa_directiva === 'secretario2') {
+                
+                // Crear notificación visual
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                notification.style.cssText = 'top: 100px; right: 20px; z-index: 9999; max-width: 400px;';
+                notification.innerHTML = `
+                    <h5 class="alert-heading">
+                        <i class="fas fa-bell"></i> Sesión Lista para Iniciar
+                    </h5>
+                    <hr>
+                    <p><strong>Operador:</strong> ${data.operador}</p>
+                    <p><strong>Sesión:</strong> ${data.sesion}</p>
+                    <p><strong>Iniciativas cargadas:</strong> ${data.totalIniciativas}</p>
+                    <hr>
+                    <p class="mb-0">Ya puede iniciar la sesión legislativa</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(notification);
+                
+                // Habilitar botón de iniciar sesión si es presidente
+                if (user.cargo_mesa_directiva === 'presidente') {
+                    const btnIniciar = document.getElementById('btnIniciarSesion');
+                    if (btnIniciar) {
+                        btnIniciar.style.display = 'block';
+                        btnIniciar.classList.add('animate__animated', 'animate__pulse');
+                    }
+                }
+                
+                // Auto-cerrar después de 30 segundos
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 30000);
+            }
+        });
+        
         socket.on('sesion-iniciada', (data) => {
             console.log('Sesión iniciada:', data);
             if (user.cargo_mesa_directiva) {
@@ -1430,6 +2083,42 @@
             
             // Ocultar panel de votación
             showNoVoting();
+        });
+        
+        // Sincronización del pase de lista entre secretarios
+        socket.on('pase-lista-activado', (data) => {
+            console.log('Pase de lista activado:', data);
+            
+            // Los diputados SOLO reciben notificación, NO pueden marcar asistencia
+            showNotification('📋 Pase de lista en curso', 'info');
+            showNotification('El secretario está tomando asistencia', 'warning');
+            
+            // Verificar mi estado actual de asistencia
+            checkMyAttendance();
+        });
+        
+        // Escuchar cuando el secretario actualice mi asistencia
+        socket.on('asistencia-actualizada', (data) => {
+            if (data.usuario_id === user.id) {
+                console.log('Mi asistencia fue actualizada:', data.estado);
+                mostrarEstadoAsistencia(data.estado);
+                
+                // Mostrar notificación según el estado
+                const mensaje = data.estado === 'presente' ? 
+                    '✅ Has sido marcado como PRESENTE' :
+                    data.estado === 'ausente' ?
+                    '❌ Has sido marcado como AUSENTE' :
+                    'ℹ️ Has sido marcado con PERMISO';
+                    
+                showNotification(mensaje, 
+                    data.estado === 'presente' ? 'success' : 
+                    data.estado === 'ausente' ? 'danger' : 'info');
+            }
+        });
+        
+        socket.on('pase-lista-desactivado', (data) => {
+            console.log('Pase de lista finalizado:', data);
+            showNotification('Pase de lista finalizado', 'info');
         });
         
         // Verificar periódicamente
@@ -1462,6 +2151,13 @@
                 user.cargo_mesa_directiva = data.cargo_mesa_directiva;
                 user.partido = data.partido;
                 user.comision = data.comision;
+                user.nombre = data.nombre;
+                user.nombre_completo = data.nombre_completo;
+                user.fotografia = data.fotografia;
+                user.cargo_legislativo = data.cargo_legislativo;
+                // Mantener el username original si no viene en la respuesta
+                if (data.username) user.username = data.username;
+                if (data.usuario) user.usuario = data.usuario;
                 localStorage.setItem('user', JSON.stringify(user));
                 
                 // Verificar si es secretario después de cargar la información
@@ -1566,6 +2262,86 @@
         // Iniciar reloj
         setInterval(updateClock, 1000);
         updateClock();
+        
+        // Fix para el menú hamburguesa - Solución mejorada
+        function initializeHamburgerMenu() {
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            const navbarCollapse = document.querySelector('#navbarContent');
+            
+            if (!navbarToggler || !navbarCollapse) {
+                console.log('Elementos del navbar no encontrados, reintentando...');
+                setTimeout(initializeHamburgerMenu, 100);
+                return;
+            }
+            
+            // Limpiar cualquier listener previo
+            const newToggler = navbarToggler.cloneNode(true);
+            navbarToggler.parentNode.replaceChild(newToggler, navbarToggler);
+            
+            // Configurar manualmente sin depender de data-attributes
+            newToggler.removeAttribute('data-bs-toggle');
+            newToggler.removeAttribute('data-bs-target');
+            
+            // Crear nueva instancia de Collapse
+            let bsCollapse;
+            try {
+                // Destruir instancia previa si existe
+                const existingCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
+                if (existingCollapse) {
+                    existingCollapse.dispose();
+                }
+                
+                // Crear nueva instancia
+                bsCollapse = new bootstrap.Collapse(navbarCollapse, {
+                    toggle: false
+                });
+            } catch (e) {
+                console.error('Error creando Collapse:', e);
+                // Fallback: toggle manual de clases
+                newToggler.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navbarCollapse.classList.toggle('show');
+                });
+                return;
+            }
+            
+            // Agregar evento click con múltiples intentos de toggle
+            newToggler.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Hamburger clicked - estado actual:', navbarCollapse.classList.contains('show'));
+                
+                try {
+                    bsCollapse.toggle();
+                } catch (err) {
+                    console.error('Error en toggle, usando fallback:', err);
+                    navbarCollapse.classList.toggle('show');
+                }
+            });
+            
+            // Asegurar que el botón es clickeable
+            newToggler.style.pointerEvents = 'auto';
+            newToggler.style.cursor = 'pointer';
+            newToggler.style.zIndex = '1200';
+            
+            // Debug para mesa directiva
+            if (user && user.cargo_mesa_directiva) {
+                console.log('Mesa directiva detectada:', user.cargo_mesa_directiva);
+                console.log('Menú hamburguesa inicializado correctamente');
+                console.log('Toggler clickeable:', window.getComputedStyle(newToggler).pointerEvents);
+            }
+        }
+        
+        // Esperar a que Bootstrap esté completamente cargado
+        if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+            setTimeout(initializeHamburgerMenu, 100);
+        } else {
+            // Si Bootstrap no está listo, esperar
+            window.addEventListener('load', function() {
+                setTimeout(initializeHamburgerMenu, 500);
+            });
+        }
         
         // Cronómetro de sesión (solo para mesa directiva, secretarios y superadmin)
         // Variables ya declaradas arriba, no duplicar
@@ -1702,16 +2478,20 @@
             console.log('Verificando cargo mesa directiva:', user.cargo_mesa_directiva);
             console.log('Usuario completo:', user);
             
-            // Mostrar menú de secretario
+            // Mostrar menú de secretario en el panel lateral
             if (user.cargo_mesa_directiva === 'secretario1' || user.cargo_mesa_directiva === 'secretario2') {
-                console.log('Es secretario, mostrando menú');
-                document.getElementById('secretaryMenu').style.display = 'block';
+                console.log('Es secretario, mostrando panel en menú lateral');
+                document.getElementById('panelSecretario').style.display = 'block'; // Panel en menú lateral
             }
+            
+            // Verificar estado del pase de lista para TODOS los diputados
+            verificarEstadoPaseLista();
             
             // Mostrar panel de control de presidente/vicepresidente
             if (user.cargo_mesa_directiva === 'presidente') {
                 console.log('Es presidente, mostrando panel de control');
                 document.getElementById('presidentControls').style.display = 'block';
+                document.getElementById('panelPresidente').style.display = 'block'; // Panel en menú lateral
                 checkSessionStatus();
             } else if (user.cargo_mesa_directiva === 'vicepresidente') {
                 console.log('Es vicepresidente, verificando autorización');
@@ -1938,7 +2718,13 @@
             }
         }
         
-        // Activar pase de lista (para Diputados-Secretarios)
+        // Función para ir directamente al pase de lista (para Diputados-Secretarios)
+        function abrirPaseLista() {
+            // Redirigir directamente a la página de pase de lista mejorado
+            window.location.href = '/pase-lista-mejorado';
+        }
+        
+        // Activar pase de lista (función legacy - mantener por compatibilidad)
         async function activarPaseLista() {
             if (!confirm('¿Activar el pase de lista?\n\nEsto mostrará la pantalla de asistencia pública.')) return;
             
@@ -1953,10 +2739,6 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    
-                    // Cambiar botones
-                    document.getElementById('btnActivarPaseLista').style.display = 'none';
-                    document.getElementById('btnRealizarPaseLista').style.display = 'block';
                     
                     // Emitir evento para actualizar pantalla pública
                     socket.emit('pase-lista-activado', {
@@ -1983,6 +2765,43 @@
         // Ver estado de asistencia
         function verEstadoAsistencia() {
             window.open('/pantalla-asistencia', '_blank');
+        }
+        
+        // Verificar estado del pase de lista al cargar
+        async function verificarEstadoPaseLista() {
+            try {
+                const response = await fetch('/api/pase-lista/estado', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Estado del pase de lista:', data);
+                    
+                    if (data.activo) {
+                        // Mostrar panel de pase de lista si está activo
+                        showAttendancePanel();
+                        
+                        // Si el pase de lista ya está activo, actualizar botón para secretarios
+                        const btnActivar = document.querySelector('#panelSecretario .menu-item[onclick*="activarPaseLista"]');
+                        if (btnActivar) {
+                            btnActivar.innerHTML = `
+                                <i class="fas fa-check-circle text-success"></i>
+                                <div>
+                                    <div>Pase de Lista Activo</div>
+                                    <small class="text-muted">Ya está habilitado</small>
+                                </div>
+                            `;
+                            btnActivar.style.pointerEvents = 'none';
+                            btnActivar.style.opacity = '0.6';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error verificando estado del pase de lista:', error);
+            }
         }
         
         // Ir a pase de lista
@@ -2505,16 +3324,90 @@
         </div>
     </div>
     
+    <!-- Modal de Configuración Personal -->
+    <div class="modal fade" id="modalConfiguracion" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-cog"></i> Configuración Personal
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formConfiguracion">
+                        <div class="row">
+                            <div class="col-md-4 text-center mb-3">
+                                <div class="position-relative">
+                                    <img id="previewFoto" src="/images/diputados/default.png" alt="Foto" 
+                                         class="img-thumbnail mb-2" style="width: 150px; height: 150px; object-fit: cover;">
+                                    <div class="mt-2">
+                                        <label for="inputFoto" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-camera"></i> Cambiar Foto
+                                        </label>
+                                        <input type="file" id="inputFoto" class="d-none" accept="image/*" onchange="previewImage(this)">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre Completo</label>
+                                    <input type="text" class="form-control" id="configNombre" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Usuario de Acceso</label>
+                                    <input type="text" class="form-control" id="configUsuario" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Nueva Contraseña</label>
+                                    <input type="password" class="form-control" id="configPassword" 
+                                           placeholder="Dejar vacío para mantener la actual">
+                                    <small class="text-muted">Mínimo 6 caracteres</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Confirmar Contraseña</label>
+                                    <input type="password" class="form-control" id="configPasswordConfirm" 
+                                           placeholder="Repetir nueva contraseña">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Partido</label>
+                                    <input type="text" class="form-control" id="configPartido" readonly 
+                                           style="background-color: #f8f9fa;">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Cargo</label>
+                                    <input type="text" class="form-control" id="configCargo" readonly 
+                                           style="background-color: #f8f9fa;">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            Los cambios se aplicarán inmediatamente y se sincronizarán con el sistema principal.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarConfiguracion()">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script>
-        // Funciones del menú
-        function toggleMenu() {
-            const menu = document.getElementById('sideMenu');
-            const overlay = document.querySelector('.menu-overlay');
-            
-            menu.classList.toggle('active');
-            overlay.classList.toggle('active');
-        }
-        
         // Función para mostrar notificación de resultado
         function mostrarNotificacionResultado(data) {
             // Obtener los resultados de la última votación
@@ -2764,7 +3657,14 @@
             }
         }
         
+        // Variables para filtros y selección múltiple
+        let iniciativasGlobales = [];
+        let filtroActualPresidente = 'todas';
+        let modoSeleccionMultiple = false;
+        let iniciativasSeleccionadas = new Set();
+        
         function mostrarIniciativasPresidente(iniciativas) {
+            iniciativasGlobales = iniciativas;
             const container = document.getElementById('listaIniciativasPresidente');
             
             if (iniciativas.length === 0) {
@@ -2772,36 +3672,205 @@
                 return;
             }
             
+            // Aplicar filtro
+            let iniciativasFiltradas = filtrarIniciativas(iniciativas, filtroActualPresidente);
+            
             container.innerHTML = `
                 <div class="list-group">
-                    ${iniciativas.map(init => `
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">
-                                        ${init.numero}. ${init.descripcion || init.titulo || 'Sin descripción'}
-                                        ${init.activa ? '<span class="badge bg-success ms-2">EN VOTACIÓN</span>' : ''}
-                                        ${init.cerrada ? '<span class="badge bg-dark ms-2">CERRADA</span>' : ''}
+                    ${iniciativasFiltradas.map(init => {
+                        // Truncar texto y preparar tooltip
+                        const textoCompleto = init.descripcion || init.titulo || 'Sin descripción';
+                        const textoTruncado = textoCompleto.length > 200 ? 
+                            textoCompleto.substring(0, 200) + '...' : textoCompleto;
+                        
+                        // Estado de la iniciativa
+                        let estadoBadge = '';
+                        let colorItem = '';
+                        if (init.cerrada && init.resultado) {
+                            estadoBadge = '<span class="badge bg-success ms-2">✓ VOTADA</span>';
+                            colorItem = 'border-success';
+                        } else if (init.activa) {
+                            estadoBadge = '<span class="badge bg-warning ms-2">EN VOTACIÓN</span>';
+                            colorItem = 'border-warning';
+                        } else {
+                            estadoBadge = '<span class="badge bg-secondary ms-2">PENDIENTE</span>';
+                            colorItem = '';
+                        }
+                        
+                        return `
+                        <div class="list-group-item ${colorItem}" data-id="${init.id}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    ${modoSeleccionMultiple ? `
+                                        <div class="form-check d-inline-block me-2">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="check_${init.id}" 
+                                                   onchange="toggleSeleccionIniciativa(${init.id})"
+                                                   ${iniciativasSeleccionadas.has(init.id) ? 'checked' : ''}>
+                                        </div>
+                                    ` : ''}
+                                    <h6 class="mb-1 d-inline-block" 
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="top" 
+                                        title="${textoCompleto.replace(/"/g, '&quot;')}">
+                                        ${init.numero}. ${textoTruncado}
+                                        ${estadoBadge}
                                     </h6>
-                                    ${init.presentador ? `<small class="text-muted">Por: ${init.presentador}</small>` : ''}
+                                    ${init.presentador ? `<small class="text-muted d-block">Por: ${init.presentador}</small>` : ''}
+                                    ${init.partido ? `<small class="text-muted">Partido: ${init.partido}</small>` : ''}
+                                    ${textoCompleto.length > 200 ? `
+                                        <button class="btn btn-link btn-sm p-0 ms-2" onclick="verDetalleIniciativa(${init.id})">
+                                            <i class="fas fa-eye"></i> Ver más
+                                        </button>
+                                    ` : ''}
                                 </div>
                                 <div>
                                     ${!init.activa && !init.cerrada ? `
-                                        <button class="btn btn-sm btn-success" onclick="activarIniciativaPresidente(${init.id})">
+                                        <button class="btn btn-sm btn-success" onclick="activarIniciativaPresidente(${init.id})" 
+                                                title="Activar para votación">
                                             <i class="fas fa-play"></i> Activar
                                         </button>
                                     ` : ''}
                                     ${init.activa ? `
-                                        <button class="btn btn-sm btn-danger" onclick="cerrarVotacionPresidente(${init.id})">
+                                        <button class="btn btn-sm btn-danger" onclick="cerrarVotacionPresidente(${init.id})"
+                                                title="Cerrar votación">
                                             <i class="fas fa-stop"></i> Cerrar
+                                        </button>
+                                    ` : ''}
+                                    ${init.cerrada && init.resultado ? `
+                                        <button class="btn btn-sm btn-info" onclick="verResultadoIniciativa(${init.id})"
+                                                title="Ver resultado de votación">
+                                            <i class="fas fa-chart-bar"></i> Resultado
                                         </button>
                                     ` : ''}
                                 </div>
                             </div>
                         </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             `;
+            
+            // Inicializar tooltips de Bootstrap
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+        
+        // Función para filtrar iniciativas
+        function filtrarIniciativas(iniciativas, filtro) {
+            switch(filtro) {
+                case 'votadas':
+                    return iniciativas.filter(i => i.cerrada && i.resultado);
+                case 'pendientes':
+                    return iniciativas.filter(i => !i.activa && !i.cerrada);
+                case 'activas':
+                    return iniciativas.filter(i => i.activa);
+                default:
+                    return iniciativas;
+            }
+        }
+        
+        // Filtrar iniciativas del presidente
+        function filtrarIniciativasPresidente(filtro) {
+            filtroActualPresidente = filtro;
+            
+            // Actualizar botones activos
+            document.querySelectorAll('.btn-group button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.onclick.toString().includes(filtro)) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            mostrarIniciativasPresidente(iniciativasGlobales);
+        }
+        
+        // Toggle selección múltiple
+        function toggleSeleccionMultiple() {
+            modoSeleccionMultiple = document.getElementById('seleccionMultiple').checked;
+            document.getElementById('accionesMultiples').style.display = 
+                modoSeleccionMultiple ? 'block' : 'none';
+            
+            if (!modoSeleccionMultiple) {
+                iniciativasSeleccionadas.clear();
+            }
+            
+            mostrarIniciativasPresidente(iniciativasGlobales);
+        }
+        
+        // Toggle selección de iniciativa
+        function toggleSeleccionIniciativa(id) {
+            if (iniciativasSeleccionadas.has(id)) {
+                iniciativasSeleccionadas.delete(id);
+            } else {
+                iniciativasSeleccionadas.add(id);
+            }
+            actualizarContadorSeleccionadas();
+        }
+        
+        // Actualizar contador
+        function actualizarContadorSeleccionadas() {
+            document.getElementById('contadorSeleccionadas').textContent = 
+                `${iniciativasSeleccionadas.size} seleccionadas`;
+        }
+        
+        // Seleccionar todas
+        function seleccionarTodas() {
+            const checkboxes = document.querySelectorAll('#listaIniciativasPresidente input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = true;
+                const id = parseInt(cb.id.replace('check_', ''));
+                iniciativasSeleccionadas.add(id);
+            });
+            actualizarContadorSeleccionadas();
+        }
+        
+        // Deseleccionar todas
+        function deseleccionarTodas() {
+            const checkboxes = document.querySelectorAll('#listaIniciativasPresidente input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+            });
+            iniciativasSeleccionadas.clear();
+            actualizarContadorSeleccionadas();
+        }
+        
+        // Votar seleccionadas
+        async function votarSeleccionadas() {
+            if (iniciativasSeleccionadas.size === 0) {
+                alert('No hay iniciativas seleccionadas');
+                return;
+            }
+            
+            if (!confirm(`¿Activar ${iniciativasSeleccionadas.size} iniciativas para votación simultánea?`)) {
+                return;
+            }
+            
+            // Aquí implementar la lógica para votar múltiples iniciativas
+            alert('Función en desarrollo: Votación múltiple');
+        }
+        
+        // Ver detalle de iniciativa en modal
+        function verDetalleIniciativa(id) {
+            const iniciativa = iniciativasGlobales.find(i => i.id === id);
+            if (!iniciativa) return;
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalDetalleIniciativa'));
+            document.getElementById('detalleIniciativaTitulo').textContent = 
+                `Iniciativa #${iniciativa.numero}`;
+            document.getElementById('detalleIniciativaContenido').innerHTML = `
+                <h5>${iniciativa.titulo || 'Sin título'}</h5>
+                <p class="text-muted">${iniciativa.descripcion || 'Sin descripción'}</p>
+                <hr>
+                <p><strong>Presentador:</strong> ${iniciativa.presentador || 'No especificado'}</p>
+                <p><strong>Partido:</strong> ${iniciativa.partido || 'No especificado'}</p>
+                <p><strong>Tipo de Mayoría:</strong> ${iniciativa.tipo_mayoria || 'Simple'}</p>
+                ${iniciativa.observaciones ? `<p><strong>Observaciones:</strong> ${iniciativa.observaciones}</p>` : ''}
+            `;
+            modal.show();
+        }
         }
         
         async function activarIniciativaPresidente(id, force = false) {
@@ -2921,10 +3990,144 @@
             alert('Función de quórum en desarrollo');
         }
         
-        // Función para configuración
-        function abrirConfiguracion() {
+        // Función para configuración - Sobrescribimos la función temporal
+        window.abrirConfiguracion = function() {
             toggleMenu();
-            alert('Función de configuración en desarrollo');
+            
+            // Verificar que el usuario esté cargado
+            if (!user) {
+                alert('Información del usuario no disponible. Por favor, recarga la página.');
+                return;
+            }
+            
+            // Verificar que el modal exista
+            const modalElement = document.getElementById('modalConfiguracion');
+            if (!modalElement) {
+                alert('El modal de configuración no está disponible. Por favor, recarga la página.');
+                return;
+            }
+            
+            // Verificar que los elementos del formulario existan
+            const configNombre = document.getElementById('configNombre');
+            const configUsuario = document.getElementById('configUsuario');
+            const configPartido = document.getElementById('configPartido');
+            const configCargo = document.getElementById('configCargo');
+            const previewFoto = document.getElementById('previewFoto');
+            const configPassword = document.getElementById('configPassword');
+            const configPasswordConfirm = document.getElementById('configPasswordConfirm');
+            
+            if (!configNombre || !configUsuario) {
+                alert('Los elementos del formulario no están disponibles. Por favor, recarga la página.');
+                return;
+            }
+            
+            // Cargar datos actuales del usuario
+            configNombre.value = user.nombre || '';
+            configUsuario.value = user.username || user.usuario || '';
+            if (configPartido) configPartido.value = user.partido || '';
+            if (configCargo) configCargo.value = user.cargo_mesa_directiva || 'Diputado';
+            
+            // Cargar foto actual
+            const fotoPath = user.fotografia || '/images/diputados/default.png';
+            if (previewFoto) previewFoto.src = fotoPath;
+            
+            // Limpiar campos de contraseña
+            if (configPassword) configPassword.value = '';
+            if (configPasswordConfirm) configPasswordConfirm.value = '';
+            
+            // Mostrar modal
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
+        
+        // Preview de imagen
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('previewFoto').src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        // Guardar configuración
+        async function guardarConfiguracion() {
+            const nombre = document.getElementById('configNombre').value.trim();
+            const usuario = document.getElementById('configUsuario').value.trim();
+            const password = document.getElementById('configPassword').value;
+            const passwordConfirm = document.getElementById('configPasswordConfirm').value;
+            
+            // Validaciones
+            if (!nombre || !usuario) {
+                alert('El nombre y usuario son obligatorios');
+                return;
+            }
+            
+            if (password && password !== passwordConfirm) {
+                alert('Las contraseñas no coinciden');
+                return;
+            }
+            
+            if (password && password.length < 6) {
+                alert('La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('nombre', nombre);
+                formData.append('usuario', usuario);
+                
+                if (password) {
+                    formData.append('password', password);
+                }
+                
+                // Agregar foto si se seleccionó una
+                const inputFoto = document.getElementById('inputFoto');
+                if (inputFoto.files && inputFoto.files[0]) {
+                    formData.append('fotografia', inputFoto.files[0]);
+                }
+                
+                const response = await fetch('/api/diputado/actualizar-perfil', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Configuración actualizada correctamente');
+                    
+                    // Actualizar datos locales del usuario
+                    user.nombre = nombre;
+                    user.usuario = usuario;
+                    if (data.fotografia) {
+                        user.fotografia = data.fotografia;
+                    }
+                    
+                    // Actualizar header con el nuevo nombre
+                    document.getElementById('deputyName').textContent = nombre;
+                    
+                    // Cerrar modal
+                    bootstrap.Modal.getInstance(document.getElementById('modalConfiguracion')).hide();
+                    
+                    // Si cambió el usuario, sugerir relogin
+                    if (usuario !== user.usuario) {
+                        if (confirm('Has cambiado tu usuario. ¿Deseas cerrar sesión para ingresar con tu nuevo usuario?')) {
+                            logout();
+                        }
+                    }
+                } else {
+                    alert(data.error || 'Error al actualizar la configuración');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al actualizar la configuración');
+            }
         }
 
         // Funciones de Servicios Legislativos

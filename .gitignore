@@ -38,6 +38,8 @@ tmp/
 # Uploads (pero mantenemos la estructura)
 public/uploads/*
 !public/uploads/.gitkeep
+uploads/sesiones/*.pdf
+!uploads/sesiones/.gitkeep
 
 # Build
 dist/

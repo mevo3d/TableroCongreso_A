@@ -19,7 +19,10 @@
       "Bash(git push:*)",
       "Bash(npm install:*)",
       "Bash(mkdir:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(sqlite3:*)",
+      "Bash(npm init:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": [],

@@ -459,6 +459,8 @@
         const puedeHacerPaseLista = 
             user.cargo_mesa_directiva === 'Presidente de la Mesa Directiva' ||
             user.cargo_mesa_directiva === 'Secretario de la Mesa Directiva' ||
+            user.cargo_mesa_directiva === 'secretario1' ||
+            user.cargo_mesa_directiva === 'secretario2' ||
             user.nombre_completo === 'Alberto Sánchez Ortega' ||
             user.nombre_completo === 'Guillermina Maya' ||
             user.role === 'secretario' ||
@@ -476,6 +478,15 @@
             cargarConfiguracion();
             actualizarHora();
             setInterval(actualizarHora, 1000);
+            
+            // Emitir evento de activación del pase de lista
+            setTimeout(() => {
+                socket.emit('pase-lista-activado', {
+                    activo: true,
+                    usuario: user.nombre_completo
+                });
+                console.log('Pase de lista activado - Notificando a pantalla pública');
+            }, 1000);
         });
         
         // Cargar datos de la sesión
@@ -612,12 +623,15 @@
             actualizarContadores();
             verificarQuorum();
             
-            // Emitir evento por socket
+            // Emitir evento por socket para actualizar pantalla pública
             socket.emit('asistencia-marcada', {
-                diputadoId,
-                estado,
+                diputado_id: diputadoId, // Cambiar a diputado_id para consistencia
+                asistencia: estado, // Agregar campo asistencia
+                estado: estado, // Mantener estado por compatibilidad
                 usuario: user.nombre_completo
             });
+            
+            console.log('Asistencia emitida:', { diputado_id: diputadoId, asistencia: estado });
         }
         
         // Actualizar contadores

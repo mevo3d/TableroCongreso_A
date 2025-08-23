@@ -28,16 +28,16 @@
         }
         
         .attendance-container {
-            max-width: 1400px;
-            margin: 30px auto;
-            padding: 0 20px;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 15px;
         }
         
         .attendance-header {
             background: white;
             border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 30px;
+            padding: 20px;
+            margin-bottom: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
         
@@ -94,17 +94,30 @@
         
         .deputies-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
             margin-bottom: 30px;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .deputies-grid {
+                grid-template-columns: 1fr;
+            }
         }
         
         .deputy-card {
             background: white;
-            border-radius: 8px;
-            padding: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         
         [data-theme="dark"] .deputy-card {
@@ -124,8 +137,15 @@
         }
         
         .deputy-card.present {
-            border-left: 4px solid #28a745;
-            background: rgba(40, 167, 69, 0.05);
+            border: 2px solid #28a745;
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.15), rgba(32, 201, 151, 0.1));
+            box-shadow: 0 0 20px rgba(40, 167, 69, 0.4);
+            animation: glow-green 2s ease-in-out infinite;
+        }
+        
+        @keyframes glow-green {
+            0%, 100% { box-shadow: 0 0 20px rgba(40, 167, 69, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(40, 167, 69, 0.6); }
         }
         
         [data-theme="dark"] .deputy-card.present {
@@ -133,8 +153,9 @@
         }
         
         .deputy-card.absent {
-            border-left: 4px solid #dc3545;
-            background: rgba(220, 53, 69, 0.05);
+            border: 2px solid #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+            opacity: 0.7;
         }
         
         [data-theme="dark"] .deputy-card.absent {
@@ -144,16 +165,16 @@
         .deputy-info {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
+            gap: 12px;
+            flex: 1;
         }
         
         .deputy-photo {
-            width: 45px;
-            height: 45px;
+            width: 55px;
+            height: 55px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid #e0e0e0;
+            border: 3px solid #e0e0e0;
             flex-shrink: 0;
         }
         
@@ -162,14 +183,14 @@
         }
         
         .deputy-photo-placeholder {
-            width: 45px;
-            height: 45px;
+            width: 55px;
+            height: 55px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 18px;
             color: white;
             text-transform: uppercase;
         }
@@ -180,12 +201,9 @@
         
         .deputy-name {
             font-weight: 600;
-            font-size: 0.9em;
-            margin-bottom: 2px;
-            line-height: 1.2;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: 0.95em;
+            margin-bottom: 4px;
+            line-height: 1.3;
         }
         
         [data-theme="dark"] .deputy-name {
@@ -208,17 +226,18 @@
         
         .attendance-buttons {
             display: flex;
-            gap: 5px;
+            gap: 8px;
         }
         
         .attendance-buttons button {
             flex: 1;
-            padding: 5px 8px;
-            font-size: 0.85em;
-            border-radius: 5px;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            border-radius: 6px;
             border: none;
-            font-weight: 500;
-            transition: all 0.2s;
+            font-weight: 600;
+            transition: all 0.3s;
+            cursor: pointer;
         }
         
         .btn-present {
@@ -243,8 +262,16 @@
         }
         
         .btn-present.active {
-            background-color: #1e7e34 !important;
-            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.5);
+            background: linear-gradient(135deg, #28a745, #20c997) !important;
+            box-shadow: 0 0 20px rgba(40, 167, 69, 0.6);
+            transform: scale(1.05);
+            animation: pulse-green 1.5s infinite;
+        }
+        
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 20px rgba(40, 167, 69, 0.6); }
+            50% { box-shadow: 0 0 30px rgba(40, 167, 69, 0.8); }
+            100% { box-shadow: 0 0 20px rgba(40, 167, 69, 0.6); }
         }
         
         .btn-absent.active {
@@ -480,7 +507,15 @@
             const grid = document.getElementById('deputiesGrid');
             grid.innerHTML = '';
             
-            deputies.forEach(deputy => {
+            // Ordenar diputados por orden o por nombre
+            const sortedDeputies = [...deputies].sort((a, b) => {
+                if (a.orden !== undefined && b.orden !== undefined) {
+                    return a.orden - b.orden;
+                }
+                return (a.nombre_completo || '').localeCompare(b.nombre_completo || '');
+            });
+            
+            sortedDeputies.forEach(deputy => {
                 const attendance = attendanceData[deputy.id] || 'pending';
                 const card = document.createElement('div');
                 card.className = `deputy-card ${attendance === 'presente' ? 'present' : attendance === 'ausente' ? 'absent' : ''}`;
@@ -503,12 +538,12 @@
                     </div>
                     <div class="attendance-buttons">
                         <button class="btn btn-present ${attendance === 'presente' ? 'active' : ''}" 
-                                onclick="markAttendance(${deputy.id}, 'presente')"
+                                onclick="markAttendance(${deputy.id}, 'presente', this)"
                                 ${isReadonly ? 'disabled' : ''}>
                             <i class="fas fa-check"></i> Presente
                         </button>
                         <button class="btn btn-absent ${attendance === 'ausente' ? 'active' : ''}" 
-                                onclick="markAttendance(${deputy.id}, 'ausente')"
+                                onclick="markAttendance(${deputy.id}, 'ausente', this)"
                                 ${isReadonly ? 'disabled' : ''}>
                             <i class="fas fa-times"></i> Ausente
                         </button>
@@ -521,8 +556,28 @@
         }
         
         // Marcar asistencia
-        async function markAttendance(deputyId, status) {
+        async function markAttendance(deputyId, status, buttonElement) {
             if (isReadonly) return;
+            
+            // Feedback visual inmediato
+            if (buttonElement) {
+                const card = buttonElement.closest('.deputy-card');
+                const buttons = card.querySelectorAll('.attendance-buttons button');
+                
+                // Remover active de todos los botones
+                buttons.forEach(btn => btn.classList.remove('active'));
+                
+                // Agregar active al botón clickeado
+                buttonElement.classList.add('active');
+                
+                // Actualizar la tarjeta visualmente
+                card.classList.remove('present', 'absent');
+                if (status === 'presente') {
+                    card.classList.add('present');
+                } else if (status === 'ausente') {
+                    card.classList.add('absent');
+                }
+            }
             
             try {
                 const response = await fetch('/api/pase-lista/marcar', {
@@ -539,6 +594,14 @@
                 
                 if (response.ok) {
                     attendanceData[deputyId] = status;
+                    
+                    // Emitir evento socket para actualizar pantalla en tiempo real
+                    socket.emit('asistencia-marcada', {
+                        diputado_id: deputyId,
+                        asistencia: status,
+                        estado: status
+                    });
+                    
                     loadDeputies(); // Recargar para actualizar vista
                 } else {
                     const error = await response.json();
