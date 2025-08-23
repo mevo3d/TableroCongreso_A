@@ -1826,4 +1826,40 @@ router.delete('/sesion/:id', (req, res) => {
     });
 });
 
+// Obtener sesiones finalizadas para exportación
+router.get('/sesiones-finalizadas', (req, res) => {
+    const db = req.db;
+    
+    // Obtener las últimas 30 sesiones finalizadas (clausuradas)
+    db.all(`
+        SELECT 
+            s.id,
+            s.codigo_sesion,
+            s.nombre,
+            s.fecha,
+            s.fecha_clausura,
+            s.estado,
+            COUNT(DISTINCT i.id) as total_iniciativas,
+            COUNT(DISTINCT v.id) as total_votos
+        FROM sesiones s
+        LEFT JOIN iniciativas i ON s.id = i.sesion_id
+        LEFT JOIN votos v ON i.id = v.iniciativa_id
+        WHERE s.estado = 'clausurada' 
+           OR s.fecha_clausura IS NOT NULL
+        GROUP BY s.id
+        ORDER BY s.fecha_clausura DESC, s.fecha DESC
+        LIMIT 30
+    `, (err, sesiones) => {
+        if (err) {
+            console.error('Error obteniendo sesiones finalizadas:', err);
+            return res.status(500).json({ error: 'Error obteniendo sesiones finalizadas' });
+        }
+        
+        res.json({ 
+            success: true,
+            sesiones: sesiones || []
+        });
+    });
+});
+
 module.exports = router;

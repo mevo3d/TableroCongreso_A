@@ -282,10 +282,57 @@
                         <div style="height: 150px;"></div>
                     </div>
                 </div>
+                
+                <!-- Exportar Resultados -->
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="fas fa-download"></i> Exportar Resultados</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="exportPanel">
+                            <!-- Selector de sesión a exportar -->
+                            <div class="mb-3">
+                                <label for="sesionExportar" class="form-label small">Selecciona la sesión a exportar:</label>
+                                <select class="form-select form-select-sm" id="sesionExportar" onchange="actualizarEstadoExportacion()">
+                                    <option value="">-- Selecciona una sesión finalizada --</option>
+                                </select>
+                            </div>
+                            
+                            <div class="alert alert-warning small p-2" id="alertaExportacion" style="display: none;">
+                                <i class="fas fa-exclamation-triangle"></i> Solo puedes exportar sesiones finalizadas
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-success btn-sm" onclick="exportarSesionSeleccionada('excel')" id="btnExportExcel" disabled>
+                                    <i class="fas fa-file-excel"></i> Exportar a Excel
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="exportarSesionSeleccionada('pdf')" id="btnExportPDF" disabled>
+                                    <i class="fas fa-file-pdf"></i> Exportar a PDF
+                                </button>
+                                <button class="btn btn-primary btn-sm" onclick="exportarSesionSeleccionada('word')" id="btnExportWord" disabled>
+                                    <i class="fas fa-file-word"></i> Exportar a Word
+                                </button>
+                            </div>
+                            
+                            <div id="exportStatus" class="mt-2"></div>
+                            
+                            <details class="mt-3">
+                                <summary class="small text-muted" style="cursor: pointer;">Ver contenido del reporte</summary>
+                                <ul class="small ps-3 mt-2 text-muted">
+                                    <li>Información completa de la sesión</li>
+                                    <li>Duración total y horarios</li>
+                                    <li>Control de asistencia y quórum</li>
+                                    <li>Resultados de todas las votaciones</li>
+                                    <li>Detalle de votos por diputado</li>
+                                </ul>
+                            </details>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Lista de iniciativas -->
-            <div class="col-md-5">
+            <div class="col-md-7">
                 <div class="card">
                     <div class="card-header bg-success text-white">
                         <div class="d-flex justify-content-between align-items-center">
@@ -322,46 +369,6 @@
                 </div>
             </div>
             
-            <!-- Panel de Exportación -->
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0"><i class="fas fa-download"></i> Exportar Resultados</h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="exportPanel">
-                            <p class="small text-muted mb-3">Exporta los resultados de la sesión actual en diferentes formatos</p>
-                            
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-success" onclick="exportarResultados('excel')" id="btnExportExcel" disabled>
-                                    <i class="fas fa-file-excel"></i> Exportar a Excel
-                                </button>
-                                <button class="btn btn-danger" onclick="exportarResultados('pdf')" id="btnExportPDF" disabled>
-                                    <i class="fas fa-file-pdf"></i> Exportar a PDF
-                                </button>
-                                <button class="btn btn-primary" onclick="exportarResultados('word')" id="btnExportWord" disabled>
-                                    <i class="fas fa-file-word"></i> Exportar a Word
-                                </button>
-                            </div>
-                            
-                            <hr>
-                            
-                            <div class="small">
-                                <h6>El reporte incluye:</h6>
-                                <ul class="small ps-3">
-                                    <li>Información de la sesión</li>
-                                    <li>Duración total</li>
-                                    <li>Asistencia y quórum</li>
-                                    <li>Resultados por iniciativa</li>
-                                    <li>Detalle de votos</li>
-                                </ul>
-                            </div>
-                            
-                            <div id="exportStatus" class="mt-3"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Sesiones Pendientes -->
@@ -807,6 +814,7 @@
         loadSesionesPendientes();
         loadSesionesConDocumentos();
         verificarSesionesPrecargadas();
+        cargarSesionesFinalizadas();
         
         // Escuchar notificaciones de nuevas sesiones precargadas
         socket.on('nueva-sesion-precargada', (data) => {
@@ -1312,8 +1320,9 @@
             `;
             document.body.insertAdjacentHTML('beforeend', notification);
             
-            // Recargar sesión
+            // Recargar sesión y sesiones finalizadas
             loadActiveSession();
+            cargarSesionesFinalizadas();
         });
         
         // Función para descargar reporte de sesión
@@ -1987,12 +1996,95 @@
             window.location.href = '/';
         }
         
-        // Función para exportar resultados
-        async function exportarResultados(formato) {
-            const sesionActiva = sessionData?.id;
+        // Cargar sesiones finalizadas para exportar
+        async function cargarSesionesFinalizadas() {
+            try {
+                const response = await fetch('/api/operador/sesiones-finalizadas', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const select = document.getElementById('sesionExportar');
+                    
+                    // Limpiar opciones existentes
+                    select.innerHTML = '<option value="">-- Selecciona una sesión finalizada --</option>';
+                    
+                    // Si hay sesión activa finalizada, agregarla primero
+                    if (sessionData && sessionData.estado === 'clausurada') {
+                        select.innerHTML += `<option value="${sessionData.id}" selected>
+                            ${sessionData.nombre} - ${sessionData.codigo_sesion} (Sesión Actual)
+                        </option>`;
+                    }
+                    
+                    // Agregar sesiones finalizadas
+                    if (data.sesiones && data.sesiones.length > 0) {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = 'Sesiones Anteriores';
+                        
+                        data.sesiones.forEach(sesion => {
+                            // No duplicar la sesión actual
+                            if (sessionData && sesion.id === sessionData.id) return;
+                            
+                            const option = document.createElement('option');
+                            option.value = sesion.id;
+                            const fecha = new Date(sesion.fecha).toLocaleDateString('es-MX');
+                            option.textContent = `${sesion.nombre} - ${sesion.codigo_sesion} (${fecha})`;
+                            optgroup.appendChild(option);
+                        });
+                        
+                        if (optgroup.children.length > 0) {
+                            select.appendChild(optgroup);
+                        }
+                    }
+                    
+                    // Actualizar estado de los botones
+                    actualizarEstadoExportacion();
+                }
+            } catch (error) {
+                console.error('Error cargando sesiones finalizadas:', error);
+            }
+        }
+        
+        // Actualizar estado de exportación según la sesión seleccionada
+        function actualizarEstadoExportacion() {
+            const select = document.getElementById('sesionExportar');
+            const sesionId = select.value;
+            const btnExcel = document.getElementById('btnExportExcel');
+            const btnPDF = document.getElementById('btnExportPDF');
+            const btnWord = document.getElementById('btnExportWord');
+            const alerta = document.getElementById('alertaExportacion');
             
-            if (!sesionActiva) {
-                alert('No hay sesión activa para exportar');
+            if (sesionId) {
+                // Habilitar botones
+                btnExcel.disabled = false;
+                btnPDF.disabled = false;
+                btnWord.disabled = false;
+                alerta.style.display = 'none';
+            } else {
+                // Deshabilitar botones
+                btnExcel.disabled = true;
+                btnPDF.disabled = true;
+                btnWord.disabled = true;
+                
+                // Mostrar alerta solo si hay sesión activa no finalizada
+                if (sessionData && sessionData.estado !== 'clausurada') {
+                    alerta.style.display = 'block';
+                } else {
+                    alerta.style.display = 'none';
+                }
+            }
+        }
+        
+        // Función para exportar sesión seleccionada
+        async function exportarSesionSeleccionada(formato) {
+            const select = document.getElementById('sesionExportar');
+            const sesionId = select.value;
+            
+            if (!sesionId) {
+                alert('Por favor selecciona una sesión para exportar');
                 return;
             }
             
@@ -2003,7 +2095,7 @@
             </div>`;
             
             try {
-                const response = await fetch(`/api/exportar/${formato}/${sesionActiva}`, {
+                const response = await fetch(`/api/exportar/${formato}/${sesionId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -2021,10 +2113,12 @@
                 const a = document.createElement('a');
                 a.href = url;
                 
-                // Nombre del archivo basado en formato y fecha
+                // Obtener nombre de la sesión para el archivo
+                const optionText = select.options[select.selectedIndex].text;
+                const codigoSesion = optionText.match(/- ([A-Z0-9-]+)/)?.[1] || 'sesion';
                 const fecha = new Date().toISOString().split('T')[0];
                 const extension = formato === 'excel' ? 'xlsx' : formato === 'word' ? 'docx' : 'pdf';
-                a.download = `sesion_${sessionData.codigo_sesion}_${fecha}.${extension}`;
+                a.download = `Acta_${codigoSesion}_${fecha}.${extension}`;
                 
                 // Descargar archivo
                 document.body.appendChild(a);
@@ -2036,7 +2130,7 @@
                 
                 // Mostrar éxito
                 statusDiv.innerHTML = `<div class="alert alert-success p-2">
-                    <i class="fas fa-check"></i> ${formato.toUpperCase()} descargado
+                    <i class="fas fa-check"></i> ${formato.toUpperCase()} descargado correctamente
                 </div>`;
                 
                 // Limpiar mensaje después de 3 segundos
