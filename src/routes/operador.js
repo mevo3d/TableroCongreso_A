@@ -66,8 +66,8 @@ router.post('/upload-pdf', upload.single('pdf'), async (req, res) => {
         // Preparar datos de la sesión
         const fecha = new Date().toISOString();
         const fechaStr = new Date().toISOString().split('T')[0];
-        const horaStr = new Date().toTimeString().split(' ')[0].substring(0,5);
-        const codigoSesion = `SES-${fechaStr}-${horaStr.replace(':', '')}`;
+        const timestamp = Date.now();
+        const codigoSesion = `SES-${fechaStr}-${timestamp}`;
         
         let nombreSesion = `Sesión ${fechaStr}`;
         let estadoSesion = 'preparada';
@@ -1245,8 +1245,8 @@ router.post('/cargar-sesion-precargada/:id', (req, res) => {
                 // Crear nueva sesión basada en la precargada
                 const fecha = new Date().toISOString();
                 const fechaStr = new Date().toISOString().split('T')[0];
-                const horaStr = new Date().toTimeString().split(' ')[0].substring(0,5);
-                const codigoSesion = `SES-${fechaStr}-${horaStr.replace(':', '')}`;
+                const timestamp = Date.now();
+                const codigoSesion = `SES-${fechaStr}-${timestamp}`;
                 
                 db.run(`
                     INSERT INTO sesiones (
