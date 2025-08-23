@@ -241,16 +241,16 @@
                     <div class="card-header bg-dark text-white">
                         <h6 class="mb-0"><i class="fas fa-tv"></i> Pantalla Pública</h6>
                     </div>
-                    <div class="card-body">
-                        <div class="dropdown w-100" id="screenDropdown">
+                    <div class="card-body" style="min-height: 280px; position: relative; overflow: visible;">
+                        <div class="dropdown w-100" id="screenDropdown" style="position: static;">
                             <button class="btn btn-dark w-100 dropdown-toggle" type="button" 
                                     data-bs-toggle="dropdown" 
-                                    data-bs-auto-close="true"
-                                    data-bs-boundary="viewport"
-                                    data-bs-strategy="fixed">
+                                    data-bs-auto-close="false"
+                                    data-bs-boundary="window"
+                                    data-bs-strategy="absolute">
                                 <i class="fas fa-desktop"></i> Seleccionar Pantalla
                             </button>
-                            <ul class="dropdown-menu w-100">
+                            <ul class="dropdown-menu w-100" style="position: absolute; z-index: 9999;">
                                 <li>
                                     <a class="dropdown-item" href="#" onclick="abrirPantalla('votacion')">
                                         <i class="fas fa-vote-yea"></i> Pantalla de Votación
@@ -277,6 +277,9 @@
                         <small class="text-muted d-block mt-2">
                             Selecciona qué pantalla mostrar al público
                         </small>
+                        
+                        <!-- Espacio adicional para que el dropdown no se corte -->
+                        <div style="height: 150px;"></div>
                     </div>
                 </div>
             </div>

@@ -54,7 +54,7 @@ const diputadoRoutes = require('./src/routes/diputado');
 const pantallaRoutes = require('./src/routes/pantalla');
 const superadminRoutes = require('./src/routes/superadmin');
 const paseListaRoutes = require('./src/routes/pase-lista');
-const exportarRoutes = require('./src/routes/exportar');
+const exportarRoutes = require('./src/routes/exportar-mejorado');
 const validacionPdfRoutes = require('./src/routes/validacion-pdf');
 
 app.use('/api/auth', authRoutes);
