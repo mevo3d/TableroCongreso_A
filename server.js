@@ -261,12 +261,13 @@ app.get('/historial-sesiones', (req, res) => {
     res.sendFile(path.join(__dirname, 'src/views/historial-sesiones.html'));
 });
 
+// Rutas obsoletas - Redirigir a la versión unificada
 app.get('/pase-lista-grid', (req, res) => {
-    res.sendFile(path.join(__dirname, 'src/views/pase-lista-grid.html'));
+    res.redirect('/pase-lista');
 });
 
 app.get('/pase-lista-mejorado', (req, res) => {
-    res.sendFile(path.join(__dirname, 'src/views/pase-lista-mejorado.html'));
+    res.redirect('/pase-lista');
 });
 
 // Endpoint para obtener usuarios conectados
