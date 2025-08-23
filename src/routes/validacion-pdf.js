@@ -187,9 +187,10 @@ router.post('/validar-sesion/:sessionId', async (req, res) => {
                 let errores = 0;
                 const iniciativas = iniciativasAGuardar;  // Usar las iniciativas filtradas
                 
-                // Re-numerar las iniciativas seleccionadas para mantener orden consecutivo
+                // Insertar manteniendo el número original del documento
                 iniciativas.forEach((iniciativa, index) => {
-                    iniciativa.numero_sistema = index + 1;  // Renumerar consecutivamente
+                    // numero: orden secuencial interno (1, 2, 3...)
+                    // numero_orden_dia: número original del documento PDF (puede ser 15, 27, 45, etc.)
                     db.run(
                         `INSERT INTO iniciativas (
                             sesion_id, numero, numero_orden_dia, titulo, descripcion, 
@@ -197,8 +198,8 @@ router.post('/validar-sesion/:sessionId', async (req, res) => {
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                         [
                             sesionId, 
-                            iniciativa.numero_sistema,
-                            iniciativa.numero_orden_dia,
+                            index + 1,  // Número secuencial interno
+                            iniciativa.numero_orden_dia || iniciativa.numero,  // Mantener número original del PDF
                             iniciativa.titulo,
                             iniciativa.descripcion,
                             iniciativa.presentador,
