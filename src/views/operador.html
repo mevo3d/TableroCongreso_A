@@ -3725,7 +3725,12 @@
                         cargarSesionesPendientes();
                     }
                 } else {
-                    alert('Error al guardar la sesión: ' + (data.error || 'Error desconocido'));
+                    // Mostrar error más detallado
+                    let mensajeError = data.error || 'Error desconocido';
+                    if (data.detalles) {
+                        console.error('Detalles del error:', data.detalles);
+                    }
+                    alert('Error al guardar la sesión: ' + mensajeError + '\n\nPor favor, intente nuevamente.');
                 }
             } catch (error) {
                 console.error('Error:', error);

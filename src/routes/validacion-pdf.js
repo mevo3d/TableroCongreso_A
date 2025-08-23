@@ -172,7 +172,26 @@ router.post('/validar-sesion/:sessionId', async (req, res) => {
             function(err) {
                 if (err) {
                     console.error('Error creando sesión:', err);
-                    return res.status(500).json({ error: 'Error creando sesión' });
+                    console.error('Detalles del error:', {
+                        codigo: err.code,
+                        mensaje: err.message,
+                        codigoSesion: codigoSesion,
+                        nombreSesion: nombreSesion,
+                        fecha: fecha
+                    });
+                    
+                    // Devolver error más específico
+                    let mensajeError = 'Error creando sesión';
+                    if (err.code === 'SQLITE_CONSTRAINT' && err.message.includes('codigo_sesion')) {
+                        mensajeError = 'Ya existe una sesión con este código. Intente nuevamente.';
+                    } else if (err.code === 'SQLITE_CONSTRAINT') {
+                        mensajeError = 'Error de restricción en base de datos: ' + err.message;
+                    }
+                    
+                    return res.status(500).json({ 
+                        error: mensajeError,
+                        detalles: err.message 
+                    });
                 }
                 
                 const sesionId = this.lastID;
