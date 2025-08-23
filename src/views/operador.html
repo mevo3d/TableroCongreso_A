@@ -32,13 +32,12 @@
             background-color: #9b59b6 !important;
         }
         
-        /* Fix para dropdown de pantalla pública */
-        .dropdown-menu {
-            z-index: 99999 !important;
-            position: absolute !important;
+        /* Fix para dropdown de pantalla pública - Simplificado */
+        #screenDropdown .dropdown-menu {
+            z-index: 9999 !important;
             background-color: var(--bg-card, white) !important;
-            box-shadow: 0 6px 12px rgba(0,0,0,0.175) !important;
             border: 1px solid var(--border-color, #dee2e6) !important;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3) !important;
         }
         
         .dropdown-menu .dropdown-item {
@@ -47,46 +46,6 @@
         
         .dropdown-menu .dropdown-item:hover {
             background-color: var(--bg-hover, #f8f9fa) !important;
-        }
-        
-        .dropdown {
-            position: relative !important;
-        }
-        
-        /* Asegurar que el dropdown de pantalla esté siempre visible */
-        #screenDropdown {
-            position: relative !important;
-            z-index: 99999 !important;
-        }
-        
-        #screenDropdown .dropdown-menu {
-            z-index: 999999 !important;
-            position: absolute !important;
-            top: 100% !important;
-            left: 0 !important;
-            right: 0 !important;
-            margin-top: 0.125rem !important;
-            display: none;
-        }
-        
-        #screenDropdown .dropdown-menu.show {
-            display: block !important;
-        }
-        
-        /* Asegurar que el botón también tenga z-index alto */
-        #screenDropdown .dropdown-toggle {
-            position: relative !important;
-            z-index: 99998 !important;
-        }
-        
-        /* Fix para que el dropdown no se oculte detrás de otros elementos */
-        .card {
-            position: relative;
-            z-index: 1;
-        }
-        
-        .card-body {
-            overflow: visible !important;
         }
         
         .initiative-card {
@@ -284,10 +243,14 @@
                     </div>
                     <div class="card-body">
                         <div class="dropdown w-100" id="screenDropdown">
-                            <button class="btn btn-dark w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="true">
+                            <button class="btn btn-dark w-100 dropdown-toggle" type="button" 
+                                    data-bs-toggle="dropdown" 
+                                    data-bs-auto-close="true"
+                                    data-bs-boundary="viewport"
+                                    data-bs-strategy="fixed">
                                 <i class="fas fa-desktop"></i> Seleccionar Pantalla
                             </button>
-                            <ul class="dropdown-menu w-100" data-bs-popper="static">
+                            <ul class="dropdown-menu w-100">
                                 <li>
                                     <a class="dropdown-item" href="#" onclick="abrirPantalla('votacion')">
                                         <i class="fas fa-vote-yea"></i> Pantalla de Votación
