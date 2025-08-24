@@ -921,15 +921,22 @@ router.post('/activar-iniciativa/:id', (req, res) => {
             
             // VERIFICAR PASE DE LISTA ANTES DE CUALQUIER VOTACIÓN
             db.get(`
-                SELECT COUNT(*) as asistencias_registradas 
-                FROM asistencias 
-                WHERE sesion_id = ?
-            `, [iniciativa.sesion_id], (err, resultado) => {
+                SELECT pl.id, pl.finalizado,
+                       COUNT(a.id) as asistencias_registradas 
+                FROM pase_lista pl
+                LEFT JOIN asistencias a ON a.pase_lista_id = pl.id
+                WHERE pl.sesion_id = ? AND pl.finalizado = 0
+                GROUP BY pl.id
+                ORDER BY pl.fecha DESC
+                LIMIT 1
+            `, [iniciativa.sesion_id], (err, paseListaActual) => {
                 if (err) {
+                    console.error('Error verificando pase de lista:', err);
                     return res.status(500).json({ error: 'Error verificando pase de lista' });
                 }
                 
-                if (!resultado || resultado.asistencias_registradas === 0) {
+                // Si no hay pase de lista o no tiene asistencias registradas
+                if (!paseListaActual || paseListaActual.asistencias_registradas === 0) {
                     return res.status(400).json({ 
                         error: 'Debe completarse el pase de lista antes de iniciar votaciones',
                         mensaje: 'Los Secretarios-Diputados deben realizar el pase de lista primero',
