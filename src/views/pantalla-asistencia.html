@@ -74,7 +74,7 @@
         }
         
         .voting-table td {
-            padding: 8px;
+            padding: 6px 8px; /* Reducido padding vertical de 8px a 6px */
         }
         
         /* Columna de partido con icono */
@@ -128,14 +128,14 @@
             font-family: 'Verdana', sans-serif;
             font-size: 0.84em; /* 30% más pequeño */
             padding-left: 10px;
-            padding-right: 15px;
+            padding-right: 30px; /* Aumentado de 15px a 30px */
             font-weight: bold;
             line-height: 1.3;
             max-height: 2.6em;
             overflow: hidden;
             text-overflow: ellipsis;
-            min-width: 260px;
-            max-width: 260px;
+            min-width: 280px; /* Aumentado de 260px a 280px */
+            max-width: 280px; /* Aumentado de 260px a 280px */
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -458,8 +458,8 @@
         // Conectar al servidor
         socket.on('connect', () => {
             console.log('Conectado al servidor');
-            // Cargar configuración primero
-            Promise.all([loadConfiguracion(), loadPartidos()]).then(() => {
+            // Cargar configuración y partidos primero
+            Promise.all([cargarConfiguracion(), cargarPartidos()]).then(() => {
                 verificarEstado();
             });
             
@@ -570,6 +570,36 @@
             }
         }
         
+        // Cargar configuración del sistema
+        async function cargarConfiguracion() {
+            try {
+                const response = await fetch('/api/configuracion/public');
+                if (response.ok) {
+                    configuracionSistema = await response.json();
+                    console.log('Configuración cargada:', configuracionSistema);
+                }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
+            }
+        }
+        
+        // Cargar información de partidos
+        async function cargarPartidos() {
+            try {
+                const response = await fetch('/api/pantalla/partidos');
+                if (response.ok) {
+                    const partidos = await response.json();
+                    console.log('Partidos cargados:', partidos);
+                    // Crear mapa de partidos por siglas
+                    partidos.forEach(partido => {
+                        partidosData[partido.siglas] = partido;
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando partidos:', error);
+            }
+        }
+        
         // Cargar lista de diputados
         async function cargarDiputados() {
             try {
@@ -607,31 +637,40 @@
                                 const asistencia = asistenciaData[d.id] || 'sin_marcar';
                                 const isNewAttendance = previousAttendance[d.id] !== asistencia && asistencia !== 'sin_marcar';
                                 
-                                // Mapeo de logos de partidos
-                                const partyLogos = {
-                                    'Morena': '/images/partidos/morena.svg',
-                                    'PAN': '/images/partidos/pan.svg',
-                                    'MC': '/images/partidos/mc.svg',
-                                    'PT': '/images/partidos/pt.svg',
-                                    'PVEM': '/images/partidos/pvem.svg',
-                                    'PRI': '/images/partidos/pri.svg',
-                                    'Nueva Alianza Morelos': '/images/partidos/nueva-alianza.svg'
-                                };
+                                // Obtener datos del partido desde la configuración
+                                let partyLogo = null;
+                                let partyColor = '#666';
                                 
-                                // Mapeo de colores de partidos (para fallback)
-                                const partyColors = {
-                                    'Morena': '#8B1B1B',
-                                    'PAN': '#1B4788',
-                                    'MC': '#FF6B00',
-                                    'PT': '#E31E24',
-                                    'PVEM': '#00A550',
-                                    'PRI': '#CD1C22',
-                                    'Nueva Alianza Morelos': '#00B8B2'
-                                };
-                                
-                                // Obtener logo del partido
-                                const partyLogo = partyLogos[d.partido] || null;
-                                const partyColor = partyColors[d.partido] || '#666';
+                                // Buscar en los datos de partidos cargados
+                                const partidoData = partidosData[d.partido];
+                                if (partidoData) {
+                                    partyLogo = partidoData.logo_url;
+                                    partyColor = partidoData.color || '#666';
+                                } else {
+                                    // Fallback a logos predefinidos si no hay datos del partido
+                                    const partyLogosDefault = {
+                                        'Morena': '/images/partidos/morena.svg',
+                                        'PAN': '/images/partidos/pan.svg',
+                                        'MC': '/images/partidos/mc.svg',
+                                        'PT': '/images/partidos/pt.svg',
+                                        'PVEM': '/images/partidos/pvem.svg',
+                                        'PRI': '/images/partidos/pri.svg',
+                                        'Nueva Alianza Morelos': '/images/partidos/nueva-alianza.svg'
+                                    };
+                                    
+                                    const partyColorsDefault = {
+                                        'Morena': '#8B1B1B',
+                                        'PAN': '#1B4788',
+                                        'MC': '#FF6B00',
+                                        'PT': '#E31E24',
+                                        'PVEM': '#00A550',
+                                        'PRI': '#CD1C22',
+                                        'Nueva Alianza Morelos': '#00B8B2'
+                                    };
+                                    
+                                    partyLogo = partyLogosDefault[d.partido] || null;
+                                    partyColor = partyColorsDefault[d.partido] || '#666';
+                                }
                                 
                                 // Actualizar registro de asistencias previas
                                 if (asistencia !== 'sin_marcar') {
