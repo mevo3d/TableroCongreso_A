@@ -95,7 +95,7 @@ function buildAbsoluteUrl(req, relativePath) {
 // Ruta pública para configuración (sin autenticación)
 app.get('/api/configuracion/public', (req, res) => {
     const db = req.db;
-    db.get('SELECT logo_congreso, logo_secundario, nombre_congreso FROM configuracion_sistema WHERE id = 1', (err, config) => {
+    db.get('SELECT logo_congreso, logo_secundario, nombre_congreso, theme_preset, theme_custom FROM configuracion_sistema WHERE id = 1', (err, config) => {
         if (err) {
             return res.status(500).json({ error: 'Error obteniendo configuración' });
         }
@@ -103,6 +103,15 @@ app.get('/api/configuracion/public', (req, res) => {
         if (config) {
             config.logo_congreso = buildAbsoluteUrl(req, config.logo_congreso);
             config.logo_secundario = buildAbsoluteUrl(req, config.logo_secundario);
+            
+            // Parsear tema personalizado si existe
+            if (config.theme_custom) {
+                try {
+                    config.theme_custom = JSON.parse(config.theme_custom);
+                } catch (e) {
+                    config.theme_custom = null;
+                }
+            }
         }
         
         res.json(config || {});

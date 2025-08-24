@@ -727,4 +727,82 @@ router.get('/exportar-estadisticas', async (req, res) => {
     });
 });
 
+// Guardar tema predefinido seleccionado
+router.post('/save-theme-preset', (req, res) => {
+    const db = req.db;
+    const { theme_preset } = req.body;
+    
+    // Verificar si existe el registro de configuración
+    db.get('SELECT id FROM configuracion_sistema WHERE id = 1', (err, config) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando configuración' });
+        }
+        
+        if (config) {
+            // Actualizar configuración existente
+            db.run(
+                'UPDATE configuracion_sistema SET theme_preset = ? WHERE id = 1',
+                [theme_preset],
+                function(err) {
+                    if (err) {
+                        return res.status(500).json({ error: 'Error guardando tema' });
+                    }
+                    res.json({ success: true, message: 'Tema guardado correctamente' });
+                }
+            );
+        } else {
+            // Crear nueva configuración
+            db.run(
+                'INSERT INTO configuracion_sistema (id, theme_preset) VALUES (1, ?)',
+                [theme_preset],
+                function(err) {
+                    if (err) {
+                        return res.status(500).json({ error: 'Error creando configuración' });
+                    }
+                    res.json({ success: true, message: 'Tema guardado correctamente' });
+                }
+            );
+        }
+    });
+});
+
+// Guardar configuración personalizada de tema
+router.post('/save-theme', (req, res) => {
+    const db = req.db;
+    const theme = req.body;
+    
+    // Convertir el objeto tema a JSON string para guardarlo
+    const themeJson = JSON.stringify(theme);
+    
+    db.get('SELECT id FROM configuracion_sistema WHERE id = 1', (err, config) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando configuración' });
+        }
+        
+        if (config) {
+            db.run(
+                'UPDATE configuracion_sistema SET theme_custom = ? WHERE id = 1',
+                [themeJson],
+                function(err) {
+                    if (err) {
+                        return res.status(500).json({ error: 'Error guardando tema personalizado' });
+                    }
+                    res.json({ success: true, message: 'Tema personalizado guardado' });
+                }
+            );
+        } else {
+            db.run(
+                'INSERT INTO configuracion_sistema (id, theme_custom) VALUES (1, ?)',
+                [themeJson],
+                function(err) {
+                    if (err) {
+                        return res.status(500).json({ error: 'Error creando configuración' });
+                    }
+                    res.json({ success: true, message: 'Tema personalizado guardado' });
+                }
+            );
+        }
+    });
+});
+
 module.exports = router;
