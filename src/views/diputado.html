@@ -1417,7 +1417,7 @@
                 
                 const data = await response.json();
                 
-                if (response.ok) {
+                if (response.ok && data.success) {
                     alert('Configuración actualizada correctamente');
                     
                     // Actualizar datos locales del usuario
@@ -1445,8 +1445,15 @@
                             logout();
                         }
                     }
+                    
+                    // Si cambió la contraseña, informar al usuario
+                    if (password) {
+                        alert('Contraseña actualizada correctamente. Por seguridad, recomendamos cerrar sesión e ingresar con tu nueva contraseña.');
+                    }
+                } else if (data.error) {
+                    alert(data.error);
                 } else {
-                    alert(data.error || 'Error al actualizar la configuración');
+                    alert('Error al actualizar la configuración');
                 }
             } catch (error) {
                 console.error('Error:', error);
