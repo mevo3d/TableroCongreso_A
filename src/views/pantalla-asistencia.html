@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Asistencia - Congreso del Estado</title>
+    <title>Panel de Asistencia - Congreso del Estado de Morelos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -32,6 +32,41 @@
             flex-direction: column;
             overflow: hidden;
             background: #2c2c2c;
+        }
+        
+        /* Header con logos */
+        .header-logos {
+            background: linear-gradient(135deg, #1a2332, #263241);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .header-logos img {
+            height: 60px;
+            object-fit: contain;
+        }
+        
+        .header-title {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .header-title h1 {
+            font-size: 1.8em;
+            margin: 0;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+        
+        .header-title p {
+            margin: 5px 0 0 0;
+            color: #aaa;
+            font-size: 0.9em;
         }
         
         /* Lista de diputados - estilo similar a voting-table-container-full */
@@ -193,14 +228,13 @@
         
         /* Estadísticas en la parte inferior */
         .results-bottom {
-            background: #1a1a1a;
-            padding: 10px 10px;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            padding: 15px;
             border-top: 2px solid #444;
-            height: 100px;
-            min-height: 100px;
-            max-height: 100px;
+            min-height: 140px;
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            justify-content: center;
         }
         
         .results-wrapper {
@@ -214,7 +248,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 120px;
+            width: 150px;
+        }
+        
+        .logo-left img, .logo-right img {
+            max-height: 70px;
+            max-width: 140px;
+            object-fit: contain;
         }
         
         .results-container {
@@ -263,6 +303,40 @@
             font-size: 1em;
             min-width: 30px;
             text-align: right;
+        }
+        
+        /* Indicador de quórum */
+        .quorum-indicator {
+            margin-top: 10px;
+            text-align: center;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .quorum-yes {
+            background: linear-gradient(135deg, #28A745, #20c947);
+            color: white;
+            box-shadow: 0 2px 10px rgba(40, 167, 69, 0.4);
+        }
+        
+        .quorum-no {
+            background: linear-gradient(135deg, #DC3545, #ff4757);
+            color: white;
+            box-shadow: 0 2px 10px rgba(220, 53, 69, 0.4);
+        }
+        
+        .quorum-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .quorum-text i {
+            font-size: 1.2em;
         }
         
         /* Animación para nuevas asistencias */
@@ -328,6 +402,15 @@
 <body>
     <div class="main-container">
         <div class="content-wrapper-full">
+            <!-- Header con logos -->
+            <div class="header-logos">
+                <img src="/uploads/logo-congreso.png" alt="Logo Congreso" onerror="this.style.display='none'">
+                <div class="header-title">
+                    <h1>PASE DE LISTA</h1>
+                    <p id="sessionInfo">LVI LEGISLATURA</p>
+                </div>
+                <img src="/uploads/logo-secundario.png" alt="Logo Secundario" onerror="this.style.display='none'">
+            </div>
             <!-- Lista de diputados -->
             <div class="attendance-table-container-full" id="attendanceContainer">
                 <div id="deputiesContent">
@@ -343,7 +426,7 @@
             <div class="results-bottom" id="statsContainer" style="display: none;">
                 <div class="results-wrapper">
                     <div class="logo-left" id="logoLeft">
-                        <!-- Logo se cargará dinámicamente -->
+                        <img src="/uploads/logo-congreso.png" alt="Logo Congreso" onerror="this.style.display='none'">
                     </div>
                     <div class="results-container">
                         <div class="result-item">
@@ -363,8 +446,15 @@
                         </div>
                     </div>
                     <div class="logo-right" id="logoRight">
-                        <!-- Logo se cargará dinámicamente -->
+                        <img src="/uploads/logo-secundario.png" alt="Logo Secundario" onerror="this.style.display='none'">
                     </div>
+                </div>
+                <!-- Indicador de Quórum -->
+                <div class="quorum-indicator" id="quorumIndicator" style="display: none;">
+                    <span class="quorum-text">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="quorumText">VERIFICANDO QUÓRUM...</span>
+                    </span>
                 </div>
             </div>
         </div>
@@ -835,22 +925,60 @@
             document.getElementById('presentCount').textContent = String(presentes).padStart(2, '0');
             document.getElementById('absentCount').textContent = String(ausentes).padStart(2, '0');
             document.getElementById('pendingCount').textContent = String(sinMarcar).padStart(2, '0');
+            
+            // Calcular y mostrar quórum (necesita 11 de 20 diputados = mayoría simple)
+            const quorumMinimo = 11;
+            const hayQuorum = presentes >= quorumMinimo;
+            
+            const quorumIndicator = document.getElementById('quorumIndicator');
+            const quorumText = document.getElementById('quorumText');
+            
+            if (quorumIndicator && quorumText) {
+                quorumIndicator.style.display = 'block';
+                
+                if (hayQuorum) {
+                    quorumIndicator.className = 'quorum-indicator quorum-yes';
+                    quorumText.innerHTML = `<i class="fas fa-check-circle"></i> HAY QUÓRUM (${presentes}/20)`;
+                } else {
+                    quorumIndicator.className = 'quorum-indicator quorum-no';
+                    quorumText.innerHTML = `<i class="fas fa-times-circle"></i> SIN QUÓRUM (${presentes}/20 - Mínimo: ${quorumMinimo})`;
+                }
+            }
         }
         
         // Mostrar resumen final
         function mostrarResumenFinal(data) {
             const container = document.getElementById('deputiesContent');
+            const presentes = data.presentes || 0;
+            const ausentes = data.ausentes || 0;
+            const total = presentes + ausentes;
+            const quorumMinimo = 11;
+            const hayQuorum = presentes >= quorumMinimo;
+            
             container.innerHTML = `
                 <div class="no-attendance">
                     <i class="fas fa-check-circle" style="color: #28a745; font-size: 5em;"></i>
                     <h2>Pase de Lista Confirmado</h2>
                     <div style="margin-top: 30px; font-size: 20px;">
-                        <p><strong>Presentes:</strong> ${data.presentes || 0}</p>
-                        <p><strong>Ausentes:</strong> ${data.ausentes || 0}</p>
-                        <p><strong>Total:</strong> ${(data.presentes || 0) + (data.ausentes || 0)}</p>
+                        <p><strong>Presentes:</strong> ${presentes}</p>
+                        <p><strong>Ausentes:</strong> ${ausentes}</p>
+                        <p><strong>Total:</strong> ${total}</p>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <div class="quorum-indicator ${hayQuorum ? 'quorum-yes' : 'quorum-no'}" style="display: inline-block;">
+                            <span class="quorum-text">
+                                ${hayQuorum ? 
+                                    `<i class="fas fa-check-circle"></i> HAY QUÓRUM (${presentes}/20)` : 
+                                    `<i class="fas fa-times-circle"></i> SIN QUÓRUM (${presentes}/20 - Mínimo: ${quorumMinimo})`
+                                }
+                            </span>
+                        </div>
                     </div>
                 </div>
             `;
+            
+            // Mantener el indicador de quórum en la parte inferior actualizado
+            actualizarEstadisticas();
         }
     </script>
 </body>
