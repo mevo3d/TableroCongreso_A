@@ -2766,11 +2766,15 @@
                 
                 statusDiv.innerHTML = `
                     <div class="alert alert-info">
-                        <strong>Sesión:</strong> ${data.sesion.nombre}<br>
-                        <small>Estado: ${sesionClausurada ? 'Clausurada' : sesionIniciada ? 'Iniciada' : 'Preparada para iniciar'}</small>
-                        ${sesionIniciada && !sesionClausurada ? `<br><small>Iniciada: ${new Date(data.sesion.fecha_inicio).toLocaleString('es-MX')}</small>` : ''}
-                        ${data.sesion.pausada ? '<br><span class="badge bg-warning">PAUSADA</span>' : ''}
-                        ${data.mensaje_iniciativas ? `<br><div class="alert alert-warning mt-2 mb-0"><i class="fas fa-exclamation-triangle"></i> ${data.mensaje_iniciativas}</div>` : ''}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Sesión:</strong> ${data.sesion.nombre} | 
+                                <strong>Estado:</strong> ${sesionClausurada ? 'Clausurada' : sesionIniciada ? 'Iniciada' : 'Preparada'} 
+                                ${sesionIniciada && !sesionClausurada ? ` | <strong>Inicio:</strong> ${new Date(data.sesion.fecha_inicio).toLocaleString('es-MX', {hour: '2-digit', minute: '2-digit'})}` : ''}
+                            </div>
+                            ${data.sesion.pausada ? '<span class="badge bg-warning">PAUSADA</span>' : ''}
+                        </div>
+                        ${data.mensaje_iniciativas ? `<div class="alert alert-warning mt-2 mb-0"><i class="fas fa-exclamation-triangle"></i> ${data.mensaje_iniciativas}</div>` : ''}
                     </div>
                 `;
                 
@@ -2950,6 +2954,11 @@
                     sessionPaused = false;
                     // Detener cronómetro de pausa
                     stopPauseTimer();
+                    // Ocultar contenedor de pausa
+                    const pauseContainer = document.getElementById('pauseTimerContainer');
+                    if (pauseContainer) {
+                        pauseContainer.style.display = 'none';
+                    }
                     // Reanudar cronómetro principal
                     startSessionTimer();
                     checkSessionStatus();
@@ -4964,6 +4973,15 @@
 
         socket.on('sesion-reanudada', () => {
             detenerTimer();
+            // También detener el cronómetro de pausa del panel presidente
+            sessionPaused = false;
+            stopPauseTimer();
+            const pauseContainer = document.getElementById('pauseTimerContainer');
+            if (pauseContainer) {
+                pauseContainer.style.display = 'none';
+            }
+            // Actualizar estado de la sesión
+            checkSessionStatus();
         });
     </script>
 
