@@ -607,38 +607,44 @@
             const grid = document.getElementById('deputiesGrid');
             grid.innerHTML = '';
             
-            // Orden correcto de los diputados
-            const ordenCorrectoApellidos = [
-                'Abarca Peña',
-                'Domínguez Mandujano',
-                'Espinoza López',
-                'Gordillo Vega',
-                'Livera Chavarría',
-                'Martínez Gómez',
-                'Martínez Terrazas',
-                'Maya Rendón',
-                'Montes de Oca',
-                'Pedrero González',
-                'Pimentel Mejía',
-                'Quevedo Maldonado',
-                'Reyes Reyes',
-                'Rodríguez López',
-                'Rodríguez Ruiz',
-                'Ruíz Rodríguez',
-                'Sánchez Ortega',
-                'Sánchez Zavala',
-                'Solano López',
-                'Sotelo Martínez'
+            // Lista ordenada de diputados con sus IDs correctos
+            const DIPUTADOS_ORDEN = [
+                { apellidos: 'Abarca Peña', id: 18, orden: 1 },
+                { apellidos: 'Domínguez Mandujano', id: 12, orden: 2 },
+                { apellidos: 'Espinoza López', id: 17, orden: 3 },
+                { apellidos: 'Gordillo Vega', id: 6, orden: 4 },
+                { apellidos: 'Livera Chavarría', id: 7, orden: 5 },
+                { apellidos: 'Martínez Gómez', id: 22, orden: 6 },
+                { apellidos: 'Martínez Terrazas', id: 5, orden: 7 },
+                { apellidos: 'Maya Rendón', id: 8, orden: 8 },
+                { apellidos: 'Montes de Oca', id: 15, orden: 9 },
+                { apellidos: 'Pedrero González', id: 21, orden: 10 },
+                { apellidos: 'Pimentel Mejía', id: 16, orden: 11 },
+                { apellidos: 'Quevedo Maldonado', id: 19, orden: 12 },
+                { apellidos: 'Reyes Reyes', id: 10, orden: 13 },
+                { apellidos: 'Rodríguez López', id: 23, orden: 14 },
+                { apellidos: 'Rodríguez Ruiz', id: 20, orden: 15 },
+                { apellidos: 'Ruíz Rodríguez', id: 11, orden: 16 },
+                { apellidos: 'Sánchez Ortega', id: 24, orden: 17 },
+                { apellidos: 'Sánchez Zavala', id: 13, orden: 18 },
+                { apellidos: 'Solano López', id: 9, orden: 19 },
+                { apellidos: 'Sotelo Martínez', id: 14, orden: 20 }
             ];
             
-            // Función para obtener el índice del orden
-            function getOrdenIndex(nombreCompleto) {
-                for (let i = 0; i < ordenCorrectoApellidos.length; i++) {
-                    if (nombreCompleto.includes(ordenCorrectoApellidos[i])) {
-                        return i;
+            // Función para obtener la información del diputado basado en el nombre
+            function getDiputadoInfo(nombreCompleto) {
+                for (let diputado of DIPUTADOS_ORDEN) {
+                    if (nombreCompleto.includes(diputado.apellidos)) {
+                        return diputado;
                     }
                 }
-                return 999; // Si no se encuentra, poner al final
+                return null;
+            }
+            
+            // Función para obtener el orden basado en el nombre
+            function getOrdenIndex(nombreCompleto) {
+                const info = getDiputadoInfo(nombreCompleto);
+                return info ? info.orden : 999;
             }
             
             // Ordenar diputados según el orden correcto
@@ -649,7 +655,11 @@
             });
             
             sortedDeputies.forEach(deputy => {
-                const attendance = attendanceData[deputy.id] || 'pending';
+                // Obtener el ID correcto del mapeo
+                const diputadoInfo = getDiputadoInfo(deputy.nombre_completo);
+                const correctId = diputadoInfo ? diputadoInfo.id : deputy.id;
+                
+                const attendance = attendanceData[correctId] || 'pending';
                 const card = document.createElement('div');
                 card.className = `deputy-card ${attendance === 'presente' ? 'present' : attendance === 'ausente' ? 'absent' : ''}`;
                 card.innerHTML = `
@@ -671,12 +681,12 @@
                     </div>
                     <div class="attendance-buttons">
                         <button class="btn btn-present ${attendance === 'presente' ? 'active' : ''}" 
-                                onclick="markAttendance(${deputy.id}, 'presente', this)"
+                                onclick="markAttendance(${correctId}, 'presente', this)"
                                 ${isReadonly ? 'disabled' : ''}>
                             <i class="fas fa-check"></i> Presente
                         </button>
                         <button class="btn btn-absent ${attendance === 'ausente' ? 'active' : ''}" 
-                                onclick="markAttendance(${deputy.id}, 'ausente', this)"
+                                onclick="markAttendance(${correctId}, 'ausente', this)"
                                 ${isReadonly ? 'disabled' : ''}>
                             <i class="fas fa-times"></i> Ausente
                         </button>
