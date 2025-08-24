@@ -6,7 +6,8 @@
     <title>Panel Diputado - Sistema de Votación</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/global-theme.css">
+    <link rel="stylesheet" href="/css/apple-theme.css">
+    <link rel="stylesheet" href="/css/dark-theme.css">
     <style>
         body {
             background-color: var(--bg-primary);
@@ -1343,8 +1344,16 @@
             // Cargar datos actuales del usuario
             configNombre.value = user.nombre || user.nombre_completo || '';
             configUsuario.value = user.username || user.usuario || '';
-            if (configPartido) configPartido.value = user.partido || '';
-            if (configCargo) configCargo.value = user.cargo_mesa_directiva || 'Diputado';
+            if (configPartido) {
+                configPartido.value = user.partido || '';
+                configPartido.disabled = true;  // Asegurar que esté deshabilitado
+                configPartido.readOnly = true;
+            }
+            if (configCargo) {
+                configCargo.value = user.cargo_mesa_directiva || 'Diputado';
+                configCargo.disabled = true;  // Asegurar que esté deshabilitado
+                configCargo.readOnly = true;
+            }
             
             // Cargar foto actual
             const fotoPath = user.fotografia || '/images/diputados/default.png';
@@ -3675,23 +3684,24 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Partido</label>
-                                    <input type="text" class="form-control" id="configPartido" readonly 
-                                           style="background-color: #f8f9fa;">
+                                    <label class="form-label text-muted">Partido <small>(no editable)</small></label>
+                                    <input type="text" class="form-control" id="configPartido" readonly disabled
+                                           style="background-color: #e9ecef; cursor: not-allowed; opacity: 0.7;">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Cargo</label>
-                                    <input type="text" class="form-control" id="configCargo" readonly 
-                                           style="background-color: #f8f9fa;">
+                                    <label class="form-label text-muted">Cargo <small>(no editable)</small></label>
+                                    <input type="text" class="form-control" id="configCargo" readonly disabled
+                                           style="background-color: #e9ecef; cursor: not-allowed; opacity: 0.7;">
                                 </div>
                             </div>
                         </div>
                         
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i> 
-                            Los cambios se aplicarán inmediatamente y se sincronizarán con el sistema principal.
+                            <strong>Nota:</strong> Solo puedes modificar tu nombre, usuario, contraseña y fotografía.
+                            <br>El partido y cargo son asignados por el administrador del sistema.
                         </div>
                     </form>
                 </div>

@@ -181,6 +181,7 @@
             font-size: 1.3em;
             font-weight: bold;
             color: white;
+            flex-shrink: 0;
         }
         
         .result-label {
@@ -191,9 +192,15 @@
         
         .result-circle {
             width: 35px;
+            min-width: 35px;
+            max-width: 35px;
             height: 35px;
+            min-height: 35px;
+            max-height: 35px;
             border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+            display: inline-block;
         }
         
         .result-circle-favor {
@@ -332,7 +339,11 @@
         .circle {
             display: inline-block;
             width: 30px;
+            min-width: 30px;
+            max-width: 30px;
             height: 30px;
+            min-height: 30px;
+            max-height: 30px;
             border-radius: 50%;
             transition: all 0.3s ease;
             flex-shrink: 0;
@@ -918,7 +929,7 @@
                                                 </div>`
                                             }
                                         </td>
-                                        <td class="deputy-name" title="${v.nombre_completo}">${v.nombre_completo}</td>
+                                        <td class="deputy-name" title="${v.nombre_completo}">${v.nombre_mostrar || v.nombre_completo}</td>
                                         <td class="vote-circles">
                                             <span class="circle circle-default ${v.voto === 'favor' ? 'circle-favor' : ''} ${isNewVote && v.voto === 'favor' ? 'vote-animated' : ''}" title="A favor"></span>
                                             <span class="circle circle-default ${v.voto === 'contra' ? 'circle-contra' : ''} ${isNewVote && v.voto === 'contra' ? 'vote-animated' : ''}" title="En contra"></span>

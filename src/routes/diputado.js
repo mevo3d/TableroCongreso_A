@@ -1303,7 +1303,6 @@ router.post('/cerrar-votacion/:id', (req, res) => {
         });
     });
 });
-});
 
 // Actualizar perfil del diputado
 const multer = require('multer');
@@ -1351,9 +1350,9 @@ router.post('/actualizar-perfil', upload.single('fotografia'), async (req, res) 
     
     try {
         // Verificar que el usuario no esté duplicado
-        if (usuario && usuario !== req.user.usuario) {
+        if (usuario && usuario !== req.user.username) {
             const existingUser = await new Promise((resolve, reject) => {
-                db.get('SELECT id FROM usuarios WHERE usuario = ? AND id != ?', [usuario, userId], (err, row) => {
+                db.get('SELECT id FROM usuarios WHERE username = ? AND id != ?', [usuario, userId], (err, row) => {
                     if (err) reject(err);
                     else resolve(row);
                 });
@@ -1378,7 +1377,7 @@ router.post('/actualizar-perfil', upload.single('fotografia'), async (req, res) 
         }
         
         if (usuario) {
-            updateFields.push('usuario = ?');
+            updateFields.push('username = ?');
             updateValues.push(usuario);
         }
         
@@ -1426,7 +1425,7 @@ router.post('/actualizar-perfil', upload.single('fotografia'), async (req, res) 
             }
             
             // Obtener datos actualizados
-            db.get('SELECT nombre_completo, usuario, fotografia FROM usuarios WHERE id = ?', [userId], (err, row) => {
+            db.get('SELECT nombre_completo, username, fotografia FROM usuarios WHERE id = ?', [userId], (err, row) => {
                 if (err) {
                     return res.status(500).json({ error: 'Error obteniendo datos actualizados' });
                 }
@@ -1435,7 +1434,7 @@ router.post('/actualizar-perfil', upload.single('fotografia'), async (req, res) 
                     success: true,
                     message: 'Perfil actualizado correctamente',
                     nombre: row.nombre_completo,
-                    usuario: row.usuario,
+                    usuario: row.username,
                     fotografia: row.fotografia
                 });
             });

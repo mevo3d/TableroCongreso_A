@@ -1,0 +1,725 @@
+/* ============================================
+   SISTEMA DE DISEÑO APPLE
+   Para Sistema de Votación - Congreso
+   ============================================ */
+
+/* Variables del tema */
+:root {
+    /* Tipografía Apple */
+    --apple-font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    
+    /* Colores Tema Claro */
+    --apple-bg-primary: #f5f5f7;
+    --apple-bg-secondary: #ffffff;
+    --apple-bg-tertiary: rgba(255, 255, 255, 0.8);
+    --apple-text-primary: #1d1d1f;
+    --apple-text-secondary: #86868b;
+    --apple-text-tertiary: #a1a1a6;
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --apple-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
+    --apple-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --apple-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
+    --apple-shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.15);
+    
+    /* Colores Sistema iOS */
+    --apple-blue: #007aff;
+    --apple-blue-dark: #0051d5;
+    --apple-green: #34c759;
+    --apple-green-dark: #30d158;
+    --apple-red: #ff3b30;
+    --apple-red-dark: #ff453a;
+    --apple-orange: #ff9500;
+    --apple-orange-dark: #ffb143;
+    --apple-yellow: #ffcc00;
+    --apple-purple: #af52de;
+    --apple-pink: #ff2d55;
+    --apple-gray: #8e8e93;
+    
+    /* Glassmorphism */
+    --apple-glass: rgba(255, 255, 255, 0.72);
+    --apple-glass-border: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] {
+    /* Colores Tema Oscuro */
+    --apple-bg-primary: #000000;
+    --apple-bg-secondary: #1c1c1e;
+    --apple-bg-tertiary: rgba(28, 28, 30, 0.8);
+    --apple-text-primary: #f5f5f7;
+    --apple-text-secondary: #a1a1a6;
+    --apple-text-tertiary: #86868b;
+    --apple-border: rgba(255, 255, 255, 0.08);
+    --apple-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --apple-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --apple-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --apple-shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.5);
+    
+    /* Colores Sistema iOS Dark */
+    --apple-blue: #0a84ff;
+    --apple-blue-dark: #0066cc;
+    --apple-green: #30d158;
+    --apple-green-dark: #34c759;
+    --apple-red: #ff453a;
+    --apple-red-dark: #ff3b30;
+    --apple-orange: #ffb143;
+    --apple-orange-dark: #ff9500;
+    
+    /* Glassmorphism Dark */
+    --apple-glass: rgba(28, 28, 30, 0.72);
+    --apple-glass-border: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   ESTILOS BASE
+   ============================================ */
+
+body {
+    font-family: var(--apple-font);
+    background: linear-gradient(135deg, var(--apple-bg-primary) 0%, #e1e1e3 100%);
+    color: var(--apple-text-primary);
+    transition: all 0.3s ease;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme="dark"] body {
+    background: linear-gradient(135deg, var(--apple-bg-primary) 0%, #1a1a1a 100%);
+}
+
+/* ============================================
+   NAVBAR ESTILO APPLE
+   ============================================ */
+
+.navbar {
+    background: linear-gradient(135deg, #2c3e50, #34495e) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .navbar {
+    background: linear-gradient(135deg, #1a1a1a, #2c2c2e) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navbar-brand {
+    font-weight: 600;
+    color: #ffffff !important;
+    letter-spacing: -0.5px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.navbar .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 8px 12px !important;
+}
+
+.navbar .nav-link:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Botones en el navbar */
+.navbar .btn {
+    color: white !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.navbar .btn:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Dropdown en navbar */
+.navbar .dropdown-menu {
+    background: var(--apple-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--apple-border);
+}
+
+.navbar .dropdown-item {
+    color: var(--apple-text-primary);
+}
+
+.navbar .dropdown-item:hover {
+    background: rgba(0, 122, 255, 0.1);
+}
+
+/* Badges en navbar */
+.navbar .badge {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+}
+
+/* ============================================
+   CARDS ESTILO APPLE
+   ============================================ */
+
+.card, .deputy-header, .vote-card, .control-panel {
+    background: var(--apple-glass) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--apple-border) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--apple-shadow-md) !important;
+    transition: all 0.2s ease;
+}
+
+.card:hover, .deputy-header:hover, .vote-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--apple-shadow-lg) !important;
+}
+
+/* Headers de cards con mejor contraste */
+.card-header {
+    background: linear-gradient(135deg, #34495e, #2c3e50) !important;
+    color: white !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 16px 16px 0 0 !important;
+}
+
+[data-theme="dark"] .card-header {
+    background: linear-gradient(135deg, #2c2c2e, #1a1a1a) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.card-header h3, .card-header h4, .card-header h5, .card-header h6,
+.card-header .card-title {
+    color: white !important;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Botones en headers de cards */
+.card-header .btn {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.card-header .btn:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.card-header .btn-sm {
+    padding: 4px 12px;
+    font-size: 13px;
+}
+
+/* Headers con clases de color específicas */
+.card-header.bg-primary,
+.card-header.bg-info,
+.card-header.bg-success,
+.card-header.bg-warning,
+.card-header.bg-danger {
+    color: white !important;
+}
+
+.card-header.bg-primary { background: linear-gradient(135deg, var(--apple-blue), var(--apple-blue-dark)) !important; }
+.card-header.bg-success { background: linear-gradient(135deg, var(--apple-green), var(--apple-green-dark)) !important; }
+.card-header.bg-danger { background: linear-gradient(135deg, var(--apple-red), var(--apple-red-dark)) !important; }
+.card-header.bg-warning { background: linear-gradient(135deg, var(--apple-orange), var(--apple-orange-dark)) !important; }
+.card-header.bg-info { background: linear-gradient(135deg, #17a2b8, #138496) !important; }
+
+/* ============================================
+   BOTONES ESTILO APPLE
+   ============================================ */
+
+.btn {
+    font-family: var(--apple-font);
+    font-weight: 500;
+    border-radius: 12px !important;
+    padding: 10px 20px;
+    transition: all 0.2s ease;
+    border: none;
+    letter-spacing: -0.2px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--apple-blue), var(--apple-blue-dark)) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--apple-blue-dark), var(--apple-blue)) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 122, 255, 0.3);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--apple-green), var(--apple-green-dark)) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(52, 199, 89, 0.2);
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, var(--apple-green-dark), var(--apple-green)) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(52, 199, 89, 0.3);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--apple-red), var(--apple-red-dark)) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, var(--apple-red-dark), var(--apple-red)) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(255, 59, 48, 0.3);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--apple-orange), var(--apple-orange-dark)) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(255, 149, 0, 0.2);
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, var(--apple-orange-dark), var(--apple-orange)) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(255, 149, 0, 0.3);
+}
+
+.btn-secondary {
+    background: rgba(118, 118, 128, 0.12) !important;
+    color: var(--apple-text-primary) !important;
+    border: 1px solid var(--apple-border) !important;
+}
+
+[data-theme="dark"] .btn-secondary {
+    background: rgba(118, 118, 128, 0.24) !important;
+    color: var(--apple-text-primary) !important;
+}
+
+.btn-secondary:hover {
+    background: rgba(118, 118, 128, 0.2) !important;
+    transform: translateY(-1px);
+}
+
+/* ============================================
+   BOTONES DE VOTACIÓN ESTILO APPLE
+   ============================================ */
+
+.vote-btn, .attendance-btn {
+    background: var(--apple-glass) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 2px solid var(--apple-border) !important;
+    border-radius: 16px !important;
+    transition: all 0.2s ease;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    box-shadow: var(--apple-shadow-md);
+}
+
+.vote-btn:hover, .attendance-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--apple-shadow-lg);
+}
+
+.btn-favor {
+    background: linear-gradient(135deg, var(--apple-green), var(--apple-green-dark)) !important;
+    border-color: var(--apple-green) !important;
+}
+
+.btn-contra {
+    background: linear-gradient(135deg, var(--apple-red), var(--apple-red-dark)) !important;
+    border-color: var(--apple-red) !important;
+}
+
+.btn-abstencion {
+    background: linear-gradient(135deg, var(--apple-gray), #6e6e73) !important;
+    border-color: var(--apple-gray) !important;
+}
+
+/* ============================================
+   INPUTS ESTILO APPLE
+   ============================================ */
+
+.form-control, .form-select {
+    background: rgba(118, 118, 128, 0.12);
+    color: var(--apple-text-primary);
+    border: 1px solid var(--apple-border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 15px;
+    transition: all 0.2s ease;
+    font-weight: 400;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background: rgba(118, 118, 128, 0.24);
+    color: var(--apple-text-primary);
+}
+
+.form-control:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    background: rgba(118, 118, 128, 0.08);
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+    background: rgba(118, 118, 128, 0.16);
+}
+
+/* ============================================
+   BADGES ESTILO APPLE
+   ============================================ */
+
+.badge {
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 10px;
+    letter-spacing: -0.2px;
+    font-size: 12px;
+}
+
+.badge.bg-primary {
+    background: var(--apple-blue) !important;
+}
+
+.badge.bg-success {
+    background: var(--apple-green) !important;
+}
+
+.badge.bg-danger {
+    background: var(--apple-red) !important;
+}
+
+.badge.bg-warning {
+    background: var(--apple-orange) !important;
+    color: white !important;
+}
+
+/* ============================================
+   MODALES ESTILO APPLE
+   ============================================ */
+
+.modal-content {
+    background: var(--apple-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--apple-border);
+    border-radius: 16px;
+    box-shadow: var(--apple-shadow-xl);
+}
+
+.modal-header {
+    background: transparent;
+    border-bottom: 1px solid var(--apple-border);
+    padding: 20px 24px;
+}
+
+.modal-title {
+    font-weight: 600;
+    color: var(--apple-text-primary);
+    letter-spacing: -0.5px;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    background: transparent;
+    border-top: 1px solid var(--apple-border);
+    padding: 16px 24px;
+}
+
+/* ============================================
+   ALERTAS ESTILO APPLE
+   ============================================ */
+
+.alert {
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.alert-info {
+    background: rgba(0, 122, 255, 0.1);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 122, 255, 0.2);
+}
+
+.alert-success {
+    background: rgba(52, 199, 89, 0.1);
+    color: var(--apple-green);
+    border: 1px solid rgba(52, 199, 89, 0.2);
+}
+
+.alert-danger {
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--apple-red);
+    border: 1px solid rgba(255, 59, 48, 0.2);
+}
+
+.alert-warning {
+    background: rgba(255, 149, 0, 0.1);
+    color: var(--apple-orange);
+    border: 1px solid rgba(255, 149, 0, 0.2);
+}
+
+/* ============================================
+   TABLAS ESTILO APPLE
+   ============================================ */
+
+.table {
+    color: var(--apple-text-primary);
+}
+
+.table thead th {
+    background: var(--apple-glass);
+    color: var(--apple-text-secondary);
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--apple-border);
+    padding: 12px;
+}
+
+.table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="dark"] .table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.table tbody td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--apple-border);
+    vertical-align: middle;
+}
+
+/* ============================================
+   ANIMACIONES APPLE
+   ============================================ */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.5s ease;
+}
+
+.animate-slideUp {
+    animation: slideUp 0.5s ease;
+}
+
+.animate-pulse {
+    animation: pulse 2s infinite;
+}
+
+/* ============================================
+   SCROLLBAR PERSONALIZADA
+   ============================================ */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   UTILIDADES
+   ============================================ */
+
+.glass-effect {
+    background: var(--apple-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--apple-border);
+}
+
+.shadow-sm { box-shadow: var(--apple-shadow-sm) !important; }
+.shadow-md { box-shadow: var(--apple-shadow-md) !important; }
+.shadow-lg { box-shadow: var(--apple-shadow-lg) !important; }
+.shadow-xl { box-shadow: var(--apple-shadow-xl) !important; }
+
+.text-primary { color: var(--apple-text-primary) !important; }
+.text-secondary { color: var(--apple-text-secondary) !important; }
+.text-tertiary { color: var(--apple-text-tertiary) !important; }
+
+.bg-glass { background: var(--apple-glass) !important; }
+.bg-primary { background: var(--apple-bg-primary) !important; }
+.bg-secondary { background: var(--apple-bg-secondary) !important; }
+
+/* Correcciones de contraste para elementos específicos */
+.text-white { color: white !important; }
+.text-dark { color: var(--apple-text-primary) !important; }
+
+/* Iconos y textos en headers oscuros */
+.navbar i, .navbar .fas, .navbar .far, .navbar .fab {
+    color: white !important;
+}
+
+.card-header i, .card-header .fas, .card-header .far, .card-header .fab {
+    color: white !important;
+}
+
+/* Mejora de legibilidad en elementos pequeños */
+.navbar .badge,
+.card-header .badge {
+    font-weight: 600;
+    padding: 4px 8px;
+}
+
+/* Estado de sesión y otros elementos informativos */
+.session-status, .status-badge {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+/* Botones de control en headers */
+.btn-control {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.btn-control:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* ============================================
+   TEMA SWITCHER
+   ============================================ */
+
+.theme-toggle-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    background: var(--apple-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--apple-border);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--apple-shadow-md);
+    transition: all 0.2s ease;
+    color: var(--apple-text-primary);
+}
+
+.theme-toggle-btn:hover {
+    transform: scale(1.1);
+    box-shadow: var(--apple-shadow-lg);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .card, .deputy-header, .vote-card {
+        border-radius: 12px !important;
+        margin: 10px;
+    }
+    
+    .btn {
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+    
+    .vote-btn, .attendance-btn {
+        height: 80px;
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 576px) {
+    body {
+        font-size: 14px;
+    }
+    
+    .navbar-brand {
+        font-size: 16px;
+    }
+    
+    .modal-content {
+        border-radius: 12px;
+        margin: 10px;
+    }
+}

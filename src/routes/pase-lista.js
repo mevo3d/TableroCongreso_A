@@ -386,6 +386,67 @@ router.post('/rectificar', (req, res) => {
     });
 });
 
+// Reiniciar pase de lista (borrar todas las asistencias)
+router.post('/reiniciar', (req, res) => {
+    const db = req.db;
+    const io = req.io;
+    const userId = req.user.id;
+    
+    // Verificar permisos (secretario legislativo o diputado-secretario)
+    db.get('SELECT cargo_mesa_directiva, role FROM usuarios WHERE id = ?', [userId], (err, userData) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando permisos' });
+        }
+        
+        const esSecretarioMesa = userData.cargo_mesa_directiva === 'secretario1' || 
+                                  userData.cargo_mesa_directiva === 'secretario2' ||
+                                  userData.cargo_mesa_directiva === 'Secretario de la Mesa Directiva';
+        const esSecretarioLegislativo = userData.role === 'secretario';
+        
+        if (!esSecretarioMesa && !esSecretarioLegislativo) {
+            return res.status(403).json({ error: 'Solo secretarios pueden reiniciar el pase de lista' });
+        }
+        
+        // Obtener sesión activa
+        db.get('SELECT id FROM sesiones WHERE activa = 1', (err, sesion) => {
+            if (err) {
+                return res.status(500).json({ error: 'Error obteniendo sesión' });
+            }
+            
+            if (!sesion) {
+                return res.status(400).json({ error: 'No hay sesión activa' });
+            }
+            
+            // Eliminar todas las asistencias de la sesión actual
+            db.run(
+                'DELETE FROM asistencias WHERE sesion_id = ?',
+                [sesion.id],
+                function(err) {
+                    if (err) {
+                        console.error('Error eliminando asistencias:', err);
+                        return res.status(500).json({ error: 'Error al reiniciar pase de lista' });
+                    }
+                    
+                    console.log(`Pase de lista reiniciado. ${this.changes} asistencias eliminadas.`);
+                    
+                    // Emitir evento a todos los clientes
+                    io.emit('pase-lista-reiniciado', {
+                        sesion_id: sesion.id,
+                        reiniciado_por: userData.cargo_mesa_directiva || userData.role,
+                        mensaje: 'El pase de lista ha sido reiniciado'
+                    });
+                    
+                    res.json({
+                        success: true,
+                        mensaje: 'Pase de lista reiniciado correctamente',
+                        asistencias_eliminadas: this.changes
+                    });
+                }
+            );
+        });
+    });
+});
+
 // Activar pase de lista
 router.post('/activar', (req, res) => {
     const db = req.db;

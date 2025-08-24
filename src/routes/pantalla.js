@@ -138,25 +138,41 @@ function obtenerVotosIniciativa(db, iniciativaId, req, callback) {
             return;
         }
         
-        // Función para extraer el primer apellido
-        function getPrimerApellido(nombreCompleto) {
-            // Separar el nombre en palabras
-            const palabras = nombreCompleto.trim().split(/\s+/);
-            // Generalmente el formato es: Nombre(s) ApellidoPaterno ApellidoMaterno
-            // Asumimos que el primer apellido está después del primer nombre
-            if (palabras.length >= 2) {
-                // Buscar la primera palabra que empiece con mayúscula después del primer nombre
-                // O simplemente tomar la segunda palabra como apellido
-                return palabras[1] || palabras[0];
-            }
-            return nombreCompleto;
-        }
+        // Mapeo de nombres para orden correcto (apellido primero)
+        const ORDEN_DIPUTADOS = {
+            'Gerardo Abarca Peña': 'Abarca Peña, Gerardo',
+            'Alfredo Domínguez Mandujano': 'Domínguez Mandujano, Alfredo',
+            'Brenda Espinoza López': 'Espinoza López, Brenda',
+            'Andrea Valentina Guadalupe Gordillo Vega': 'Gordillo Vega, Andrea Valentina Guadalupe',
+            'Sergio Omar Livera Chavarría': 'Livera Chavarría, Sergio Omar',
+            'Gonzala Eleonor Martínez Gómez': 'Martínez Gómez, Gonzala Eleonor',
+            'Óscar Daniel Martínez Terrazas': 'Martínez Terrazas, Óscar Daniel',
+            'Guillermina Maya Rendón': 'Maya Rendón, Guillermina',
+            'Martha Melissa Montes de Oca Montoya': 'Montes de Oca Montoya, Martha Melissa',
+            'Luis Eduardo Pedrero González': 'Pedrero González, Luis Eduardo',
+            'Isaac Pimentel Mejía': 'Pimentel Mejía, Isaac',
+            'Luz Dary Quevedo Maldonado': 'Quevedo Maldonado, Luz Dary',
+            'Rafael Reyes Reyes': 'Reyes Reyes, Rafael',
+            'Ruth Cleotilde Rodríguez López': 'Rodríguez López, Ruth Cleotilde',
+            'Tania Valentina Rodríguez Ruiz': 'Rodríguez Ruiz, Tania Valentina',
+            'Nayla Carolina Ruíz Rodríguez': 'Ruíz Rodríguez, Nayla Carolina',
+            'Alberto Sánchez Ortega': 'Sánchez Ortega, Alberto',
+            'Francisco Erik Sánchez Zavala': 'Sánchez Zavala, Francisco Erik',
+            'Jazmín Juana Solano López': 'Solano López, Jazmín Juana',
+            'Alfonso de Jesús Sotelo Martínez': 'Sotelo Martínez, Alfonso de Jesús'
+        };
         
-        // Ordenar por primer apellido
+        // Aplicar formato de apellido primero para mostrar
+        votos = votos.map(voto => ({
+            ...voto,
+            nombre_mostrar: ORDEN_DIPUTADOS[voto.nombre_completo] || voto.nombre_completo
+        }));
+        
+        // Ordenar por apellido usando el formato correcto
         votos.sort((a, b) => {
-            const apellidoA = getPrimerApellido(a.nombre_completo).toLowerCase();
-            const apellidoB = getPrimerApellido(b.nombre_completo).toLowerCase();
-            return apellidoA.localeCompare(apellidoB, 'es');
+            const nombreA = a.nombre_mostrar || a.nombre_completo;
+            const nombreB = b.nombre_mostrar || b.nombre_completo;
+            return nombreA.localeCompare(nombreB, 'es');
         });
         
         // Convertir URLs de fotos a absolutas
