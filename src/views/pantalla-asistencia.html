@@ -34,41 +34,6 @@
             background: #2c2c2c;
         }
         
-        /* Header con logos */
-        .header-logos {
-            background: linear-gradient(135deg, #1a2332, #263241);
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-        
-        .header-logos img {
-            height: 60px;
-            object-fit: contain;
-        }
-        
-        .header-title {
-            text-align: center;
-            flex: 1;
-        }
-        
-        .header-title h1 {
-            font-size: 1.8em;
-            margin: 0;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-weight: 600;
-        }
-        
-        .header-title p {
-            margin: 5px 0 0 0;
-            color: #aaa;
-            font-size: 0.9em;
-        }
-        
         /* Lista de diputados - estilo similar a voting-table-container-full */
         .attendance-table-container-full {
             flex: 1;
@@ -228,10 +193,10 @@
         
         /* Estadísticas en la parte inferior */
         .results-bottom {
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            padding: 15px;
+            background: #1a1a1a;
+            padding: 10px;
             border-top: 2px solid #444;
-            min-height: 140px;
+            min-height: auto;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -248,12 +213,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 150px;
+            width: 100px;
         }
         
         .logo-left img, .logo-right img {
-            max-height: 70px;
-            max-width: 140px;
+            max-height: 40px;
+            max-width: 90px;
             object-fit: contain;
         }
         
@@ -268,8 +233,8 @@
         .result-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 1.3em;
+            gap: 8px;
+            font-size: 1.1em;
             font-weight: bold;
             color: white;
         }
@@ -281,8 +246,8 @@
         }
         
         .result-circle {
-            width: 35px;
-            height: 35px;
+            width: 25px;
+            height: 25px;
             border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
@@ -307,12 +272,12 @@
         
         /* Indicador de quórum */
         .quorum-indicator {
-            margin-top: 10px;
+            margin-top: 5px;
             text-align: center;
-            padding: 8px 20px;
+            padding: 6px 20px;
             border-radius: 25px;
             font-weight: bold;
-            font-size: 1.1em;
+            font-size: 1em;
             letter-spacing: 1px;
             transition: all 0.3s ease;
         }
@@ -402,15 +367,6 @@
 <body>
     <div class="main-container">
         <div class="content-wrapper-full">
-            <!-- Header con logos -->
-            <div class="header-logos">
-                <img src="/uploads/logo-congreso.png" alt="Logo Congreso" onerror="this.style.display='none'">
-                <div class="header-title">
-                    <h1>PASE DE LISTA</h1>
-                    <p id="sessionInfo">LVI LEGISLATURA</p>
-                </div>
-                <img src="/uploads/logo-secundario.png" alt="Logo Secundario" onerror="this.style.display='none'">
-            </div>
             <!-- Lista de diputados -->
             <div class="attendance-table-container-full" id="attendanceContainer">
                 <div id="deputiesContent">
