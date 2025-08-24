@@ -99,6 +99,33 @@
             box-shadow: 0 2px 4px rgba(255, 152, 0, 0.3);
         }
         
+        /* Badges de partidos con colores oficiales */
+        .badge-partido {
+            color: white !important;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .badge-morena { background-color: #8B1B1B !important; }
+        .badge-pan { background-color: #1B4788 !important; }
+        .badge-pri { background-color: #CD1C22 !important; }
+        .badge-pt { background-color: #E31E24 !important; }
+        .badge-pvem { background-color: #00A550 !important; }
+        .badge-mc { background-color: #FF6B00 !important; }
+        .badge-nueva-alianza { background-color: #00B8B2 !important; }
+        .badge-nueva-alianza-morelos { background-color: #00B8B2 !important; }
+        
+        /* Reducir tamaño de iconos en botones de iniciativas */
+        .initiative-card .btn-group .btn {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+        }
+        
+        .initiative-card .btn-group .btn i {
+            font-size: 0.8rem;
+        }
+        
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -107,7 +134,7 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark">
+    <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, #1a2332, #263241) !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0, 0, 0, 0.3); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1">
                 <i class="fas fa-user-cog"></i> Panel Operador - Sistema de Votación
@@ -985,6 +1012,25 @@
         });
         
         // Cargar sesión activa
+        // Función para obtener la clase CSS del partido
+        function getPartidoBadgeClass(partido) {
+            if (!partido) return '';
+            const partidoLower = partido.toLowerCase().replace(/\s+/g, '-');
+            
+            const partidoClasses = {
+                'morena': 'badge-morena',
+                'pan': 'badge-pan',
+                'pri': 'badge-pri',
+                'pt': 'badge-pt',
+                'pvem': 'badge-pvem',
+                'mc': 'badge-mc',
+                'nueva-alianza': 'badge-nueva-alianza',
+                'nueva-alianza-morelos': 'badge-nueva-alianza-morelos'
+            };
+            
+            return partidoClasses[partidoLower] || '';
+        }
+        
         async function loadActiveSession() {
             try {
                 const response = await fetch('/api/operador/sesion-activa', {
@@ -1082,7 +1128,7 @@
                                         <div class="small mb-1">
                                             <i class="fas fa-user"></i> 
                                             <strong>Presentada por:</strong> ${init.presentador}
-                                            ${init.partido_presentador ? `<span class="badge bg-info ms-1">${init.partido_presentador}</span>` : ''}
+                                            ${init.partido_presentador ? `<span class="badge badge-partido ${getPartidoBadgeClass(init.partido_presentador)} ms-1">${init.partido_presentador}</span>` : ''}
                                         </div>
                                     ` : ''}
                                     <span class="badge bg-secondary">${init.tipo_mayoria || 'Simple'}</span>
@@ -2549,45 +2595,129 @@
         function mostrarModalExtraordinarias() {
             cargarListaDiputadosParaExtraordinarias();
             cargarNumerosDisponibles();
+            cargarPartidosDisponibles();
             const modal = new bootstrap.Modal(document.getElementById('extraordinariasModal'));
             modal.show();
         }
         
-        function cargarListaDiputadosParaExtraordinarias() {
-            fetch('/api/diputados')
-                .then(response => response.json())
-                .then(diputados => {
+        // Cargar partidos disponibles
+        async function cargarPartidosDisponibles() {
+            try {
+                const response = await fetch('/api/operador/partidos', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const partidos = await response.json();
+                    const select = document.getElementById('extPartido');
+                    if (select) {
+                        select.innerHTML = '<option value="">Seleccionar...</option>';
+                        
+                        partidos.forEach(partido => {
+                            const option = document.createElement('option');
+                            option.value = partido.siglas || partido.nombre;
+                            option.textContent = partido.siglas || partido.nombre;
+                            select.appendChild(option);
+                        });
+                    }
+                } else {
+                    console.error('Error al cargar partidos:', response.status);
+                }
+            } catch (error) {
+                console.error('Error cargando partidos:', error);
+                // En caso de error, usar valores por defecto
+                const select = document.getElementById('extPartido');
+                if (select) {
+                    select.innerHTML = `
+                        <option value="">Seleccionar...</option>
+                        <option value="MORENA">MORENA</option>
+                        <option value="PAN">PAN</option>
+                        <option value="PRI">PRI</option>
+                        <option value="PT">PT</option>
+                        <option value="PVEM">PVEM</option>
+                        <option value="MC">MC</option>
+                        <option value="Nueva Alianza Morelos">Nueva Alianza Morelos</option>
+                    `;
+                }
+            }
+        }
+        
+        async function cargarListaDiputadosParaExtraordinarias() {
+            try {
+                const response = await fetch('/api/operador/lista-diputados', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const diputados = await response.json();
                     const select = document.getElementById('extPresentador');
                     select.innerHTML = '<option value="">Seleccionar diputado...</option>';
                     
                     diputados.forEach(dip => {
                         const option = document.createElement('option');
-                        option.value = dip.nombre;
-                        option.textContent = dip.nombre;
+                        option.value = dip.nombre || dip.nombre_completo;
+                        option.textContent = dip.nombre || dip.nombre_completo;
                         option.dataset.partido = dip.partido;
                         select.appendChild(option);
                     });
-                })
-                .catch(error => console.error('Error cargando diputados:', error));
+                } else {
+                    console.error('Error al cargar diputados:', response.status);
+                }
+            } catch (error) {
+                console.error('Error cargando diputados:', error);
+            }
         }
         
-        function cargarNumerosDisponibles() {
-            fetch('/api/iniciativas')
-                .then(response => response.json())
-                .then(iniciativas => {
+        async function cargarNumerosDisponibles() {
+            try {
+                const response = await fetch('/api/operador/sesion-activa', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
                     const select = document.getElementById('extNumero');
                     select.innerHTML = '<option value="">Seleccionar posición...</option>';
                     
-                    // Agregar opciones del 1 al total de iniciativas + 5
-                    const maxNum = iniciativas.length + 5;
+                    // Obtener el máximo número de iniciativas actuales
+                    const maxNum = (data.iniciativas ? data.iniciativas.length : 0) + 10;
+                    
+                    // Agregar opciones del 1 al total de iniciativas + 10
                     for (let i = 1; i <= maxNum; i++) {
                         const option = document.createElement('option');
                         option.value = i;
                         option.textContent = `Posición ${i}`;
                         select.appendChild(option);
                     }
-                })
-                .catch(error => console.error('Error cargando números disponibles:', error));
+                } else {
+                    // Si no hay sesión activa, ofrecer posiciones del 1 al 20
+                    const select = document.getElementById('extNumero');
+                    select.innerHTML = '<option value="">Seleccionar posición...</option>';
+                    for (let i = 1; i <= 20; i++) {
+                        const option = document.createElement('option');
+                        option.value = i;
+                        option.textContent = `Posición ${i}`;
+                        select.appendChild(option);
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando números disponibles:', error);
+                // En caso de error, ofrecer posiciones del 1 al 20
+                const select = document.getElementById('extNumero');
+                select.innerHTML = '<option value="">Seleccionar posición...</option>';
+                for (let i = 1; i <= 20; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `Posición ${i}`;
+                    select.appendChild(option);
+                }
+            }
         }
         
         function actualizarPartidoAutomatico() {
@@ -3641,78 +3771,8 @@
         let iniciativasExtraordinariasTemp = [];
         let listaDiputados = [];
         
-        // Mostrar modal de iniciativas extraordinarias
-        function mostrarModalExtraordinarias() {
-            cargarListaDiputados();
-            cargarNumerosDisponiblesExtraordinarias();
-            const modalElement = document.getElementById('extraordinariasModal');
-            if (modalElement) {
-                const modal = new bootstrap.Modal(modalElement, {
-                    backdrop: 'static',
-                    keyboard: true
-                });
-                modal.show();
-            }
-        }
-        
-        // Cargar lista de diputados para el selector
-        async function cargarListaDiputados() {
-            try {
-                const response = await fetch('/api/operador/lista-diputados', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const diputados = await response.json();
-                    listaDiputados = diputados;
-                    
-                    const select = document.getElementById('extPresentador');
-                    if (select) {
-                        select.innerHTML = '<option value="">Seleccionar diputado...</option>';
-                        diputados.forEach(dip => {
-                            const option = document.createElement('option');
-                            option.value = dip.nombre_completo;
-                            option.textContent = dip.nombre_completo;
-                            option.dataset.partido = dip.partido;
-                            select.appendChild(option);
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Error cargando diputados:', error);
-            }
-        }
-        
-        // Cargar números disponibles para extraordinarias
-        async function cargarNumerosDisponiblesExtraordinarias() {
-            try {
-                const response = await fetch('/api/operador/numeros-disponibles', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    const select = document.getElementById('extNumero');
-                    if (select) {
-                        select.innerHTML = '<option value="">Seleccionar posición...</option>';
-                        
-                        // Agregar opciones disponibles
-                        data.disponibles.forEach(num => {
-                            const option = document.createElement('option');
-                            option.value = num;
-                            option.textContent = `Posición ${num}`;
-                            select.appendChild(option);
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Error cargando números disponibles:', error);
-            }
-        }
+        // NOTA: Las funciones mostrarModalExtraordinarias, cargarListaDiputados y cargarNumerosDisponibles
+        // ya están definidas arriba en el código. Estas eran duplicadas y han sido eliminadas.
         
         // Actualizar partido automáticamente cuando se selecciona diputado
         function actualizarPartidoAutomatico() {
@@ -3727,71 +3787,10 @@
             }
         }
         
-        // Agregar iniciativa extraordinaria a la lista temporal
-        function agregarExtraordinaria() {
-            const iniciativa = {
-                numero: document.getElementById('extNumero').value,
-                descripcion: document.getElementById('extDescripcion').value,
-                presentador: document.getElementById('extPresentador').value,
-                partido_presentador: document.getElementById('extPartido').value,
-                tipo_mayoria: document.getElementById('extTipoMayoria').value,
-                tipo_iniciativa: 'extraordinaria'
-            };
-            
-            if (!iniciativa.numero || !iniciativa.descripcion) {
-                alert('Por favor complete los campos obligatorios');
-                return;
-            }
-            
-            iniciativasExtraordinariasTemp.push(iniciativa);
-            actualizarListaExtraordinarias();
-            
-            // Limpiar formulario
-            document.getElementById('extNumero').value = '';
-            document.getElementById('extDescripcion').value = '';
-            document.getElementById('extPresentador').value = '';
-            document.getElementById('extPartido').value = '';
-            document.getElementById('extTipoMayoria').value = 'simple';
-        }
+        // NOTA: La función agregarExtraordinaria ya está definida arriba. Esta era duplicada y ha sido eliminada.
         
-        // Actualizar lista visual de extraordinarias agregadas
-        function actualizarListaExtraordinarias() {
-            const lista = document.getElementById('listaExtraordinarias');
-            
-            if (!lista) return;
-            
-            if (iniciativasExtraordinariasTemp.length === 0) {
-                lista.innerHTML = '<p class="text-muted">No hay iniciativas extraordinarias agregadas</p>';
-                return;
-            }
-            
-            lista.innerHTML = iniciativasExtraordinariasTemp.map((init, index) => `
-                <div class="list-group-item">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <strong>#${init.numero}</strong> - ${init.descripcion}
-                            <br>
-                            <small class="text-muted">
-                                ${init.presentador ? `Por: ${init.presentador}` : ''}
-                                ${init.partido_presentador ? `(${init.partido_presentador})` : ''}
-                                | ${init.tipo_mayoria === 'simple' ? 'Mayoría Simple' : 
-                                    init.tipo_mayoria === 'absoluta' ? 'Mayoría Absoluta' :
-                                    init.tipo_mayoria === 'calificada' ? 'Mayoría Calificada' : 'Unanimidad'}
-                            </small>
-                        </div>
-                        <button class="btn btn-sm btn-danger" onclick="eliminarExtraordinaria(${index})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        // Eliminar iniciativa extraordinaria de la lista temporal
-        function eliminarExtraordinaria(index) {
-            iniciativasExtraordinariasTemp.splice(index, 1);
-            actualizarListaExtraordinarias();
-        }
+        // NOTA: Las funciones actualizarListaExtraordinarias y eliminarExtraordinaria ya están definidas arriba. 
+        // Estas eran duplicadas y han sido eliminadas.
         
         // Procesar PDF de extraordinarias
         async function procesarPDFExtraordinarias() {

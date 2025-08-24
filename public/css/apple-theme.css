@@ -91,11 +91,11 @@ body {
    ============================================ */
 
 .navbar {
-    background: linear-gradient(135deg, #2c3e50, #34495e) !important;
+    background: linear-gradient(135deg, #1a2332, #263241) !important;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
     transition: all 0.3s ease;
 }
 
@@ -179,7 +179,7 @@ body {
 
 /* Headers de cards con mejor contraste */
 .card-header {
-    background: linear-gradient(135deg, #34495e, #2c3e50) !important;
+    background: linear-gradient(135deg, #263241, #1a2332) !important;
     color: white !important;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
     border-radius: 16px 16px 0 0 !important;

@@ -74,7 +74,7 @@
         }
         
         .voting-table td {
-            padding: 6px 8px; /* Reducido padding vertical de 8px a 6px */
+            padding: 3px 8px; /* Reducido padding vertical de 8px a 6px */
         }
         
         /* Columna de partido con icono */
@@ -126,16 +126,16 @@
         .deputy-name {
             color: white;
             font-family: 'Verdana', sans-serif;
-            font-size: 0.84em; /* 30% más pequeño */
-            padding-left: 10px;
-            padding-right: 30px; /* Aumentado de 15px a 30px */
+            font-size: 0.80em; /* 30% más pequeño */
+            padding-left: 5px;
+            padding-right: 20px; /* Aumentado de 15px a 30px */
             font-weight: bold;
             line-height: 1.3;
             max-height: 2.6em;
             overflow: hidden;
             text-overflow: ellipsis;
-            min-width: 280px; /* Aumentado de 260px a 280px */
-            max-width: 280px; /* Aumentado de 260px a 280px */
+            min-width: 300px; /* Aumentado de 260px a 280px */
+            max-width: 310px; /* Aumentado de 260px a 280px */
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -380,28 +380,28 @@
         let configuracionSistema = {};
         let partidosData = {};
         
-        // Lista predefinida de los 20 diputados - Orden alfabético por apellido
+        // Lista predefinida de los 20 diputados - Con IDs REALES de la base de datos
         const DIPUTADOS_DEFAULT = [
-            { id: 1, nombre_completo: 'Abarca Peña, Gerardo', partido: 'PAN', orden: 1 },
-            { id: 2, nombre_completo: 'Domínguez Mandujano, Alfredo', partido: 'Morena', orden: 2 },
-            { id: 3, nombre_completo: 'Espinoza López, Brenda', partido: 'Morena', orden: 3 },
-            { id: 4, nombre_completo: 'Gordillo Vega, Andrea Valentina Guadalupe', partido: 'PAN', orden: 4 },
-            { id: 5, nombre_completo: 'Livera Chavarría, Sergio Omar', partido: 'Morena', orden: 5 },
-            { id: 6, nombre_completo: 'Martínez Gómez, Gonzala Eleonor', partido: 'PRI', orden: 6 },
-            { id: 7, nombre_completo: 'Martínez Terrazas, Óscar Daniel', partido: 'PAN', orden: 7 },
-            { id: 8, nombre_completo: 'Maya Rendón, Guillermina', partido: 'Morena', orden: 8 },
-            { id: 9, nombre_completo: 'Montes de Oca Montoya, Martha Melissa', partido: 'Morena', orden: 9 },
-            { id: 10, nombre_completo: 'Pedrero González, Luis Eduardo', partido: 'PVEM', orden: 10 },
-            { id: 11, nombre_completo: 'Pimentel Mejía, Isaac', partido: 'Morena', orden: 11 },
-            { id: 12, nombre_completo: 'Quevedo Maldonado, Luz Dary', partido: 'MC', orden: 12 },
-            { id: 13, nombre_completo: 'Reyes Reyes, Rafael', partido: 'Morena', orden: 13 },
-            { id: 14, nombre_completo: 'Rodríguez López, Ruth Cleotilde', partido: 'Nueva Alianza Morelos', orden: 14 },
-            { id: 15, nombre_completo: 'Rodríguez Ruiz, Tania Valentina', partido: 'PT', orden: 15 },
-            { id: 16, nombre_completo: 'Ruíz Rodríguez, Nayla Carolina', partido: 'Morena', orden: 16 },
-            { id: 17, nombre_completo: 'Sánchez Ortega, Alberto', partido: 'PT', orden: 17 },
-            { id: 18, nombre_completo: 'Sánchez Zavala, Francisco Erik', partido: 'PAN', orden: 18 },
-            { id: 19, nombre_completo: 'Solano López, Jazmín Juana', partido: 'Morena', orden: 19 },
-            { id: 20, nombre_completo: 'Sotelo Martínez, Alfonso de Jesús', partido: 'Morena', orden: 20 }
+            { id: 18, nombre_completo: 'Abarca Peña, Gerardo', partido: 'PAN', orden: 1 },
+            { id: 12, nombre_completo: 'Domínguez Mandujano, Alfredo', partido: 'MORENA', orden: 2 },
+            { id: 17, nombre_completo: 'Espinoza López, Brenda', partido: 'MORENA', orden: 3 },
+            { id: 6, nombre_completo: 'Gordillo Vega, Andrea Valentina Guadalupe', partido: 'PAN', orden: 4 },
+            { id: 7, nombre_completo: 'Livera Chavarría, Sergio Omar', partido: 'MORENA', orden: 5 },
+            { id: 22, nombre_completo: 'Martínez Gómez, Eleonor', partido: 'PRI', orden: 6 },
+            { id: 5, nombre_completo: 'Martínez Terrazas, Óscar Daniel', partido: 'PAN', orden: 7 },
+            { id: 8, nombre_completo: 'Maya Rendón, Guillermina', partido: 'MORENA', orden: 8 },
+            { id: 15, nombre_completo: 'Montes de Oca Montoya, Martha Melissa', partido: 'MORENA', orden: 9 },
+            { id: 21, nombre_completo: 'Pedrero González, Luis Eduardo', partido: 'PVEM', orden: 10 },
+            { id: 16, nombre_completo: 'Pimentel Mejía, Isaac', partido: 'MORENA', orden: 11 },
+            { id: 19, nombre_completo: 'Quevedo Maldonado, Luz Dary', partido: 'MC', orden: 12 },
+            { id: 10, nombre_completo: 'Reyes Reyes, Rafael', partido: 'MORENA', orden: 13 },
+            { id: 23, nombre_completo: 'Rodríguez López, Ruth Cleotilde', partido: 'NUEVA ALIANZA', orden: 14 },
+            { id: 20, nombre_completo: 'Rodríguez Ruiz, Tania Valentina', partido: 'PT', orden: 15 },
+            { id: 11, nombre_completo: 'Ruíz Rodríguez, Nayla Carolina', partido: 'MORENA', orden: 16 },
+            { id: 24, nombre_completo: 'Sánchez Ortega, Alberto', partido: 'PT', orden: 17 },
+            { id: 13, nombre_completo: 'Sánchez Zavala, Francisco Erik', partido: 'PAN', orden: 18 },
+            { id: 9, nombre_completo: 'Solano López, Jazmín Juana', partido: 'MORENA', orden: 19 },
+            { id: 14, nombre_completo: 'Sotelo Martínez, Alfonso de Jesús', partido: 'MORENA', orden: 20 }
         ];
         
         // Cargar configuración del sistema
@@ -505,12 +505,57 @@
         });
         
         // Escuchar cuando se reinicia el pase de lista
-        socket.on('pase-lista-reiniciado', (data) => {
+        socket.on('pase-lista-reiniciado', async (data) => {
             console.log('Pase de lista reiniciado:', data);
+            
+            // Limpiar todos los datos de asistencia
             asistenciaData = {};
             previousAttendance = {};
+            
+            // Limpiar visualmente todas las asistencias
+            if (diputadosData && diputadosData.length > 0) {
+                diputadosData.forEach(diputado => {
+                    delete asistenciaData[diputado.id];
+                });
+            }
+            
+            // Recargar datos desde el servidor para asegurar sincronización
+            try {
+                const response = await fetch('/api/pase-lista/pantalla');
+                const serverData = await response.json();
+                
+                if (serverData.diputados) {
+                    // Actualizar con datos frescos del servidor
+                    asistenciaData = {};
+                    serverData.diputados.forEach(dip => {
+                        if (dip.asistencia && dip.asistencia !== 'sin_marcar') {
+                            asistenciaData[dip.id] = dip.asistencia;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error recargando datos:', error);
+            }
+            
+            // Recargar los diputados y actualizar la vista
             renderizarDiputados();
             actualizarEstadisticas();
+            
+            // Mostrar notificación visual
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            notification.style.zIndex = '9999';
+            notification.innerHTML = `
+                <strong>⚠️ Pase de lista reiniciado</strong>
+                <br>Se han borrado todas las asistencias marcadas.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notification);
+            
+            // Auto-ocultar después de 5 segundos
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
         });
         
         // Escuchar fin de sesión
@@ -537,11 +582,9 @@
                 if (data.activo !== false || (data.diputados && data.diputados.length > 0)) {
                     paseListaActivo = true;
                     
-                    if (data.diputados && data.diputados.length > 0) {
-                        diputadosData = data.diputados;
-                    } else {
-                        diputadosData = DIPUTADOS_DEFAULT;
-                    }
+                    // SIEMPRE usar el mapeo fijo con IDs correctos
+                    diputadosData = DIPUTADOS_DEFAULT;
+                    console.log('Usando mapeo fijo de diputados con IDs correctos');
                     
                     asistenciaData = {};
                     if (data.diputados) {
@@ -567,6 +610,31 @@
                 }
             } catch (error) {
                 console.error('Error verificando estado:', error);
+                // En caso de error, usar el mapeo fijo
+                diputadosData = DIPUTADOS_DEFAULT;
+            }
+        }
+        
+        // Cargar diputados reales desde la API
+        async function cargarDiputadosReales() {
+            try {
+                const response = await fetch('/api/pase-lista/diputados');
+                if (response.ok) {
+                    const diputados = await response.json();
+                    diputadosData = diputados.map((dip, index) => ({
+                        id: dip.id, // ID REAL de la base de datos
+                        nombre_completo: dip.nombre_completo,
+                        partido: dip.partido,
+                        orden: index + 1
+                    }));
+                    console.log('Diputados reales cargados:', diputadosData);
+                } else {
+                    // Fallback a lista por defecto si falla
+                    diputadosData = DIPUTADOS_DEFAULT;
+                }
+            } catch (error) {
+                console.error('Error cargando diputados reales:', error);
+                diputadosData = DIPUTADOS_DEFAULT;
             }
         }
         
@@ -606,17 +674,16 @@
                 const response = await fetch('/api/pase-lista/pantalla');
                 const data = await response.json();
                 
-                if (data.diputados && data.diputados.length > 0) {
-                    diputadosData = data.diputados;
-                } else {
-                    diputadosData = DIPUTADOS_DEFAULT;
-                }
+                // SIEMPRE usar el mapeo fijo con IDs correctos
+                diputadosData = DIPUTADOS_DEFAULT;
+                console.log('Usando mapeo fijo de diputados en cargarDiputados');
                 
                 asistenciaData = data.asistencias || {};
                 renderizarDiputados();
                 actualizarEstadisticas();
             } catch (error) {
                 console.error('Error cargando diputados:', error);
+                // En caso de error, usar el mapeo fijo
                 diputadosData = DIPUTADOS_DEFAULT;
                 renderizarDiputados();
                 actualizarEstadisticas();
@@ -718,23 +785,28 @@
         function renderizarDiputados() {
             const container = document.getElementById('deputiesContent');
             
+            // SIEMPRE usar el mapeo fijo si no hay datos
             if (!diputadosData || diputadosData.length === 0) {
                 diputadosData = DIPUTADOS_DEFAULT;
+                console.log('Usando mapeo fijo por defecto en renderizarDiputados');
             }
             
-            if (diputadosData.length < 20) {
-                const idsExistentes = new Set(diputadosData.map(d => d.id));
-                const diputadosFaltantes = DIPUTADOS_DEFAULT.filter(d => !idsExistentes.has(d.id));
-                diputadosData = [...diputadosData, ...diputadosFaltantes].slice(0, 20);
-            }
-            
-            const diputadosOrdenados = DIPUTADOS_DEFAULT;
-            
-            container.innerHTML = renderAttendanceColumns(diputadosOrdenados);
+            // Usar los diputados con el mapeo correcto
+            container.innerHTML = renderAttendanceColumns(diputadosData);
         }
         
         // Actualizar asistencia de un diputado
         function actualizarAsistencia(diputadoId, asistencia) {
+            console.log(`Actualizando asistencia - ID: ${diputadoId}, Asistencia: ${asistencia}`);
+            
+            // Buscar el diputado en nuestra lista para verificar
+            const diputado = diputadosData.find(d => d.id === parseInt(diputadoId));
+            if (diputado) {
+                console.log(`Diputado encontrado: ${diputado.nombre_completo}`);
+            } else {
+                console.warn(`No se encontró diputado con ID ${diputadoId} en la lista local`);
+            }
+            
             asistenciaData[diputadoId] = asistencia;
             renderizarDiputados();
             actualizarEstadisticas();
@@ -746,7 +818,10 @@
             let ausentes = 0;
             let sinMarcar = 0;
             
-            DIPUTADOS_DEFAULT.forEach(diputado => {
+            // Usar los diputados reales cargados
+            const diputadosParaContar = diputadosData && diputadosData.length > 0 ? diputadosData : DIPUTADOS_DEFAULT;
+            
+            diputadosParaContar.forEach(diputado => {
                 const asistencia = asistenciaData[diputado.id];
                 if (asistencia === 'presente') {
                     presentes++;

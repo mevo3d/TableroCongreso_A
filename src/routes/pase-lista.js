@@ -121,7 +121,9 @@ router.post('/marcar', (req, res) => {
         
         // Verificar que sea secretario1, secretario2 o secretario legislativo
         const esSecretarioMesa = userData.cargo_mesa_directiva === 'secretario1' || 
-                                  userData.cargo_mesa_directiva === 'secretario2';
+                                  userData.cargo_mesa_directiva === 'secretario2' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 1' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 2';
         const esSecretarioLegislativo = userData.role === 'secretario';
         
         if (!esSecretarioMesa && !esSecretarioLegislativo) {
@@ -204,7 +206,9 @@ router.post('/confirmar', (req, res) => {
         
         // Verificar que sea secretario1, secretario2 o secretario legislativo
         const esSecretarioMesa = userData.cargo_mesa_directiva === 'secretario1' || 
-                                  userData.cargo_mesa_directiva === 'secretario2';
+                                  userData.cargo_mesa_directiva === 'secretario2' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 1' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 2';
         const esSecretarioLegislativo = userData.role === 'secretario';
         
         if (!esSecretarioMesa && !esSecretarioLegislativo) {
@@ -333,7 +337,9 @@ router.post('/rectificar', (req, res) => {
         
         // Solo secretario1, secretario2 o secretario legislativo pueden rectificar
         const esSecretarioMesa = userData.cargo_mesa_directiva === 'secretario1' || 
-                                  userData.cargo_mesa_directiva === 'secretario2';
+                                  userData.cargo_mesa_directiva === 'secretario2' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 1' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 2';
         const esSecretarioLegislativo = userData.role === 'secretario';
         
         if (!esSecretarioMesa && !esSecretarioLegislativo) {
@@ -400,7 +406,8 @@ router.post('/reiniciar', (req, res) => {
         
         const esSecretarioMesa = userData.cargo_mesa_directiva === 'secretario1' || 
                                   userData.cargo_mesa_directiva === 'secretario2' ||
-                                  userData.cargo_mesa_directiva === 'Secretario de la Mesa Directiva';
+                                  userData.cargo_mesa_directiva === 'Secretario 1' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 2';
         const esSecretarioLegislativo = userData.role === 'secretario';
         
         if (!esSecretarioMesa && !esSecretarioLegislativo) {
@@ -417,10 +424,31 @@ router.post('/reiniciar', (req, res) => {
                 return res.status(400).json({ error: 'No hay sesión activa' });
             }
             
-            // Eliminar todas las asistencias de la sesión actual
-            db.run(
-                'DELETE FROM asistencias WHERE sesion_id = ?',
+            // Obtener el pase de lista más reciente de esta sesión (no finalizado)
+            db.get(
+                'SELECT id FROM pase_lista WHERE sesion_id = ? AND finalizado = 0 ORDER BY fecha DESC LIMIT 1',
                 [sesion.id],
+                (err, paseLista) => {
+                    if (err) {
+                        console.error('Error obteniendo pase de lista:', err);
+                        return res.status(500).json({ error: 'Error obteniendo pase de lista' });
+                    }
+                    
+                    if (!paseLista) {
+                        // Si no hay pase de lista, no hay nada que reiniciar
+                        return res.json({ 
+                            success: true, 
+                            mensaje: 'No hay pase de lista activo para reiniciar',
+                            asistencias_eliminadas: 0
+                        });
+                    }
+                    
+                    // Eliminar todas las asistencias del pase de lista actual
+                    console.log(`Intentando eliminar asistencias para pase_lista_id: ${paseLista.id}`);
+                    
+                    db.run(
+                        'DELETE FROM asistencias WHERE pase_lista_id = ?',
+                        [paseLista.id],
                 function(err) {
                     if (err) {
                         console.error('Error eliminando asistencias:', err);
@@ -443,6 +471,7 @@ router.post('/reiniciar', (req, res) => {
                     });
                 }
             );
+                });
         });
     });
 });
@@ -460,7 +489,9 @@ router.post('/activar', (req, res) => {
         }
         
         const esSecretarioMesa = userData.cargo_mesa_directiva === 'secretario1' || 
-                                  userData.cargo_mesa_directiva === 'secretario2';
+                                  userData.cargo_mesa_directiva === 'secretario2' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 1' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 2';
         const esSecretarioLegislativo = userData.role === 'secretario';
         
         if (!esSecretarioMesa && !esSecretarioLegislativo) {
@@ -653,6 +684,8 @@ router.post('/guardar', (req, res) => {
         user.cargo_mesa_directiva === 'Secretario de la Mesa Directiva' ||
         user.cargo_mesa_directiva === 'secretario1' ||
         user.cargo_mesa_directiva === 'secretario2' ||
+        user.cargo_mesa_directiva === 'Secretario 1' ||
+        user.cargo_mesa_directiva === 'Secretario 2' ||
         user.nombre_completo === 'Alberto Sánchez Ortega' ||
         user.nombre_completo === 'Guillermina Maya' ||
         user.role === 'secretario' ||
