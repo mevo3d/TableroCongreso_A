@@ -2420,6 +2420,8 @@
                 
                 if (response.ok) {
                     console.log('Tema guardado en la base de datos:', themeName);
+                    // Notificar a otras pestañas que recarguen el tema
+                    localStorage.setItem('system-theme-reload', Date.now().toString());
                 }
             } catch (error) {
                 console.error('Error guardando tema:', error);
@@ -2942,6 +2944,9 @@
             // Guardar en localStorage temporalmente
             localStorage.setItem('tempTheme', JSON.stringify(theme));
             
+            // Notificar a otras pestañas que recarguen el tema
+            localStorage.setItem('system-theme-reload', Date.now().toString());
+            
             Swal.fire({
                 icon: 'success',
                 title: 'Tema aplicado',
@@ -2982,10 +2987,13 @@
                     localStorage.setItem('customTheme', JSON.stringify(theme));
                     applyTheme();
                     
+                    // Notificar a otras pestañas que recarguen el tema
+                    localStorage.setItem('system-theme-reload', Date.now().toString());
+                    
                     Swal.fire({
                         icon: 'success',
                         title: 'Tema guardado',
-                        text: 'El tema se ha guardado permanentemente'
+                        text: 'El tema se ha guardado permanentemente y se aplicará a todos los paneles'
                     });
                 } else {
                     throw new Error('Error al guardar tema');
