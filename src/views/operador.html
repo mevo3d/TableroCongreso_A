@@ -727,29 +727,14 @@
                         
                         <!-- Tab de PDF -->
                         <div class="tab-pane fade" id="pdfTab">
-                            <form id="extraordinariaPdfForm">
-                                <div class="mb-3">
-                                    <label class="form-label">Archivo PDF con Iniciativas Extraordinarias</label>
-                                    <input type="file" class="form-control" id="extPdfFile" accept=".pdf" required>
-                                    <small class="text-muted">El PDF debe contener solo las iniciativas extraordinarias</small>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Rango de números (opcional)</label>
-                                    <div class="row">
-                                        <div class="col">
-                                            <input type="number" class="form-control" id="extNumeroInicio" placeholder="Desde">
-                                        </div>
-                                        <div class="col">
-                                            <input type="number" class="form-control" id="extNumeroFin" placeholder="Hasta">
-                                        </div>
-                                    </div>
-                                    <small class="text-muted">Si no se especifica, se asignarán números automáticamente</small>
-                                </div>
-                                <button type="submit" class="btn btn-warning w-100">
-                                    <i class="fas fa-file-import"></i> Importar desde PDF
-                                </button>
-                            </form>
-                            
+                            <div class="mb-3">
+                                <label class="form-label">Archivo PDF con Iniciativas Extraordinarias</label>
+                                <input type="file" class="form-control" id="pdfExtraordinarias" accept=".pdf">
+                                <small class="text-muted">El PDF debe contener las iniciativas extraordinarias en formato estructurado</small>
+                            </div>
+                            <button type="button" class="btn btn-warning" onclick="procesarPDFExtraordinarias()">
+                                <i class="fas fa-file-import"></i> Procesar PDF
+                            </button>
                             <div id="pdfExtraordinariasStatus" class="mt-3"></div>
                         </div>
                     </div>
@@ -3649,6 +3634,260 @@
         // Mostrar vista previa antes de confirmar
         function mostrarVistaPrevia() {
             alert(`Vista Previa:\n\nTotal de iniciativas: ${iniciativasValidacion.length}\nIniciativas para votación: ${iniciativasValidacion.filter(i => i.requiere_votacion).length}\n\n¿Proceder con la carga?`);
+        }
+        
+        // ============ FUNCIONES PARA INICIATIVAS EXTRAORDINARIAS ============
+        let iniciativasExtraordinariasTemp = [];
+        let listaDiputados = [];
+        
+        // Mostrar modal de iniciativas extraordinarias
+        function mostrarModalExtraordinarias() {
+            cargarListaDiputados();
+            cargarNumerosDisponiblesExtraordinarias();
+            const modalElement = document.getElementById('extraordinariasModal');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',
+                    keyboard: true
+                });
+                modal.show();
+            }
+        }
+        
+        // Cargar lista de diputados para el selector
+        async function cargarListaDiputados() {
+            try {
+                const response = await fetch('/api/operador/lista-diputados', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const diputados = await response.json();
+                    listaDiputados = diputados;
+                    
+                    const select = document.getElementById('extPresentador');
+                    if (select) {
+                        select.innerHTML = '<option value="">Seleccionar diputado...</option>';
+                        diputados.forEach(dip => {
+                            const option = document.createElement('option');
+                            option.value = dip.nombre_completo;
+                            option.textContent = dip.nombre_completo;
+                            option.dataset.partido = dip.partido;
+                            select.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando diputados:', error);
+            }
+        }
+        
+        // Cargar números disponibles para extraordinarias
+        async function cargarNumerosDisponiblesExtraordinarias() {
+            try {
+                const response = await fetch('/api/operador/numeros-disponibles', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const select = document.getElementById('extNumero');
+                    if (select) {
+                        select.innerHTML = '<option value="">Seleccionar posición...</option>';
+                        
+                        // Agregar opciones disponibles
+                        data.disponibles.forEach(num => {
+                            const option = document.createElement('option');
+                            option.value = num;
+                            option.textContent = `Posición ${num}`;
+                            select.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando números disponibles:', error);
+            }
+        }
+        
+        // Actualizar partido automáticamente cuando se selecciona diputado
+        function actualizarPartidoAutomatico() {
+            const select = document.getElementById('extPresentador');
+            const partidoSelect = document.getElementById('extPartido');
+            
+            if (select && partidoSelect) {
+                const selectedOption = select.options[select.selectedIndex];
+                if (selectedOption && selectedOption.dataset.partido) {
+                    partidoSelect.value = selectedOption.dataset.partido;
+                }
+            }
+        }
+        
+        // Agregar iniciativa extraordinaria a la lista temporal
+        function agregarExtraordinaria() {
+            const iniciativa = {
+                numero: document.getElementById('extNumero').value,
+                descripcion: document.getElementById('extDescripcion').value,
+                presentador: document.getElementById('extPresentador').value,
+                partido_presentador: document.getElementById('extPartido').value,
+                tipo_mayoria: document.getElementById('extTipoMayoria').value,
+                tipo_iniciativa: 'extraordinaria'
+            };
+            
+            if (!iniciativa.numero || !iniciativa.descripcion) {
+                alert('Por favor complete los campos obligatorios');
+                return;
+            }
+            
+            iniciativasExtraordinariasTemp.push(iniciativa);
+            actualizarListaExtraordinarias();
+            
+            // Limpiar formulario
+            document.getElementById('extNumero').value = '';
+            document.getElementById('extDescripcion').value = '';
+            document.getElementById('extPresentador').value = '';
+            document.getElementById('extPartido').value = '';
+            document.getElementById('extTipoMayoria').value = 'simple';
+        }
+        
+        // Actualizar lista visual de extraordinarias agregadas
+        function actualizarListaExtraordinarias() {
+            const lista = document.getElementById('listaExtraordinarias');
+            
+            if (!lista) return;
+            
+            if (iniciativasExtraordinariasTemp.length === 0) {
+                lista.innerHTML = '<p class="text-muted">No hay iniciativas extraordinarias agregadas</p>';
+                return;
+            }
+            
+            lista.innerHTML = iniciativasExtraordinariasTemp.map((init, index) => `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>#${init.numero}</strong> - ${init.descripcion}
+                            <br>
+                            <small class="text-muted">
+                                ${init.presentador ? `Por: ${init.presentador}` : ''}
+                                ${init.partido_presentador ? `(${init.partido_presentador})` : ''}
+                                | ${init.tipo_mayoria === 'simple' ? 'Mayoría Simple' : 
+                                    init.tipo_mayoria === 'absoluta' ? 'Mayoría Absoluta' :
+                                    init.tipo_mayoria === 'calificada' ? 'Mayoría Calificada' : 'Unanimidad'}
+                            </small>
+                        </div>
+                        <button class="btn btn-sm btn-danger" onclick="eliminarExtraordinaria(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Eliminar iniciativa extraordinaria de la lista temporal
+        function eliminarExtraordinaria(index) {
+            iniciativasExtraordinariasTemp.splice(index, 1);
+            actualizarListaExtraordinarias();
+        }
+        
+        // Procesar PDF de extraordinarias
+        async function procesarPDFExtraordinarias() {
+            const fileInput = document.getElementById('pdfExtraordinarias');
+            const statusDiv = document.getElementById('pdfExtraordinariasStatus');
+            
+            if (!fileInput || !fileInput.files[0]) {
+                alert('Por favor seleccione un archivo PDF');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('pdf', fileInput.files[0]);
+            
+            if (statusDiv) {
+                statusDiv.innerHTML = '<div class="alert alert-info">Procesando PDF...</div>';
+            }
+            
+            try {
+                const response = await fetch('/api/operador/procesar-pdf-extraordinarias', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.iniciativas) {
+                    if (statusDiv) {
+                        statusDiv.innerHTML = `
+                            <div class="alert alert-success">
+                                <strong>PDF procesado exitosamente</strong><br>
+                                Se encontraron ${data.iniciativas.length} iniciativas extraordinarias
+                            </div>
+                        `;
+                    }
+                    
+                    // Agregar las iniciativas procesadas a la lista temporal
+                    data.iniciativas.forEach(init => {
+                        init.tipo_iniciativa = 'extraordinaria';
+                        iniciativasExtraordinariasTemp.push(init);
+                    });
+                    
+                    actualizarListaExtraordinarias();
+                } else {
+                    if (statusDiv) {
+                        statusDiv.innerHTML = `
+                            <div class="alert alert-danger">
+                                Error al procesar PDF: ${data.error || 'Error desconocido'}
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                if (statusDiv) {
+                    statusDiv.innerHTML = '<div class="alert alert-danger">Error al procesar el PDF</div>';
+                }
+            }
+        }
+        
+        // Guardar todas las iniciativas extraordinarias
+        async function guardarTodasExtraordinarias() {
+            if (iniciativasExtraordinariasTemp.length === 0) {
+                alert('No hay iniciativas para guardar');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/operador/guardar-extraordinarias', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        iniciativas: iniciativasExtraordinariasTemp
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert(`Se guardaron ${data.guardadas} iniciativas extraordinarias`);
+                    iniciativasExtraordinariasTemp = [];
+                    actualizarListaExtraordinarias();
+                    bootstrap.Modal.getInstance(document.getElementById('extraordinariasModal')).hide();
+                    loadInitiatives();
+                } else {
+                    alert(data.error || 'Error al guardar iniciativas');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al guardar iniciativas extraordinarias');
+            }
         }
         
         // Guardar iniciativas validadas CON CONFIRMACIÓN

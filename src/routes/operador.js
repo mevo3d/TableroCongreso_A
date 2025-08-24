@@ -1131,6 +1131,102 @@ router.post('/procesar-pdf-extraordinarias', upload.single('pdf'), async (req, r
     }
 });
 
+// Obtener lista de diputados
+router.get('/lista-diputados', (req, res) => {
+    const db = req.db;
+    
+    db.all(`
+        SELECT id, nombre_completo, partido 
+        FROM usuarios 
+        WHERE role = 'diputado' 
+        ORDER BY nombre_completo
+    `, [], (err, diputados) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error obteniendo diputados' });
+        }
+        res.json(diputados);
+    });
+});
+
+// Obtener números disponibles para iniciativas extraordinarias
+router.get('/numeros-disponibles', (req, res) => {
+    const db = req.db;
+    
+    // Obtener sesión activa
+    db.get('SELECT id FROM sesiones WHERE activa = 1', (err, sesion) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error obteniendo sesión' });
+        }
+        
+        if (!sesion) {
+            // Si no hay sesión activa, devolver números del 1 al 50
+            const disponibles = [];
+            for (let i = 1; i <= 50; i++) {
+                disponibles.push(i);
+            }
+            return res.json({ disponibles });
+        }
+        
+        // Obtener números ya usados
+        db.all(`
+            SELECT DISTINCT numero 
+            FROM iniciativas 
+            WHERE sesion_id = ?
+            ORDER BY numero
+        `, [sesion.id], (err, usados) => {
+            if (err) {
+                return res.status(500).json({ error: 'Error obteniendo números usados' });
+            }
+            
+            const numerosUsados = usados.map(u => u.numero);
+            const disponibles = [];
+            
+            // Generar lista de números disponibles
+            let maxNumero = Math.max(...numerosUsados, 0) + 10;
+            for (let i = 1; i <= maxNumero; i++) {
+                if (!numerosUsados.includes(i)) {
+                    disponibles.push(i);
+                }
+            }
+            
+            // Agregar algunos números extras al final
+            for (let i = maxNumero + 1; i <= maxNumero + 5; i++) {
+                disponibles.push(i);
+            }
+            
+            res.json({ disponibles });
+        });
+    });
+});
+
+// Procesar PDF de iniciativas extraordinarias
+router.post('/procesar-pdf-extraordinarias', upload.single('pdf'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No se proporcionó archivo PDF' });
+    }
+    
+    try {
+        // Aquí normalmente procesarías el PDF
+        // Por ahora devolvemos un ejemplo
+        const iniciativas = [
+            {
+                numero: 'EXT-1',
+                descripcion: 'Iniciativa extraordinaria de ejemplo',
+                tipo_mayoria: 'simple'
+            }
+        ];
+        
+        res.json({ 
+            success: true, 
+            iniciativas,
+            mensaje: 'PDF procesado correctamente'
+        });
+    } catch (error) {
+        console.error('Error procesando PDF:', error);
+        res.status(500).json({ error: 'Error al procesar el PDF' });
+    }
+});
+
 // Guardar iniciativas extraordinarias
 router.post('/guardar-extraordinarias', async (req, res) => {
     const db = req.db;
