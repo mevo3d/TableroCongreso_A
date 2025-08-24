@@ -1351,6 +1351,11 @@
             
             // Recargar la sesión activa
             loadActiveSession();
+            
+            // Forzar recarga después de un breve retraso para asegurar actualización
+            setTimeout(() => {
+                loadActiveSession();
+            }, 1500);
         });
         
         // Evento de clausura de sesión

@@ -829,15 +829,14 @@
             <!-- Panel de Control del Presidente -->
             <div id="panelPresidente" style="display: none;">
                 <h6 class="text-primary mb-3"><i class="fas fa-crown"></i> Panel de Control - Presidente</h6>
-                <a href="#" class="menu-item" onclick="verListaIniciativas()">
+                <a href="#" class="menu-item" onclick="verIniciativasCargadas()">
                     <i class="fas fa-list"></i>
                     <div>
-                        <div>Gestionar Iniciativas</div>
-                        <small class="text-muted">Activar votaciones</small>
+                        <div>Ver Iniciativas Cargadas</div>
+                        <small class="text-muted">Consultar orden del día</small>
                     </div>
                 </a>
-                <a href="#" class="menu-item" onclick="abrirServiciosLegislativos()">
-                    <i class="fas fa-file-alt"></i>
+                <!-- Removido enlace a Servicios Legislativos -->
                     <div>
                         <div>Servicios Legislativos</div>
                         <small class="text-muted">Cargar orden del día</small>
@@ -1034,11 +1033,23 @@
                         <div id="sessionControlStatus" class="mb-3">
                             <!-- Se llenará dinámicamente -->
                         </div>
+                        <!-- Cronómetro de pausa -->
+                        <div id="pauseTimerContainer" class="alert alert-warning mb-3" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-pause-circle"></i> <strong>Sesión Pausada</strong>
+                                </div>
+                                <div class="text-end">
+                                    <small>Tiempo en pausa:</small><br>
+                                    <strong id="pauseTimer" class="fs-5">00:00:00</strong>
+                                </div>
+                            </div>
+                        </div>
                         <div class="d-grid gap-2">
                             <button class="btn btn-success btn-lg" id="btnIniciarSesion" onclick="iniciarSesion()" style="display: none;">
                                 <i class="fas fa-play"></i> Iniciar Sesión Legislativa
                             </button>
-                            <button class="btn btn-warning btn-lg" id="btnPausarSesion" onclick="mostrarModalPausa()" style="display: none;">
+                            <button class="btn btn-warning btn-lg" id="btnPausarSesion" onclick="pausarSesionSimple()" style="display: none;">
                                 <i class="fas fa-pause"></i> Pausar Sesión
                             </button>
                             <button class="btn btn-info btn-lg" id="btnReanudarSesion" onclick="reanudarSesion()" style="display: none;">
@@ -1296,9 +1307,155 @@
             window.location.href = '/tablero-diputado';
         }
         
-        // Esta función se redefine más adelante pero la declaramos aquí para evitar errores
+        // Función de configuración - Definición completa desde el inicio
         window.abrirConfiguracion = function() {
-            alert('La función de configuración se está cargando. Por favor, intente de nuevo en un momento.');
+            toggleMenu();
+            
+            // Verificar que el usuario esté cargado
+            if (!user) {
+                alert('Información del usuario no disponible. Por favor, recarga la página.');
+                return;
+            }
+            
+            // Verificar que el modal exista
+            const modalElement = document.getElementById('modalConfiguracion');
+            if (!modalElement) {
+                console.error('Modal de configuración no encontrado');
+                alert('El modal de configuración no está disponible. Por favor, recarga la página.');
+                return;
+            }
+            
+            // Verificar que los elementos del formulario existan
+            const configNombre = document.getElementById('configNombre');
+            const configUsuario = document.getElementById('configUsuario');
+            const configPartido = document.getElementById('configPartido');
+            const configCargo = document.getElementById('configCargo');
+            const previewFoto = document.getElementById('previewFoto');
+            const configPassword = document.getElementById('configPassword');
+            const configPasswordConfirm = document.getElementById('configPasswordConfirm');
+            
+            if (!configNombre || !configUsuario) {
+                console.error('Elementos del formulario no encontrados');
+                alert('Los elementos del formulario no están disponibles. Por favor, recarga la página.');
+                return;
+            }
+            
+            // Cargar datos actuales del usuario
+            configNombre.value = user.nombre || user.nombre_completo || '';
+            configUsuario.value = user.username || user.usuario || '';
+            if (configPartido) configPartido.value = user.partido || '';
+            if (configCargo) configCargo.value = user.cargo_mesa_directiva || 'Diputado';
+            
+            // Cargar foto actual
+            const fotoPath = user.fotografia || '/images/diputados/default.png';
+            if (previewFoto) previewFoto.src = fotoPath;
+            
+            // Limpiar campos de contraseña
+            if (configPassword) configPassword.value = '';
+            if (configPasswordConfirm) configPasswordConfirm.value = '';
+            
+            // Mostrar modal
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
+        
+        // Función para guardar configuración
+        window.guardarConfiguracion = async function() {
+            const nombre = document.getElementById('configNombre').value.trim();
+            const usuario = document.getElementById('configUsuario').value.trim();
+            const password = document.getElementById('configPassword').value;
+            const passwordConfirm = document.getElementById('configPasswordConfirm').value;
+            
+            // Validaciones
+            if (!nombre || !usuario) {
+                alert('El nombre y usuario son obligatorios');
+                return;
+            }
+            
+            if (password && password !== passwordConfirm) {
+                alert('Las contraseñas no coinciden');
+                return;
+            }
+            
+            if (password && password.length < 6) {
+                alert('La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                formData.append('nombre', nombre);
+                formData.append('usuario', usuario);
+                
+                if (password) {
+                    formData.append('password', password);
+                }
+                
+                // Agregar foto si se seleccionó una
+                const inputFoto = document.getElementById('inputFoto');
+                if (inputFoto && inputFoto.files && inputFoto.files[0]) {
+                    formData.append('fotografia', inputFoto.files[0]);
+                }
+                
+                const response = await fetch('/api/diputado/actualizar-perfil', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Configuración actualizada correctamente');
+                    
+                    // Actualizar datos locales del usuario
+                    user.nombre = nombre;
+                    user.usuario = usuario;
+                    if (data.fotografia) {
+                        user.fotografia = data.fotografia;
+                    }
+                    
+                    // Actualizar header con el nuevo nombre
+                    const deputyNameElement = document.getElementById('deputyName');
+                    if (deputyNameElement) {
+                        deputyNameElement.textContent = nombre;
+                    }
+                    
+                    // Guardar en localStorage
+                    localStorage.setItem('user', JSON.stringify(user));
+                    
+                    // Cerrar modal
+                    bootstrap.Modal.getInstance(document.getElementById('modalConfiguracion')).hide();
+                    
+                    // Si cambió el usuario, sugerir relogin
+                    if (usuario !== (user.username || user.usuario)) {
+                        if (confirm('Has cambiado tu usuario. ¿Deseas cerrar sesión para ingresar con tu nuevo usuario?')) {
+                            logout();
+                        }
+                    }
+                } else {
+                    alert(data.error || 'Error al actualizar la configuración');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al actualizar la configuración');
+            }
+        }
+        
+        // Preview de imagen para configuración
+        window.previewImage = function(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewElement = document.getElementById('previewFoto');
+                    if (previewElement) {
+                        previewElement.src = e.target.result;
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
         }
         
         // ================ INICIALIZACIÓN DE VARIABLES ================
@@ -1318,6 +1475,9 @@
         const isVicepresidente = user && user.cargo_mesa_directiva === 'Vicepresidente';
         let sessionStartTime = null;
         let sessionTimerInterval = null;
+        let pauseStartTime = null;
+        let pauseTimerInterval = null;
+        let sessionPaused = false;
         
         // Identificar usuario al conectarse
         if (user) {
@@ -1610,8 +1770,8 @@
             toggleMenu(); // Cerrar el menú
             
             try {
-                // Obtener información de la sesión actual
-                const response = await fetch('/api/secretario/estado-sesion', {
+                // Obtener información de la sesión actual usando la ruta correcta para diputados
+                const response = await fetch('/api/diputado/sesion-actual', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1620,14 +1780,21 @@
                 if (response.ok) {
                     const data = await response.json();
                     
-                    if (data.sesion_activa && data.sesion.archivo_pdf) {
+                    if (data.sesion && data.sesion.archivo_pdf) {
                         // Abrir el PDF en una nueva ventana
                         window.open(`/documentos-sesion/${data.sesion.archivo_pdf}`, '_blank');
-                    } else if (data.sesion_activa) {
-                        alert('La sesión está activa pero no hay documento PDF disponible');
+                    } else if (data.sesion) {
+                        // Si no hay PDF pero hay iniciativas, mostrarlas
+                        if (data.iniciativas && data.iniciativas.length > 0) {
+                            mostrarModalIniciativas(data.iniciativas);
+                        } else {
+                            alert('No hay documento PDF disponible para esta sesión');
+                        }
                     } else {
                         alert('No hay sesión activa en este momento');
                     }
+                } else if (response.status === 404) {
+                    alert('No hay sesión activa en este momento');
                 } else {
                     alert('Error al obtener información de la sesión');
                 }
@@ -2039,11 +2206,8 @@
                 
                 // Habilitar botón de iniciar sesión si es presidente
                 if (user.cargo_mesa_directiva === 'presidente') {
-                    const btnIniciar = document.getElementById('btnIniciarSesion');
-                    if (btnIniciar) {
-                        btnIniciar.style.display = 'block';
-                        btnIniciar.classList.add('animate__animated', 'animate__pulse');
-                    }
+                    // Solo mostrar botón si la sesión no ha sido iniciada aún
+                    checkSessionStatus();
                 }
                 
                 // Auto-cerrar después de 30 segundos
@@ -2502,7 +2666,7 @@
         // Verificar autorización del vicepresidente
         async function verificarAutorizacionVicepresidente() {
             try {
-                const response = await fetch('/api/secretario/vicepresidente-autorizado', {
+                const response = await fetch('/api/diputado/vicepresidente-autorizado', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -2519,10 +2683,17 @@
                         console.log('Vicepresidente no autorizado');
                         document.getElementById('presidentControls').style.display = 'none';
                     }
+                } else {
+                    // Si el endpoint no existe o hay error, mostrar controles por defecto para vicepresidente
+                    console.log('Verificación de autorización no disponible, mostrando controles');
+                    document.getElementById('presidentControls').style.display = 'block';
+                    checkSessionStatus();
                 }
             } catch (error) {
                 console.error('Error verificando autorización:', error);
-                document.getElementById('presidentControls').style.display = 'none';
+                // En caso de error, mostrar controles por defecto para vicepresidente
+                document.getElementById('presidentControls').style.display = 'block';
+                checkSessionStatus();
             }
         }
         
@@ -2543,7 +2714,7 @@
         // Verificar estado de la sesión para presidente/vicepresidente
         async function checkSessionStatus() {
             try {
-                const response = await fetch('/api/diputado/estado-sesion', {
+                const response = await fetch('/api/diputado/sesion-actual', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -2563,33 +2734,61 @@
             const btnReanudar = document.getElementById('btnReanudarSesion');
             const btnClausurar = document.getElementById('btnClausurarSesion');
             const statsDiv = document.getElementById('sessionStats');
+            const pauseTimerContainer = document.getElementById('pauseTimerContainer');
+            
+            // Primero ocultar todos los botones
+            btnIniciar.style.display = 'none';
+            btnPausar.style.display = 'none';
+            btnReanudar.style.display = 'none';
+            btnClausurar.style.display = 'none';
             
             if (data.sesion_activa) {
+                // Verificar si la sesión está iniciada o solo preparada
+                const sesionIniciada = data.sesion.fecha_inicio && data.sesion.fecha_inicio !== null;
+                const sesionClausurada = data.sesion.fecha_clausura && data.sesion.fecha_clausura !== null;
+                
                 statusDiv.innerHTML = `
                     <div class="alert alert-info">
-                        <strong>Sesión Activa:</strong> ${data.sesion.nombre}<br>
-                        <small>Iniciada: ${new Date(data.sesion.fecha).toLocaleString('es-MX')}</small>
+                        <strong>Sesión:</strong> ${data.sesion.nombre}<br>
+                        <small>Estado: ${sesionClausurada ? 'Clausurada' : sesionIniciada ? 'Iniciada' : 'Preparada para iniciar'}</small>
+                        ${sesionIniciada && !sesionClausurada ? `<br><small>Iniciada: ${new Date(data.sesion.fecha_inicio).toLocaleString('es-MX')}</small>` : ''}
                         ${data.sesion.pausada ? '<br><span class="badge bg-warning">PAUSADA</span>' : ''}
+                        ${data.mensaje_iniciativas ? `<br><div class="alert alert-warning mt-2 mb-0"><i class="fas fa-exclamation-triangle"></i> ${data.mensaje_iniciativas}</div>` : ''}
                     </div>
                 `;
                 
-                btnIniciar.style.display = 'none';
-                
-                // Mostrar botones de pausa/reanudar según estado
-                if (data.puede_pausar) {
-                    if (data.sesion.pausada) {
-                        btnPausar.style.display = 'none';
-                        btnReanudar.style.display = 'block';
-                    } else {
-                        btnPausar.style.display = 'block';
-                        btnReanudar.style.display = 'none';
-                    }
-                } else {
-                    btnPausar.style.display = 'none';
-                    btnReanudar.style.display = 'none';
+                // Si la sesión NO está iniciada pero está activa (preparada)
+                if (!sesionIniciada && !sesionClausurada && data.puede_iniciar) {
+                    btnIniciar.style.display = 'block';
                 }
-                
-                btnClausurar.style.display = data.puede_clausurar ? 'block' : 'none';
+                // Si la sesión ESTÁ iniciada pero NO clausurada
+                else if (sesionIniciada && !sesionClausurada) {
+                    console.log('Sesión iniciada - configurando botones de control');
+                    // Mostrar botones de pausa/reanudar según estado
+                    if (data.puede_pausar) {
+                        if (data.sesion.pausada) {
+                            btnPausar.style.display = 'none';
+                            btnReanudar.style.display = 'block';
+                            // Mostrar y activar cronómetro de pausa
+                            pauseTimerContainer.style.display = 'block';
+                            if (!pauseTimerInterval) {
+                                startPauseTimer();
+                            }
+                        } else {
+                            btnPausar.style.display = 'block';
+                            btnPausar.innerHTML = '<i class="fas fa-pause"></i> Pausar Sesión';
+                            btnPausar.className = 'btn btn-warning btn-lg';
+                            btnReanudar.style.display = 'none';
+                            // Ocultar cronómetro de pausa
+                            pauseTimerContainer.style.display = 'none';
+                            stopPauseTimer();
+                        }
+                    }
+                    // Mostrar botón de clausurar solo si puede
+                    if (data.puede_clausurar) {
+                        btnClausurar.style.display = 'block';
+                    }
+                }
                 
                 // Mostrar botón de recordatorios si es presidente o vicepresidente autorizado
                 const btnRecordatorios = document.getElementById('btnRecordatorios');
@@ -2657,6 +2856,96 @@
             }
         }
         
+        // Funciones del cronómetro de pausa
+        function startPauseTimer() {
+            pauseStartTime = Date.now();
+            if (pauseTimerInterval) clearInterval(pauseTimerInterval);
+            pauseTimerInterval = setInterval(updatePauseTimer, 1000);
+            updatePauseTimer();
+        }
+        
+        function stopPauseTimer() {
+            if (pauseTimerInterval) {
+                clearInterval(pauseTimerInterval);
+                pauseTimerInterval = null;
+            }
+            pauseStartTime = null;
+            document.getElementById('pauseTimer').textContent = '00:00:00';
+        }
+        
+        function updatePauseTimer() {
+            if (!pauseStartTime) return;
+            
+            const elapsed = Date.now() - pauseStartTime;
+            const hours = Math.floor(elapsed / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('pauseTimer').textContent = timeString;
+        }
+        
+        // Pausar sesión simple (sin modal)
+        async function pausarSesionSimple() {
+            if (!confirm('¿Deseas pausar la sesión?')) return;
+            
+            try {
+                const response = await fetch('/api/diputado/pausar-sesion', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ minutos: 0 }) // Sin tiempo límite
+                });
+                
+                if (response.ok) {
+                    sessionPaused = true;
+                    // Pausar el cronómetro principal
+                    if (sessionTimerInterval) {
+                        clearInterval(sessionTimerInterval);
+                    }
+                    // Iniciar cronómetro de pausa
+                    startPauseTimer();
+                    checkSessionStatus();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al pausar sesión');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al pausar sesión');
+            }
+        }
+        
+        // Reanudar sesión
+        async function reanudarSesion() {
+            try {
+                const response = await fetch('/api/diputado/reanudar-sesion', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    sessionPaused = false;
+                    // Detener cronómetro de pausa
+                    stopPauseTimer();
+                    // Reanudar cronómetro principal
+                    startSessionTimer();
+                    checkSessionStatus();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al reanudar sesión');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al reanudar sesión');
+            }
+        }
+        
         // Iniciar sesión
         async function iniciarSesion() {
             if (!confirm('¿Deseas iniciar una nueva sesión legislativa?')) return;
@@ -2674,10 +2963,19 @@
                 
                 if (response.ok) {
                     alert('Sesión iniciada correctamente');
+                    // Forzar actualización inmediata y después de un pequeño retraso
                     checkSessionStatus();
-                    startSessionTimer(); // Reiniciar cronómetro
+                    setTimeout(() => {
+                        checkSessionStatus();
+                        startSessionTimer(); // Reiniciar cronómetro
+                    }, 500);
                 } else {
-                    alert(data.error || 'Error al iniciar sesión');
+                    // Mostrar mensaje más específico si es por falta de iniciativas
+                    if (data.requiere_iniciativas) {
+                        alert('❌ No se puede iniciar la sesión\n\n' + data.mensaje);
+                    } else {
+                        alert(data.error || 'Error al iniciar sesión');
+                    }
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -3574,7 +3872,97 @@
         }
         
         // Funciones para el Presidente de la Mesa Directiva
+        async function verIniciativasCargadas() {
+            toggleMenu();
+            
+            if (!isPresidente) {
+                alert('Solo el Presidente de la Mesa Directiva puede acceder a esta función');
+                return;
+            }
+            
+            // Mostrar las iniciativas cargadas para la sesión actual
+            try {
+                const response = await fetch('/api/diputado/iniciativas-sesion', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Error al obtener iniciativas');
+                }
+                
+                const data = await response.json();
+                
+                // Mostrar modal con las iniciativas
+                mostrarModalIniciativas(data.iniciativas || []);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al obtener las iniciativas de la sesión');
+            }
+        }
+        
+        // Función para mostrar modal con iniciativas
+        function mostrarModalIniciativas(iniciativas) {
+            // Crear modal si no existe
+            let modal = document.getElementById('modalIniciativasPresidente');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'modalIniciativasPresidente';
+                modal.className = 'modal fade';
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">Iniciativas de la Sesión</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="modalIniciativasBody">
+                                <!-- Contenido dinámico -->
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            
+            // Llenar contenido
+            const bodyElement = document.getElementById('modalIniciativasBody');
+            if (iniciativas.length === 0) {
+                bodyElement.innerHTML = '<p class="text-center text-muted">No hay iniciativas cargadas para esta sesión</p>';
+            } else {
+                bodyElement.innerHTML = `
+                    <div class="list-group">
+                        ${iniciativas.map((init, index) => `
+                            <div class="list-group-item">
+                                <h6 class="mb-1">${index + 1}. ${init.titulo || init.descripcion}</h6>
+                                <p class="mb-1 small">${init.descripcion || ''}</p>
+                                <small class="text-muted">
+                                    ${init.presentador ? `Presentador: ${init.presentador}` : ''}
+                                    ${init.tipo_mayoria ? ` | Mayoría: ${init.tipo_mayoria}` : ''}
+                                </small>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            // Mostrar modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
+        
+        // Mantener compatibilidad con llamadas anteriores
         async function verListaIniciativas() {
+            verIniciativasCargadas();
+        }
+        
+        // Función original que ya no se usa pero mantenemos por compatibilidad
+        async function verListaIniciativasOriginal() {
             toggleMenu();
             
             if (!isPresidente) {
@@ -3990,69 +4378,11 @@
             alert('Función de quórum en desarrollo');
         }
         
-        // Función para configuración - Sobrescribimos la función temporal
-        window.abrirConfiguracion = function() {
-            toggleMenu();
-            
-            // Verificar que el usuario esté cargado
-            if (!user) {
-                alert('Información del usuario no disponible. Por favor, recarga la página.');
-                return;
-            }
-            
-            // Verificar que el modal exista
-            const modalElement = document.getElementById('modalConfiguracion');
-            if (!modalElement) {
-                alert('El modal de configuración no está disponible. Por favor, recarga la página.');
-                return;
-            }
-            
-            // Verificar que los elementos del formulario existan
-            const configNombre = document.getElementById('configNombre');
-            const configUsuario = document.getElementById('configUsuario');
-            const configPartido = document.getElementById('configPartido');
-            const configCargo = document.getElementById('configCargo');
-            const previewFoto = document.getElementById('previewFoto');
-            const configPassword = document.getElementById('configPassword');
-            const configPasswordConfirm = document.getElementById('configPasswordConfirm');
-            
-            if (!configNombre || !configUsuario) {
-                alert('Los elementos del formulario no están disponibles. Por favor, recarga la página.');
-                return;
-            }
-            
-            // Cargar datos actuales del usuario
-            configNombre.value = user.nombre || '';
-            configUsuario.value = user.username || user.usuario || '';
-            if (configPartido) configPartido.value = user.partido || '';
-            if (configCargo) configCargo.value = user.cargo_mesa_directiva || 'Diputado';
-            
-            // Cargar foto actual
-            const fotoPath = user.fotografia || '/images/diputados/default.png';
-            if (previewFoto) previewFoto.src = fotoPath;
-            
-            // Limpiar campos de contraseña
-            if (configPassword) configPassword.value = '';
-            if (configPasswordConfirm) configPasswordConfirm.value = '';
-            
-            // Mostrar modal
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-        }
+        // Las funciones abrirConfiguracion, guardarConfiguracion y previewImage ya están definidas al inicio del archivo
         
-        // Preview de imagen
-        function previewImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('previewFoto').src = e.target.result;
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-        
-        // Guardar configuración
-        async function guardarConfiguracion() {
+        // Función duplicada eliminada - guardarConfiguracion ya está definida arriba
+        /*
+        async function guardarConfiguracion_OLD() {
             const nombre = document.getElementById('configNombre').value.trim();
             const usuario = document.getElementById('configUsuario').value.trim();
             const password = document.getElementById('configPassword').value;
@@ -4129,6 +4459,7 @@
                 alert('Error al actualizar la configuración');
             }
         }
+        */
 
         // Funciones de Servicios Legislativos
         let iniciativasExtraccion = [];

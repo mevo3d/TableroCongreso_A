@@ -2,6 +2,7 @@ const express = require('express');
 const { authenticateToken, authorize } = require('../auth/middleware');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
+const sessionState = require('../shared/session-state');
 
 const router = express.Router();
 
@@ -112,7 +113,7 @@ router.get('/dashboard', (req, res) => {
 router.get('/estado-pase-lista', (req, res) => {
     const db = req.db;
     
-    db.get('SELECT id, pase_lista_activo FROM sesiones WHERE activa = 1', (err, sesion) => {
+    db.get('SELECT id, pase_lista_activo, fecha_inicio FROM sesiones WHERE activa = 1', (err, sesion) => {
         if (err) {
             return res.status(500).json({ error: 'Error verificando estado' });
         }
@@ -125,9 +126,20 @@ router.get('/estado-pase-lista', (req, res) => {
             });
         }
         
+        // Verificar que la sesión esté iniciada
+        if (!sesion.fecha_inicio) {
+            return res.json({ 
+                pase_lista_activo: false,
+                sesion_activa: true,
+                sesion_iniciada: false,
+                mensaje: 'La sesión debe ser iniciada por el Presidente antes de realizar el pase de lista'
+            });
+        }
+        
         res.json({ 
             pase_lista_activo: sesion.pase_lista_activo === 1,
             sesion_activa: true,
+            sesion_iniciada: true,
             sesion_id: sesion.id
         });
     });
@@ -224,24 +236,62 @@ router.post('/activar-iniciativa/:id', (req, res) => {
     const { id } = req.params;
     const db = req.db;
     
-    // Desactivar otras iniciativas
-    db.run('UPDATE iniciativas SET activa = 0', (err) => {
+    // Primero verificar que la sesión esté iniciada
+    db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
         if (err) {
-            return res.status(500).json({ error: 'Error desactivando iniciativas' });
+            return res.status(500).json({ error: 'Error verificando sesión' });
         }
         
-        // Activar la iniciativa seleccionada
-        db.run('UPDATE iniciativas SET activa = 1 WHERE id = ?', [id], (err) => {
+        if (!sesion) {
+            return res.status(400).json({ error: 'No hay sesión activa' });
+        }
+        
+        // Verificar que la sesión esté iniciada (no solo preparada)
+        if (!sesion.fecha_inicio) {
+            return res.status(400).json({ 
+                error: 'La sesión debe ser iniciada por el Presidente antes de activar iniciativas',
+                estado: 'preparada'
+            });
+        }
+        
+        // Verificar que se haya realizado el pase de lista
+        db.get(`
+            SELECT COUNT(*) as asistencias_registradas 
+            FROM asistencias 
+            WHERE sesion_id = ?
+        `, [sesion.id], (err, resultado) => {
             if (err) {
-                return res.status(500).json({ error: 'Error activando iniciativa' });
+                return res.status(500).json({ error: 'Error verificando pase de lista' });
             }
             
-            // Obtener la iniciativa para emitir evento
-            db.get('SELECT * FROM iniciativas WHERE id = ?', [id], (err, iniciativa) => {
-                if (!err && iniciativa) {
-                    req.io.emit('iniciativa-activa', iniciativa);
+            if (!resultado || resultado.asistencias_registradas === 0) {
+                return res.status(400).json({ 
+                    error: 'Debe completarse el pase de lista antes de iniciar votaciones',
+                    mensaje: 'Los Secretarios-Diputados deben realizar el pase de lista primero',
+                    requiere_pase_lista: true
+                });
+            }
+            
+            // Desactivar otras iniciativas
+            db.run('UPDATE iniciativas SET activa = 0', (err) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error desactivando iniciativas' });
                 }
-                res.json({ message: 'Iniciativa activada' });
+                
+                // Activar la iniciativa seleccionada
+                db.run('UPDATE iniciativas SET activa = 1 WHERE id = ?', [id], (err) => {
+                    if (err) {
+                        return res.status(500).json({ error: 'Error activando iniciativa' });
+                    }
+                    
+                    // Obtener la iniciativa para emitir evento
+                    db.get('SELECT * FROM iniciativas WHERE id = ?', [id], (err, iniciativa) => {
+                        if (!err && iniciativa) {
+                            req.io.emit('iniciativa-activa', iniciativa);
+                        }
+                        res.json({ message: 'Iniciativa activada' });
+                    });
+                });
             });
         });
     });
@@ -538,8 +588,6 @@ router.post('/pausar-votacion', (req, res) => {
 });
 
 // Autorizar/Desautorizar Vicepresidente
-let vicepresidenteAutorizado = false; // Estado global de autorización
-
 router.post('/autorizar-vicepresidente', (req, res) => {
     const { autorizado } = req.body;
     const io = req.io;
@@ -549,11 +597,11 @@ router.post('/autorizar-vicepresidente', (req, res) => {
         return res.status(403).json({ error: 'No tienes permisos para autorizar' });
     }
     
-    vicepresidenteAutorizado = autorizado;
+    sessionState.setVicepresidenteAutorizado(autorizado);
     
     // Notificar a todos los usuarios, especialmente al vicepresidente
     io.emit('autorizacion-vicepresidente-cambiada', {
-        autorizado: vicepresidenteAutorizado,
+        autorizado: sessionState.getVicepresidenteAutorizado(),
         autorizado_por: req.user.nombre
     });
     
@@ -566,12 +614,12 @@ router.post('/autorizar-vicepresidente', (req, res) => {
 
 // Obtener estado de autorización
 router.get('/estado-autorizacion-vice', (req, res) => {
-    res.json({ autorizado: vicepresidenteAutorizado });
+    res.json({ autorizado: sessionState.getVicepresidenteAutorizado() });
 });
 
 // Endpoint público para verificar autorización (usado por vicepresidente)
 router.get('/vicepresidente-autorizado', (req, res) => {
-    res.json({ autorizado: vicepresidenteAutorizado });
+    res.json({ autorizado: sessionState.getVicepresidenteAutorizado() });
 });
 
 // Reanudar votación

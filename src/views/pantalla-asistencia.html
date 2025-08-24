@@ -118,23 +118,64 @@
         .deputies-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            gap: 20px;
             max-width: 1400px;
             margin: 0 auto;
+        }
+        
+        .deputy-column {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         
         .deputy-item {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 8px;
-            padding: 10px;
+            padding: 12px 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: space-between;
             transition: all 0.3s;
             border: 2px solid transparent;
             position: relative;
             overflow: hidden;
-            min-height: 70px;
+            min-height: 60px;
+        }
+        
+        .deputy-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+        
+        .deputy-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .deputy-name {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        
+        .deputy-status-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
         }
         
         .deputy-item::before {
@@ -159,13 +200,28 @@
         }
         
         .deputy-item.present {
-            background: rgba(40, 167, 69, 0.1);
-            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.15);
+            border-color: rgba(40, 167, 69, 0.5);
         }
         
         .deputy-item.absent {
-            background: rgba(220, 53, 69, 0.1);
-            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.15);
+            border-color: rgba(220, 53, 69, 0.5);
+        }
+        
+        .deputy-status-icon.present {
+            background: #28a745;
+            color: white;
+        }
+        
+        .deputy-status-icon.absent {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .deputy-status-icon.pending {
+            background: #6c757d;
+            color: white;
         }
         
         .deputy-photo {
@@ -475,23 +531,48 @@
                 const data = await response.json();
                 
                 console.log('Estado del pase de lista:', data);
+                console.log('Diputados recibidos:', data.diputados);
                 
                 // Verificar si hay datos de diputados (indica pase de lista activo)
                 if (data.diputados && data.diputados.length > 0) {
                     paseListaActivo = true;
                     diputadosData = data.diputados || [];
-                    asistenciaData = data.asistencias || {};
+                    
+                    // Construir objeto de asistencias desde los datos de diputados
+                    asistenciaData = {};
+                    data.diputados.forEach(diputado => {
+                        if (diputado.asistencia && diputado.asistencia !== 'sin_marcar') {
+                            asistenciaData[diputado.id] = diputado.asistencia;
+                        }
+                    });
+                    
+                    console.log('Asistencias procesadas:', asistenciaData);
+                    
                     document.getElementById('statsContainer').style.display = 'flex';
                     renderizarDiputados();
                     actualizarEstadisticas();
-                    console.log('Pase de lista activo con', diputadosData.length, 'diputados');
+                    console.log('✅ Pase de lista activo con', diputadosData.length, 'diputados');
                 } else if (data.activo === false) {
                     // No hay pase de lista activo
                     paseListaActivo = false;
-                    console.log('No hay pase de lista activo, esperando activación...');
+                    console.log('❌ No hay pase de lista activo, esperando activación...');
+                    document.getElementById('deputiesContent').innerHTML = `
+                        <div class="waiting-message">
+                            <i class="fas fa-clock"></i>
+                            <h2>Esperando inicio del pase de lista</h2>
+                            <p>El pase de lista será activado por el secretario</p>
+                        </div>
+                    `;
                 }
             } catch (error) {
                 console.error('Error verificando estado:', error);
+                document.getElementById('deputiesContent').innerHTML = `
+                    <div class="waiting-message">
+                        <i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i>
+                        <h2>Error de conexión</h2>
+                        <p>No se pudo conectar con el servidor</p>
+                    </div>
+                `;
             }
         }
         
@@ -532,45 +613,63 @@
                 return (a.nombre_completo || '').localeCompare(b.nombre_completo || '');
             });
             
+            // Dividir diputados en dos columnas
+            const mitad = Math.ceil(diputadosOrdenados.length / 2);
+            const columna1 = diputadosOrdenados.slice(0, mitad);
+            const columna2 = diputadosOrdenados.slice(mitad);
+            
             const html = `
                 <div class="deputies-grid">
-                    ${diputadosOrdenados.map(diputado => {
-                        const asistencia = asistenciaData[diputado.id] || 'pendiente';
-                        const statusClass = asistencia === 'presente' ? 'present' : 
-                                          asistencia === 'ausente' ? 'absent' : '';
-                        const statusIcon = asistencia === 'presente' ? 'fa-check-circle' : 
-                                         asistencia === 'ausente' ? 'fa-times-circle' : 
-                                         'fa-question-circle';
-                        const statusText = asistencia === 'presente' ? 'PRESENTE' : 
-                                         asistencia === 'ausente' ? 'AUSENTE' : 
-                                         'SIN MARCAR';
-                        
-                        // Limpiar nombre del partido para clase CSS
-                        const partyClass = diputado.partido ? 
-                            'party-' + diputado.partido.replace(/\s+/g, '-').toUpperCase() : '';
-                        
-                        return `
-                            <div class="deputy-item ${statusClass}" data-id="${diputado.id}">
-                                <div class="deputy-photo">
-                                    ${diputado.foto_url ? 
-                                        `<img src="${diputado.foto_url}" alt="${diputado.nombre_completo}">` :
-                                        `<i class="fas fa-user"></i>`
-                                    }
+                    <div class="deputy-column">
+                        ${columna1.map((diputado, index) => {
+                            const asistencia = asistenciaData[diputado.id] || 'pendiente';
+                            const statusClass = asistencia === 'presente' ? 'present' : 
+                                              asistencia === 'ausente' ? 'absent' : '';
+                            const statusIcon = asistencia === 'presente' ? 'fa-check' : 
+                                             asistencia === 'ausente' ? 'fa-times' : 
+                                             'fa-minus';
+                            const statusIconClass = asistencia === 'presente' ? 'present' : 
+                                                   asistencia === 'ausente' ? 'absent' : 
+                                                   'pending';
+                            
+                            return `
+                                <div class="deputy-item ${statusClass}" data-id="${diputado.id}">
+                                    <div class="deputy-info">
+                                        <div class="deputy-number">${index + 1}</div>
+                                        <div class="deputy-name">${diputado.nombre_completo}</div>
+                                    </div>
+                                    <div class="deputy-status-icon ${statusIconClass}">
+                                        <i class="fas ${statusIcon}"></i>
+                                    </div>
                                 </div>
-                                <div class="deputy-info">
-                                    <div class="deputy-name">${diputado.nombre_completo}</div>
-                                    ${diputado.partido ? 
-                                        `<span class="deputy-party ${partyClass}">${diputado.partido}</span>` : 
-                                        ''
-                                    }
-                                    <button class="status-button ${asistencia === 'presente' ? 'presente' : asistencia === 'ausente' ? 'ausente' : 'pendiente'}">
-                                        <i class="fas ${statusIcon} status-icon"></i>
-                                        ${statusText}
-                                    </button>
+                            `;
+                        }).join('')}
+                    </div>
+                    <div class="deputy-column">
+                        ${columna2.map((diputado, index) => {
+                            const asistencia = asistenciaData[diputado.id] || 'pendiente';
+                            const statusClass = asistencia === 'presente' ? 'present' : 
+                                              asistencia === 'ausente' ? 'absent' : '';
+                            const statusIcon = asistencia === 'presente' ? 'fa-check' : 
+                                             asistencia === 'ausente' ? 'fa-times' : 
+                                             'fa-minus';
+                            const statusIconClass = asistencia === 'presente' ? 'present' : 
+                                                   asistencia === 'ausente' ? 'absent' : 
+                                                   'pending';
+                            
+                            return `
+                                <div class="deputy-item ${statusClass}" data-id="${diputado.id}">
+                                    <div class="deputy-info">
+                                        <div class="deputy-number">${mitad + index + 1}</div>
+                                        <div class="deputy-name">${diputado.nombre_completo}</div>
+                                    </div>
+                                    <div class="deputy-status-icon ${statusIconClass}">
+                                        <i class="fas ${statusIcon}"></i>
+                                    </div>
                                 </div>
-                            </div>
-                        `;
-                    }).join('')}
+                            `;
+                        }).join('')}
+                    </div>
                 </div>
             `;
             
@@ -586,47 +685,25 @@
                 // Remover clases anteriores
                 deputyElement.classList.remove('present', 'absent', 'updating');
                 
-                // Actualizar botón
-                const statusButton = deputyElement.querySelector('.status-button');
-                if (statusButton) {
-                    statusButton.className = 'status-button';
-                    let statusIcon = 'fa-question-circle';
-                    let statusText = 'SIN MARCAR';
+                // Actualizar icono de estado
+                const statusIcon = deputyElement.querySelector('.deputy-status-icon');
+                if (statusIcon) {
+                    statusIcon.className = 'deputy-status-icon';
+                    let iconClass = 'fa-minus';
                     
                     if (asistencia === 'presente') {
-                        statusButton.classList.add('presente');
-                        statusIcon = 'fa-check-circle';
-                        statusText = 'PRESENTE';
+                        iconClass = 'fa-check';
+                        statusIcon.classList.add('present');
                         deputyElement.classList.add('present');
                     } else if (asistencia === 'ausente') {
-                        statusButton.classList.add('ausente');
-                        statusIcon = 'fa-times-circle';
-                        statusText = 'AUSENTE';
+                        iconClass = 'fa-times';
+                        statusIcon.classList.add('absent');
                         deputyElement.classList.add('absent');
                     } else {
-                        statusButton.classList.add('pendiente');
+                        statusIcon.classList.add('pending');
                     }
                     
-                    statusButton.innerHTML = `
-                        <i class="fas ${statusIcon} status-icon"></i>
-                        ${statusText}
-                    `;
-                }
-                
-                // Actualizar texto de estado
-                const statusElement = deputyElement.querySelector('.deputy-status');
-                if (statusElement) {
-                    const statusIcon = asistencia === 'presente' ? 'fa-check-circle' : 
-                                     asistencia === 'ausente' ? 'fa-times-circle' : 
-                                     'fa-question-circle';
-                    const statusText = asistencia === 'presente' ? 'PRESENTE' : 
-                                     asistencia === 'ausente' ? 'AUSENTE' : 
-                                     'SIN MARCAR';
-                    
-                    statusElement.innerHTML = `
-                        <i class="fas ${statusIcon} status-icon"></i>
-                        ${statusText}
-                    `;
+                    statusIcon.innerHTML = `<i class="fas ${iconClass}"></i>`;
                 }
                 
                 // Agregar animación

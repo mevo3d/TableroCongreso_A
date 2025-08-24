@@ -363,6 +363,10 @@
             display: none;
         }
         
+        .readonly-mode .attendance-control-buttons {
+            display: none;
+        }
+        
         .readonly-mode .btn-finalize {
             display: none;
         }
@@ -427,7 +431,7 @@
                     <h5 class="mb-1">Estado del Pase de Lista</h5>
                     <p class="text-muted mb-0" id="attendanceStatus">Sin iniciar</p>
                 </div>
-                <div>
+                <div class="attendance-control-buttons">
                     <button class="btn btn-success" onclick="confirmAttendance()" id="confirmBtn">
                         <i class="fas fa-check"></i> Confirmar Pase de Lista
                     </button>
@@ -461,14 +465,58 @@
         
         document.getElementById('userName').textContent = user.nombre;
         
-        // Verificar permisos
-        function checkPermissions() {
-            // Secretario1, secretario2 y secretario legislativo pueden editar
+        // Verificar permisos y estado de sesión
+        async function checkPermissions() {
+            console.log('Usuario actual:', user);
+            console.log('Nombre completo:', user.nombre_completo);
+            console.log('Nombre:', user.nombre);
+            console.log('Cargo:', user.cargo_mesa_directiva);
+            console.log('Role:', user.role);
+            // Primero verificar si la sesión está iniciada
+            try {
+                const sessionResponse = await fetch('/api/diputado/sesion-actual', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (sessionResponse.ok) {
+                    const sessionData = await sessionResponse.json();
+                    
+                    // Verificar si hay sesión activa e iniciada
+                    if (!sessionData.sesion_activa) {
+                        alert('No hay sesión activa. El Operador debe preparar una sesión primero.');
+                        goBack();
+                        return;
+                    }
+                    
+                    // Verificar si la sesión está iniciada (tiene fecha_inicio)
+                    if (sessionData.sesion && !sessionData.sesion.fecha_inicio) {
+                        alert('La sesión debe ser iniciada por el Presidente antes de realizar el pase de lista.');
+                        goBack();
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Error verificando estado de sesión:', error);
+            }
+            
+            // Ahora verificar permisos de usuario
+            // Secretario1, secretario2, secretario legislativo y usuarios especiales pueden editar
             if (user.cargo_mesa_directiva === 'secretario1' || 
                 user.cargo_mesa_directiva === 'secretario2' ||
-                user.role === 'secretario') {
+                user.role === 'secretario' ||
+                user.nombre_completo === 'Alberto Sánchez Ortega' ||
+                user.nombre === 'Alberto Sánchez Ortega' ||
+                user.nombre_completo === 'Guillermina Maya') {
+                console.log('✅ Usuario con permisos de edición detectado');
                 isReadonly = false;
                 document.body.classList.remove('readonly-mode');
+                // Asegurar que los botones sean visibles
+                const controlButtons = document.querySelector('.attendance-control-buttons');
+                if (controlButtons) {
+                    controlButtons.style.display = 'block';
+                }
             } else if (user.role === 'superadmin' ||
                        user.cargo_mesa_directiva === 'presidente' ||
                        user.cargo_mesa_directiva === 'vicepresidente') {
@@ -693,16 +741,31 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    mostrarNotificacion('✅ Pase de lista confirmado. Puede seguir editando si es necesario.', 'success');
-                    document.getElementById('attendanceStatus').textContent = 'Confirmado - Editable';
                     
-                    // Mostrar resumen
-                    if (data.presentes !== undefined) {
-                        mostrarNotificacion(`📊 Presentes: ${data.presentes} | Ausentes: ${data.ausentes}`, 'info');
-                    }
-                    // NO bloquear la edición ni redirigir
+                    // Mostrar alerta de éxito con resumen
+                    const mensaje = `✅ PASE DE LISTA CONFIRMADO\n\n` +
+                                  `📊 Resumen:\n` +
+                                  `• Presentes: ${data.presentes || 0}\n` +
+                                  `• Ausentes: ${data.ausentes || 0}\n` +
+                                  `• Total: ${(data.presentes || 0) + (data.ausentes || 0)} diputados\n\n` +
+                                  `Regresando al panel de diputado...`;
+                    
+                    alert(mensaje);
+                    
+                    // Actualizar estado en la página
+                    document.getElementById('attendanceStatus').textContent = 'Confirmado ✓';
+                    
+                    // Mostrar notificación adicional
+                    mostrarNotificacion('✅ Pase de lista guardado exitosamente', 'success');
+                    
+                    // Redirigir al panel del diputado después de 2 segundos
+                    setTimeout(() => {
+                        window.location.href = '/diputado';
+                    }, 2000);
+                    
                 } else {
                     mostrarNotificacion('❌ Error al confirmar pase de lista', 'danger');
+                    alert('Error al confirmar el pase de lista. Por favor, intente nuevamente.');
                 }
             } catch (error) {
                 console.error('Error:', error);

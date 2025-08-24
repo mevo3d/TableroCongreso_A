@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken, authorize } = require('../auth/middleware');
+const sessionState = require('../shared/session-state');
 
 const router = express.Router();
 
@@ -260,85 +261,58 @@ router.post('/iniciar-sesion', (req, res) => {
                 return res.status(500).json({ error: 'Error verificando sesión preparada' });
             }
             
-            // Si ya hay una sesión activa, solo retornar éxito
+            // Si ya hay una sesión activa, verificar si está iniciada
             if (sesionPreparada && sesionPreparada.activa === 1) {
-                return res.json({ 
-                    success: true,
-                    sesion_id: sesionPreparada.id,
-                    mensaje: 'La sesión ya está activa'
-                });
-            }
-            
-            // Si es presidente, puede iniciar sesión sin iniciativas
-            const isPresidente = user.cargo_mesa_directiva === 'Presidente de la Mesa Directiva';
-            
-            if (!sesionPreparada && isPresidente) {
-                // Crear nueva sesión vacía para el presidente
-                const fecha = new Date().toISOString();
-                const fechaStr = new Date().toISOString().split('T')[0];
-                const horaStr = new Date().toTimeString().split(' ')[0].substring(0,5);
-                const codigoSesion = `SES-PRES-${fechaStr}-${horaStr.replace(':', '')}`;
-                
-                db.run(`
-                    INSERT INTO sesiones (
-                        codigo_sesion, nombre, fecha, estado, activa,
-                        iniciada_por, fecha_inicio, hora_inicio, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `, [
-                    codigoSesion,
-                    `Sesión Iniciada por Presidente - ${fechaStr}`,
-                    fecha,
-                    'activa',
-                    1,
-                    userId,
-                    fecha,
-                    fecha,
-                    fecha
-                ], function(err) {
-                    if (err) {
-                        return res.status(500).json({ error: 'Error creando sesión' });
-                    }
-                    
-                    const nuevaSesionId = this.lastID;
-                    
-                    // Activar automáticamente el pase de lista
-                    db.run(`UPDATE sesiones SET pase_lista_activo = 1 WHERE id = ?`, [nuevaSesionId], (err) => {
-                        if (err) {
-                            console.error('Error activando pase de lista:', err);
-                        }
+                // Si ya tiene fecha_inicio, ya está iniciada
+                if (sesionPreparada.fecha_inicio) {
+                    return res.json({ 
+                        success: true,
+                        sesion_id: sesionPreparada.id,
+                        mensaje: 'La sesión ya está iniciada'
                     });
-                    
-                    // Emitir evento de sesión iniciada
-                    if (io) {
+                }
+                // Si no tiene fecha_inicio, actualizarla para iniciarla
+                const fecha = new Date().toISOString();
+                db.run(
+                    `UPDATE sesiones 
+                     SET fecha_inicio = ?,
+                         hora_inicio = ?,
+                         pase_lista_activo = 1
+                     WHERE id = ?`,
+                    [fecha, fecha, sesionPreparada.id],
+                    function(err) {
+                        if (err) {
+                            console.error('Error iniciando sesión activa:', err);
+                            return res.status(500).json({ error: 'Error iniciando sesión' });
+                        }
+                        
+                        // Emitir evento a todos los clientes
                         io.emit('sesion-iniciada', {
-                            sesion_id: nuevaSesionId,
-                            iniciada_por: user.nombre_completo,
-                            mensaje: 'El Presidente ha iniciado la sesión legislativa'
+                            id: sesionPreparada.id,
+                            nombre: sesionPreparada.nombre,
+                            fecha,
+                            iniciada_por: user.cargo_mesa_directiva || user.role
                         });
                         
-                        // Notificar que el pase de lista está activo
-                        io.emit('pase-lista-activado', {
-                            sesion_id: nuevaSesionId,
-                            mensaje: 'Pase de lista activado automáticamente. Los secretarios pueden proceder.'
+                        res.json({ 
+                            success: true, 
+                            sesion_id: sesionPreparada.id,
+                            mensaje: 'Sesión iniciada correctamente',
+                            pase_lista_activo: true
                         });
                     }
-                    
-                    res.json({
-                        success: true,
-                        sesion_id: nuevaSesionId,
-                        mensaje: 'Sesión iniciada por el Presidente (sin iniciativas cargadas)',
-                        aviso_operador: true,
-                        pase_lista_activo: true
-                    });
-                });
+                );
                 return;
             }
             
-            // Verificar si hay sesión preparada con iniciativas (para otros casos)
+            // Verificar si hay sesión preparada con iniciativas
             if (!sesionPreparada || sesionPreparada.count_iniciativas === 0) {
-                if (!isPresidente) {
-                    return res.status(400).json({ error: 'No se puede iniciar sesión sin iniciativas cargadas. El operador debe cargar primero el documento con las iniciativas.' });
-                }
+                // NADIE puede iniciar sesión sin iniciativas, ni siquiera el presidente
+                return res.status(400).json({ 
+                    error: 'No se puede iniciar sesión sin iniciativas cargadas.',
+                    mensaje: 'El Operador debe cargar primero el documento con las iniciativas del orden del día.',
+                    requiere_iniciativas: true
+                });
             }
             
             // Activar la sesión preparada (no crear una nueva)
@@ -350,14 +324,17 @@ router.post('/iniciar-sesion', (req, res) => {
                      estado = 'activa',
                      iniciada_por = ?,
                      fecha = ?,
+                     fecha_inicio = ?,
+                     hora_inicio = ?,
                      pase_lista_activo = 1
                  WHERE id = ?`,
-                [userId, fecha, sesionPreparada.id],
+                [userId, fecha, fecha, fecha, sesionPreparada.id],
                 function(err) {
                     if (err) {
                         console.error('Error activando sesión:', err);
                         return res.status(500).json({ error: 'Error iniciando sesión' });
                     }
+                    
                     
                     // Emitir evento a todos los clientes
                     io.emit('sesion-iniciada', {
@@ -488,7 +465,101 @@ router.post('/clausurar-sesion', (req, res) => {
     });
 });
 
-// Obtener estado de la sesión actual
+// Obtener sesión actual (usado por el panel de diputado)
+router.get('/sesion-actual', (req, res) => {
+    const db = req.db;
+    const userId = req.user.id;
+    
+    // Verificar cargo y role del usuario
+    db.get('SELECT cargo_mesa_directiva, role FROM usuarios WHERE id = ?', [userId], (err, user) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando usuario' });
+        }
+        
+        // Verificar si es presidente (normalizando diferentes formatos)
+        const cargoLower = (user.cargo_mesa_directiva || '').toLowerCase().trim();
+        const esPresidente = cargoLower === 'presidente' || 
+                            cargoLower === 'presidente de la mesa directiva' ||
+                            user.cargo_mesa_directiva === 'Presidente de la Mesa Directiva' ||
+                            user.cargo_mesa_directiva === 'Presidente';
+        const esVicepresidente = cargoLower === 'vicepresidente' ||
+                                user.cargo_mesa_directiva === 'Vicepresidente';
+        const esSecretario = user.role === 'secretario';
+        
+        console.log('Verificación de permisos:', {
+            userId,
+            cargo: user.cargo_mesa_directiva,
+            cargoLower,
+            esPresidente,
+            esVicepresidente,
+            esSecretario
+        });
+        
+        // Obtener sesión activa
+        db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
+            if (err) {
+                return res.status(500).json({ error: 'Error obteniendo sesión' });
+            }
+            
+            if (!sesion) {
+                // Verificar si hay sesión preparada con iniciativas
+                db.get(`SELECT s.*, COUNT(i.id) as count_iniciativas 
+                        FROM sesiones s 
+                        LEFT JOIN iniciativas i ON s.id = i.sesion_id 
+                        WHERE s.estado = 'preparada' OR s.activa = 1
+                        GROUP BY s.id
+                        ORDER BY s.fecha DESC 
+                        LIMIT 1`, (err, sesionPreparada) => {
+                    const hayIniciativas = sesionPreparada && sesionPreparada.count_iniciativas > 0;
+                    
+                    return res.json({ 
+                        sesion_activa: false,
+                        puede_iniciar: (esPresidente || esVicepresidente || esSecretario) && hayIniciativas,
+                        puede_pausar: false,
+                        puede_clausurar: false,
+                        iniciativas_cargadas: hayIniciativas,
+                        mensaje_iniciativas: !hayIniciativas ? 'El operador debe cargar las iniciativas antes de iniciar la sesión' : null
+                    });
+                });
+                return;
+            }
+            
+            // Verificar si la sesión está iniciada o solo preparada
+            const sesionIniciada = sesion.fecha_inicio && sesion.fecha_inicio !== null;
+            
+            // Obtener estadísticas de votaciones
+            db.all(
+                `SELECT 
+                    COUNT(*) as total_iniciativas,
+                    SUM(CASE WHEN cerrada = 1 THEN 1 ELSE 0 END) as votaciones_cerradas,
+                    SUM(CASE WHEN activa = 1 THEN 1 ELSE 0 END) as votaciones_activas
+                 FROM iniciativas 
+                 WHERE sesion_id = ?`,
+                [sesion.id],
+                (err, stats) => {
+                    const hayIniciativas = stats[0].total_iniciativas > 0;
+                    
+                    res.json({
+                        sesion_activa: true,
+                        sesion: {
+                            ...sesion,
+                            pausada: sesion.pausada === 1
+                        },
+                        estadisticas: stats[0],
+                        // Si la sesión está activa pero NO iniciada, permitir iniciarla SOLO si hay iniciativas
+                        puede_iniciar: !sesionIniciada && (esPresidente || esVicepresidente) && hayIniciativas,
+                        puede_pausar: sesionIniciada && (esPresidente || esVicepresidente),
+                        puede_clausurar: sesionIniciada && (esPresidente || esVicepresidente || esSecretario),
+                        iniciativas_cargadas: hayIniciativas,
+                        mensaje_iniciativas: !hayIniciativas ? 'El operador debe cargar las iniciativas antes de iniciar la sesión' : null
+                    });
+                }
+            );
+        });
+    });
+});
+
+// Obtener estado de la sesión actual (mantener por compatibilidad)
 router.get('/estado-sesion', (req, res) => {
     const db = req.db;
     const userId = req.user.id;
@@ -518,12 +589,11 @@ router.get('/estado-sesion', (req, res) => {
                     
                     return res.json({ 
                         sesion_activa: false,
-                        puede_iniciar: (user.cargo_mesa_directiva === 'presidente' || 
-                                      user.cargo_mesa_directiva === 'vicepresidente' ||
-                                      user.role === 'secretario') && hayIniciativas,
+                        puede_iniciar: (esPresidente || esVicepresidente || esSecretario) && hayIniciativas,
+                        puede_pausar: false,
                         puede_clausurar: false,
                         iniciativas_cargadas: hayIniciativas,
-                        mensaje_iniciativas: !hayIniciativas ? 'El operador debe cargar las iniciativas antes de iniciar la sesión' : null
+                        mensaje_iniciativas: !hayIniciativas ? 'El Operador debe cargar las iniciativas del orden del día antes de iniciar la sesión' : null
                     });
                 });
                 return;
@@ -849,6 +919,24 @@ router.post('/activar-iniciativa/:id', (req, res) => {
                 return res.status(400).json({ error: 'La iniciativa ya está activa' });
             }
             
+            // VERIFICAR PASE DE LISTA ANTES DE CUALQUIER VOTACIÓN
+            db.get(`
+                SELECT COUNT(*) as asistencias_registradas 
+                FROM asistencias 
+                WHERE sesion_id = ?
+            `, [iniciativa.sesion_id], (err, resultado) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error verificando pase de lista' });
+                }
+                
+                if (!resultado || resultado.asistencias_registradas === 0) {
+                    return res.status(400).json({ 
+                        error: 'Debe completarse el pase de lista antes de iniciar votaciones',
+                        mensaje: 'Los Secretarios-Diputados deben realizar el pase de lista primero',
+                        requiere_pase_lista: true
+                    });
+                }
+            
             // VALIDACIÓN CRÍTICA: Verificar si hay otra iniciativa activa
             db.get(`
                 SELECT id, numero, titulo 
@@ -977,6 +1065,8 @@ router.post('/activar-iniciativa/:id', (req, res) => {
                 });
             });
         });
+            });
+        });
     });
 });
 
@@ -994,14 +1084,20 @@ router.post('/pausar-sesion', (req, res) => {
         WHERE id = ?
     `, [userId], (err, usuario) => {
         if (err) {
+            console.error('Error verificando permisos:', err);
             return res.status(500).json({ error: 'Error verificando permisos' });
         }
         
         const cargoMesa = usuario?.cargo_mesa_directiva || '';
-        const puedePausar = cargoMesa === 'Presidente de la Mesa Directiva';
+        const cargoLower = cargoMesa.toLowerCase();
+        const puedePausar = cargoLower === 'presidente' || 
+                           cargoLower === 'presidente de la mesa directiva' ||
+                           cargoMesa === 'Presidente de la Mesa Directiva' ||
+                           cargoLower === 'vicepresidente';
         
         if (!puedePausar) {
-            return res.status(403).json({ error: 'Solo el Presidente puede pausar la sesión' });
+            console.log('Usuario sin permisos para pausar:', { userId, cargo: cargoMesa });
+            return res.status(403).json({ error: 'Solo el Presidente o Vicepresidente pueden pausar la sesión' });
         }
         
         // Verificar sesión activa
@@ -1061,14 +1157,20 @@ router.post('/reanudar-sesion', (req, res) => {
         WHERE id = ?
     `, [userId], (err, usuario) => {
         if (err) {
+            console.error('Error verificando permisos:', err);
             return res.status(500).json({ error: 'Error verificando permisos' });
         }
         
         const cargoMesa = usuario?.cargo_mesa_directiva || '';
-        const puedeReanudar = cargoMesa === 'Presidente de la Mesa Directiva';
+        const cargoLower = cargoMesa.toLowerCase();
+        const puedeReanudar = cargoLower === 'presidente' || 
+                             cargoLower === 'presidente de la mesa directiva' ||
+                             cargoMesa === 'Presidente de la Mesa Directiva' ||
+                             cargoLower === 'vicepresidente';
         
         if (!puedeReanudar) {
-            return res.status(403).json({ error: 'Solo el Presidente puede reanudar la sesión' });
+            console.log('Usuario sin permisos para reanudar:', { userId, cargo: cargoMesa });
+            return res.status(403).json({ error: 'Solo el Presidente o Vicepresidente pueden reanudar la sesión' });
         }
         
         // Verificar sesión pausada
@@ -1347,6 +1449,11 @@ router.post('/actualizar-perfil', upload.single('fotografia'), async (req, res) 
         }
         res.status(500).json({ error: 'Error al procesar la solicitud' });
     }
+});
+
+// Endpoint para verificar autorización del vicepresidente
+router.get('/vicepresidente-autorizado', (req, res) => {
+    res.json({ autorizado: sessionState.getVicepresidenteAutorizado() });
 });
 
 module.exports = router;

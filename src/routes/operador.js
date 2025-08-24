@@ -263,24 +263,62 @@ router.post('/activar-iniciativa/:id', (req, res) => {
     const { id } = req.params;
     const db = req.db;
     
-    // Desactivar otras iniciativas
-    db.run('UPDATE iniciativas SET activa = 0', (err) => {
+    // Primero verificar que la sesión esté iniciada
+    db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
         if (err) {
-            return res.status(500).json({ error: 'Error desactivando iniciativas' });
+            return res.status(500).json({ error: 'Error verificando sesión' });
         }
         
-        // Activar la iniciativa seleccionada
-        db.run('UPDATE iniciativas SET activa = 1 WHERE id = ?', [id], (err) => {
+        if (!sesion) {
+            return res.status(400).json({ error: 'No hay sesión activa' });
+        }
+        
+        // Verificar que la sesión esté iniciada (no solo preparada)
+        if (!sesion.fecha_inicio) {
+            return res.status(400).json({ 
+                error: 'La sesión debe ser iniciada por el Presidente antes de activar iniciativas',
+                estado: 'preparada'
+            });
+        }
+        
+        // Verificar que se haya realizado el pase de lista
+        db.get(`
+            SELECT COUNT(*) as asistencias_registradas 
+            FROM asistencias 
+            WHERE sesion_id = ?
+        `, [sesion.id], (err, resultado) => {
             if (err) {
-                return res.status(500).json({ error: 'Error activando iniciativa' });
+                return res.status(500).json({ error: 'Error verificando pase de lista' });
             }
             
-            // Obtener la iniciativa para emitir evento
-            db.get('SELECT * FROM iniciativas WHERE id = ?', [id], (err, iniciativa) => {
-                if (!err && iniciativa) {
-                    req.io.emit('iniciativa-activa', iniciativa);
+            if (!resultado || resultado.asistencias_registradas === 0) {
+                return res.status(400).json({ 
+                    error: 'Debe completarse el pase de lista antes de iniciar votaciones',
+                    mensaje: 'Los Secretarios-Diputados deben realizar el pase de lista primero',
+                    requiere_pase_lista: true
+                });
+            }
+            
+            // Desactivar otras iniciativas
+            db.run('UPDATE iniciativas SET activa = 0', (err) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error desactivando iniciativas' });
                 }
-                res.json({ message: 'Iniciativa activada' });
+                
+                // Activar la iniciativa seleccionada
+                db.run('UPDATE iniciativas SET activa = 1 WHERE id = ?', [id], (err) => {
+                    if (err) {
+                        return res.status(500).json({ error: 'Error activando iniciativa' });
+                    }
+                    
+                    // Obtener la iniciativa para emitir evento
+                    db.get('SELECT * FROM iniciativas WHERE id = ?', [id], (err, iniciativa) => {
+                        if (!err && iniciativa) {
+                            req.io.emit('iniciativa-activa', iniciativa);
+                        }
+                        res.json({ message: 'Iniciativa activada' });
+                    });
+                });
             });
         });
     });
@@ -721,7 +759,7 @@ router.post('/activar-sesion-pendiente/:id', (req, res) => {
                             const stmt = db.prepare(`
                                 INSERT INTO iniciativas (
                                     sesion_id, numero, titulo, descripcion, 
-                                    presentador, partido, tipo_mayoria
+                                    presentador, partido_presentador, tipo_mayoria
                                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
                             `);
                             
