@@ -4964,11 +4964,29 @@
 
         // Escuchar eventos de WebSocket para sincronización
         socket.on('sesion-pausada', (data) => {
+            // Detener el cronómetro de sesión principal
+            sessionPaused = true;
+            if (sessionTimerInterval) {
+                clearInterval(sessionTimerInterval);
+                sessionTimerInterval = null;
+            }
+            
+            // Iniciar cronómetro de pausa si es presidente/vicepresidente
+            if (user && (user.cargo_mesa_directiva === 'presidente' || 
+                        user.cargo_mesa_directiva === 'vicepresidente' ||
+                        user.cargo_mesa_directiva === 'Presidente de la Mesa Directiva')) {
+                startPauseTimer();
+            }
+            
+            // Mostrar modal de pausa para otros usuarios
             if (data.minutos > 0) {
                 iniciarTimer(data.minutos * 60);
             } else {
                 mostrarPausaIndefinida();
             }
+            
+            // Actualizar estado de controles
+            checkSessionStatus();
         });
 
         socket.on('sesion-reanudada', () => {
@@ -4980,6 +4998,12 @@
             if (pauseContainer) {
                 pauseContainer.style.display = 'none';
             }
+            
+            // Reanudar el cronómetro de sesión principal
+            if (shouldShowSessionTimer()) {
+                startSessionTimer();
+            }
+            
             // Actualizar estado de la sesión
             checkSessionStatus();
         });

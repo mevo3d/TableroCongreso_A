@@ -207,7 +207,7 @@ router.get('/tiempo-sesion', (req, res) => {
     const db = req.db;
     
     db.get(`
-        SELECT id, fecha as inicioSesion
+        SELECT id, fecha_inicio as inicioSesion, pausada
         FROM sesiones
         WHERE activa = 1
     `, (err, sesion) => {
@@ -215,13 +215,23 @@ router.get('/tiempo-sesion', (req, res) => {
             return res.status(500).json({ error: 'Error obteniendo sesión' });
         }
         
-        if (!sesion) {
+        if (!sesion || !sesion.inicioSesion) {
             return res.json({ sesionActiva: false, inicioSesion: null });
+        }
+        
+        // Si la sesión está pausada, no enviar tiempo de inicio para que no se muestre el cronómetro
+        if (sesion.pausada === 1) {
+            return res.json({ 
+                sesionActiva: true, 
+                inicioSesion: null,
+                pausada: true
+            });
         }
         
         res.json({ 
             sesionActiva: true, 
-            inicioSesion: sesion.inicioSesion 
+            inicioSesion: sesion.inicioSesion,
+            pausada: false
         });
     });
 });
