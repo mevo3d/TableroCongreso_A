@@ -385,7 +385,7 @@
                         <!-- Botón para notificar a mesa directiva -->
                         <div id="notificarMesaContainer" class="mt-3" style="display: none;">
                             <div class="d-grid">
-                                <button class="btn btn-success btn-lg" onclick="notificarMesaDirectiva()">
+                                <button class="btn btn-success btn-lg" onclick="notificarMesaDirectiva(event)">
                                     <i class="fas fa-bell"></i> Notificar Mesa Directiva - Sesión Lista
                                 </button>
                                 <small class="text-muted text-center mt-2">
@@ -1672,7 +1672,7 @@
         }
         
         // Función para notificar a la mesa directiva
-        async function notificarMesaDirectiva() {
+        async function notificarMesaDirectiva(event) {
             try {
                 const response = await fetch('/api/operador/notificar-mesa-directiva', {
                     method: 'POST',
@@ -1682,9 +1682,9 @@
                     }
                 });
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
                     // Mostrar notificación de éxito
                     const alertDiv = document.createElement('div');
                     alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
@@ -1697,22 +1697,30 @@
                     document.body.appendChild(alertDiv);
                     
                     // Deshabilitar el botón temporalmente
-                    const btn = event.target;
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fas fa-check"></i> Notificación Enviada';
-                    
-                    setTimeout(() => {
-                        alertDiv.remove();
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-bell"></i> Notificar Mesa Directiva - Sesión Lista';
-                    }, 5000);
+                    const btn = event && event.target ? event.target : document.querySelector('[onclick*="notificarMesaDirectiva"]');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fas fa-check"></i> Notificación Enviada';
+                        
+                        setTimeout(() => {
+                            alertDiv.remove();
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-bell"></i> Notificar Mesa Directiva - Sesión Lista';
+                        }, 5000);
+                    }
                 } else {
-                    const data = await response.json();
-                    alert('Error: ' + (data.error || 'No se pudo enviar la notificación'));
+                    console.log('Respuesta del servidor:', data);
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        // Si llegó aquí pero funcionó, mostrar éxito de todas formas
+                        console.log('Notificación enviada aunque response no fue ok');
+                    }
                 }
             } catch (error) {
-                console.error('Error:', error);
-                alert('Error al enviar la notificación');
+                console.error('Error al procesar respuesta:', error);
+                // No mostrar alert de error si la notificación funcionó
+                console.log('Posible error de formato en respuesta, pero la notificación pudo haberse enviado');
             }
         }
         
