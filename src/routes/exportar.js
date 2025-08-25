@@ -7,15 +7,18 @@ const path = require('path');
 const fs = require('fs');
 
 // Función auxiliar para calcular duración
-function calcularDuracion(fechaInicio, fechaFin) {
+function calcularDuracion(fechaInicio, fechaFin, tiempoPausadoMinutos = 0) {
     if (!fechaInicio || !fechaFin) return 'No disponible';
     
     const inicio = new Date(fechaInicio);
     const fin = new Date(fechaFin);
-    const diff = fin - inicio;
+    const diffMs = fin - inicio;
     
-    const horas = Math.floor(diff / (1000 * 60 * 60));
-    const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    // Restar tiempo pausado (convertir minutos a milisegundos)
+    const diffAjustado = diffMs - (tiempoPausadoMinutos * 60 * 1000);
+    
+    const horas = Math.floor(diffAjustado / (1000 * 60 * 60));
+    const minutos = Math.floor((diffAjustado % (1000 * 60 * 60)) / (1000 * 60));
     
     if (horas > 0) {
         return `${horas} hora${horas > 1 ? 's' : ''} ${minutos} minuto${minutos !== 1 ? 's' : ''}`;
@@ -31,7 +34,8 @@ async function obtenerDatosSesion(db, sesionId) {
             iniciativas: [],
             votos: [],
             asistencia: [],
-            diputados: []
+            diputados: [],
+            pausas: []
         };
 
         // Obtener información de la sesión
@@ -98,7 +102,26 @@ async function obtenerDatosSesion(db, sesionId) {
                             if (err) return reject(err);
                             
                             datos.diputados = diputados;
-                            resolve(datos);
+                            
+                            // Obtener historial de pausas
+                            db.all(`
+                                SELECT ps.*, 
+                                       u1.nombre_completo as pausada_por_nombre,
+                                       u2.nombre_completo as reanudada_por_nombre
+                                FROM pausas_sesion ps
+                                LEFT JOIN usuarios u1 ON ps.pausada_por = u1.id
+                                LEFT JOIN usuarios u2 ON ps.reanudada_por = u2.id
+                                WHERE ps.sesion_id = ?
+                                ORDER BY ps.fecha_pausa
+                            `, [sesionId], (err, pausas) => {
+                                if (err) {
+                                    console.error('Error obteniendo pausas:', err);
+                                    datos.pausas = [];
+                                } else {
+                                    datos.pausas = pausas || [];
+                                }
+                                resolve(datos);
+                            });
                         });
                     });
                 });
@@ -123,7 +146,13 @@ router.get('/excel/:sesionId', async (req, res) => {
             { header: 'Valor', key: 'valor', width: 50 }
         ];
         
-        const duracion = calcularDuracion(datos.sesion.fecha_inicio, datos.sesion.fecha_clausura);
+        // Calcular tiempo total pausado
+        const tiempoPausadoMinutos = datos.pausas.reduce((total, pausa) => {
+            return total + (pausa.duracion_minutos || 0);
+        }, 0);
+        
+        const duracionTotal = calcularDuracion(datos.sesion.fecha_inicio, datos.sesion.fecha_clausura, 0);
+        const duracionEfectiva = calcularDuracion(datos.sesion.fecha_inicio, datos.sesion.fecha_clausura, tiempoPausadoMinutos);
         
         resumenSheet.addRows([
             { campo: 'Código de Sesión', valor: datos.sesion.codigo_sesion },
@@ -131,7 +160,10 @@ router.get('/excel/:sesionId', async (req, res) => {
             { campo: 'Fecha', valor: new Date(datos.sesion.fecha).toLocaleDateString('es-MX') },
             { campo: 'Hora de Inicio', valor: datos.sesion.fecha_inicio ? new Date(datos.sesion.fecha_inicio).toLocaleTimeString('es-MX') : 'No iniciada' },
             { campo: 'Hora de Clausura', valor: datos.sesion.fecha_clausura ? new Date(datos.sesion.fecha_clausura).toLocaleTimeString('es-MX') : 'No clausurada' },
-            { campo: 'Duración', valor: duracion },
+            { campo: 'Duración Total', valor: duracionTotal },
+            { campo: 'Tiempo en Pausas', valor: tiempoPausadoMinutos > 0 ? `${tiempoPausadoMinutos} minutos` : 'Sin pausas' },
+            { campo: 'Duración Efectiva', valor: duracionEfectiva },
+            { campo: 'Número de Pausas', valor: datos.pausas.length },
             { campo: 'Iniciada por', valor: datos.sesion.iniciada_por_nombre || 'No especificado' },
             { campo: 'Clausurada por', valor: datos.sesion.clausurada_por_nombre || 'No clausurada' },
             { campo: 'Total de Iniciativas', valor: datos.iniciativas.length },
@@ -218,7 +250,41 @@ router.get('/excel/:sesionId', async (req, res) => {
             fgColor: { argb: 'FFC000' }
         };
         
-        // Hoja 4: Detalle de Votos
+        // Hoja 4: Historial de Pausas
+        if (datos.pausas && datos.pausas.length > 0) {
+            const pausasSheet = workbook.addWorksheet('Historial de Pausas');
+            pausasSheet.columns = [
+                { header: 'No.', key: 'numero', width: 8 },
+                { header: 'Fecha/Hora Pausa', key: 'fecha_pausa', width: 25 },
+                { header: 'Fecha/Hora Reanudación', key: 'fecha_reanudacion', width: 25 },
+                { header: 'Duración (min)', key: 'duracion', width: 15 },
+                { header: 'Pausada por', key: 'pausada_por', width: 30 },
+                { header: 'Reanudada por', key: 'reanudada_por', width: 30 },
+                { header: 'Motivo', key: 'motivo', width: 40 }
+            ];
+            
+            datos.pausas.forEach((pausa, index) => {
+                pausasSheet.addRow({
+                    numero: index + 1,
+                    fecha_pausa: pausa.fecha_pausa ? new Date(pausa.fecha_pausa).toLocaleString('es-MX') : '',
+                    fecha_reanudacion: pausa.fecha_reanudacion ? new Date(pausa.fecha_reanudacion).toLocaleString('es-MX') : 'En pausa',
+                    duracion: pausa.duracion_minutos || 'En curso',
+                    pausada_por: pausa.pausada_por_nombre || 'Sistema',
+                    reanudada_por: pausa.reanudada_por_nombre || '-',
+                    motivo: pausa.motivo || 'No especificado'
+                });
+            });
+            
+            // Aplicar estilos
+            pausasSheet.getRow(1).font = { bold: true };
+            pausasSheet.getRow(1).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFD966' }
+            };
+        }
+        
+        // Hoja 5: Detalle de Votos
         const detalleSheet = workbook.addWorksheet('Detalle de Votos');
         detalleSheet.columns = [
             { header: 'Iniciativa', key: 'iniciativa', width: 10 },

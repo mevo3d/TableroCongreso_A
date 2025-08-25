@@ -1132,6 +1132,17 @@ router.post('/pausar-sesion', (req, res) => {
                     return res.status(500).json({ error: 'Error pausando sesión' });
                 }
                 
+                // Registrar en historial de pausas
+                const fechaPausa = new Date().toISOString();
+                db.run(`
+                    INSERT INTO pausas_sesion (sesion_id, fecha_pausa, pausada_por, motivo)
+                    VALUES (?, ?, ?, ?)
+                `, [sesion.id, fechaPausa, userId, req.body.motivo || null], (err) => {
+                    if (err) {
+                        console.error('Error registrando pausa en historial:', err);
+                    }
+                });
+                
                 // Emitir evento a todos
                 io.emit('sesion-pausada', {
                     minutos,
@@ -1189,6 +1200,22 @@ router.post('/reanudar-sesion', (req, res) => {
             if (!sesion) {
                 return res.status(400).json({ error: 'No hay sesión pausada' });
             }
+            
+            // Primero obtener la última pausa para actualizar su fecha de reanudación
+            const fechaReanudacion = new Date().toISOString();
+            
+            // Actualizar la última pausa sin fecha de reanudación
+            db.run(`
+                UPDATE pausas_sesion 
+                SET fecha_reanudacion = ?,
+                    reanudada_por = ?,
+                    duracion_minutos = CAST((julianday(?) - julianday(fecha_pausa)) * 24 * 60 AS INTEGER)
+                WHERE sesion_id = ? AND fecha_reanudacion IS NULL
+            `, [fechaReanudacion, userId, fechaReanudacion, sesion.id], (err) => {
+                if (err) {
+                    console.error('Error actualizando historial de pausa:', err);
+                }
+            });
             
             // Reanudar sesión
             db.run(`

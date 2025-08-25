@@ -24,7 +24,8 @@
       "Bash(npm init:*)",
       "Bash(grep:*)",
       "Bash(del check-sesiones-table.js check-unique-constraint.js add-numero-orden-dia-column.js)",
-      "Bash(del \"C:\\Users\\BALERION\\proyectos-automatizacion\\TableroAGit\\verificar-ids-diputados.js\")"
+      "Bash(del \"C:\\Users\\BALERION\\proyectos-automatizacion\\TableroAGit\\verificar-ids-diputados.js\")",
+      "Bash(del create-pausas-table.js)"
     ],
     "deny": [],
     "ask": [],
