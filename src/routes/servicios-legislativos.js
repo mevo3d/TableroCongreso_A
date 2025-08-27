@@ -683,9 +683,34 @@ router.post('/cargar-pdf', upload.single('pdf'), async (req, res) => {
                     return res.status(500).json({ error: 'Error guardando iniciativas' });
                 }
                 
+                // Generar código único para identificación
+                const codigoUnico = `PDF-${sesionId}-${Date.now().toString(36).toUpperCase()}`;
+                
+                // Actualizar la sesión con el código único
+                db.run('UPDATE sesiones_precargadas SET codigo_sesion = ? WHERE id = ?', [codigoUnico, sesionId]);
+                
+                // Emitir evento Socket.io para notificar al Operador en tiempo real
+                if (req.io) {
+                    const io = req.io;
+                    io.emit('nueva-sesion-servicios', {
+                        tipo: 'carga_pdf',
+                        sesionId,
+                        codigoUnico,
+                        nombreSesion,
+                        usuario: req.user.nombre_completo || req.user.username,
+                        iniciativasCount: iniciativas.length,
+                        fechaCarga: new Date().toISOString(),
+                        estado: estado || 'pendiente',
+                        mensaje: `Servicios Legislativos cargó ${iniciativas.length} iniciativas - Código: ${codigoUnico}`
+                    });
+                    
+                    console.log(`📢 Notificación enviada al Operador - Código: ${codigoUnico}`);
+                }
+                
                 res.json({
                     success: true,
                     sesion_id: sesionId,
+                    codigoUnico,
                     iniciativas: iniciativas.length,
                     mensaje: 'PDF procesado. Revise y complete la información faltante'
                 });

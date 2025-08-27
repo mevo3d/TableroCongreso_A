@@ -857,6 +857,48 @@
             });
         }
         
+        // Escuchar notificaciones de Servicios Legislativos
+        socket.on('nueva-sesion-servicios', (data) => {
+            console.log('📢 Nueva sesión cargada desde Servicios Legislativos:', data);
+            
+            // Mostrar notificación visual
+            const alertHtml = `
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <strong><i class="fas fa-bell"></i> Nueva Sesión Disponible</strong><br>
+                    ${data.mensaje}<br>
+                    <small>
+                        <strong>Código:</strong> ${data.codigoUnico}<br>
+                        <strong>Usuario:</strong> ${data.usuario}<br>
+                        <strong>Iniciativas:</strong> ${data.iniciativasCount}
+                    </small>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            // Agregar la alerta al principio del contenedor principal
+            const container = document.querySelector('.container-fluid');
+            if (container) {
+                const alertDiv = document.createElement('div');
+                alertDiv.innerHTML = alertHtml;
+                container.insertBefore(alertDiv.firstChild, container.firstChild);
+                
+                // Auto-cerrar después de 10 segundos
+                setTimeout(() => {
+                    alertDiv.firstChild?.classList.remove('show');
+                    setTimeout(() => alertDiv.remove(), 500);
+                }, 10000);
+            }
+            
+            // Reproducir sonido de notificación
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhCTGH0fPTgjMGHm7A7+OZURE');
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+            
+            // Actualizar la lista de sesiones pendientes
+            loadSesionesPendientes();
+            verificarSesionesPrecargadas();
+        });
+        
         // Variable para rastrear el tipo de pantalla actual (definida al inicio)
         let currentScreenType = 'votacion';
         

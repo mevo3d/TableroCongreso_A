@@ -31,7 +31,8 @@
       "Read(C:\\Users\\BALERION\\Downloads/**)",
       "Read(C:\\Users\\BALERION\\Downloads/**)",
       "Bash(bash:*)",
-      "Bash(xcopy:*)"
+      "Bash(xcopy:*)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": [],

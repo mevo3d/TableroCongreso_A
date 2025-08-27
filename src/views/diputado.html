@@ -26,9 +26,44 @@
             -webkit-user-select: text !important;
             user-select: text !important;
         }
+        
+        /* Fix z-index para navbar siempre al frente de todo */
         .navbar {
             background: var(--navbar-bg) !important;
             border-bottom: 1px solid var(--border-color);
+            z-index: 9998 !important;
+            position: sticky !important;
+            top: 0;
+        }
+        
+        /* El menú colapsado SIEMPRE al frente absoluto */
+        .navbar-collapse {
+            z-index: 99999 !important;
+        }
+        
+        .navbar-collapse.collapsing,
+        .navbar-collapse.show {
+            z-index: 99999 !important;
+            position: absolute !important;
+            width: 100%;
+            top: 56px !important; /* Altura del navbar */
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #1a2332 0%, #263241 100%) !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8) !important;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        
+        /* Asegurar que todos los cards estén detrás */
+        .card, .modal-backdrop {
+            position: relative;
+            z-index: 1 !important;
+        }
+        
+        .container, .container-fluid {
+            position: relative;
+            z-index: 1 !important;
         }
         
         /* Header del diputado */
@@ -471,12 +506,13 @@
             }
             
             #navbarContent {
-                z-index: 1099;
+                z-index: 9999 !important;
                 background-color: inherit;
             }
             
             #navbarContent.show {
                 display: block !important;
+                z-index: 9999 !important;
             }
             
             /* Asegurar que el botón sea clickeable */
@@ -499,16 +535,43 @@
             @media (max-width: 991.98px) {
                 .navbar.navbar-expand-lg .navbar-toggler {
                     display: inline-block !important;
+                    z-index: 10002 !important;
                 }
                 
                 .navbar-collapse {
-                    position: absolute;
+                    position: absolute !important;
                     top: 100%;
                     left: 0;
                     right: 0;
-                    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+                    background: linear-gradient(135deg, #1a2332 0%, #263241 100%) !important;
                     padding: 1rem;
-                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    box-shadow: 0 8px 16px rgba(0,0,0,0.5) !important;
+                    border-bottom-left-radius: 10px;
+                    border-bottom-right-radius: 10px;
+                    z-index: 99999 !important;
+                    backdrop-filter: blur(20px);
+                    -webkit-backdrop-filter: blur(20px);
+                }
+                
+                .navbar-collapse.show {
+                    z-index: 99999 !important;
+                    display: block !important;
+                }
+                
+                #navbarContent {
+                    z-index: 99999 !important;
+                }
+                
+                /* Asegurar que el contenido del dropdown esté al frente */
+                #navbarContent .navbar-nav {
+                    z-index: 99999 !important;
+                    position: relative;
+                    background: transparent;
+                }
+                
+                /* Todos los demás elementos deben estar detrás */
+                .card, .deputy-header, .voting-panel {
+                    max-z-index: 100 !important;
                 }
             }
         }
@@ -1435,7 +1498,7 @@
             }
             
             // Cargar foto actual
-            const fotoPath = user.fotografia || '/images/diputados/default.png';
+            const fotoPath = user.fotografia || '/images/diputados/default.svg';
             if (previewFoto) previewFoto.src = fotoPath;
             
             // Limpiar campos de contraseña
@@ -2537,9 +2600,9 @@
             const newToggler = navbarToggler.cloneNode(true);
             navbarToggler.parentNode.replaceChild(newToggler, navbarToggler);
             
-            // Configurar manualmente sin depender de data-attributes
-            newToggler.removeAttribute('data-bs-toggle');
-            newToggler.removeAttribute('data-bs-target');
+            // Restablecer atributos de Bootstrap
+            newToggler.setAttribute('data-bs-toggle', 'collapse');
+            newToggler.setAttribute('data-bs-target', '#navbarContent');
             
             // Crear nueva instancia de Collapse
             let bsCollapse;
@@ -2554,30 +2617,29 @@
                 bsCollapse = new bootstrap.Collapse(navbarCollapse, {
                     toggle: false
                 });
-            } catch (e) {
-                console.error('Error creando Collapse:', e);
-                // Fallback: toggle manual de clases
-                newToggler.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    navbarCollapse.classList.toggle('show');
-                });
-                return;
-            }
-            
-            // Agregar evento click con múltiples intentos de toggle
-            newToggler.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Hamburger clicked - estado actual:', navbarCollapse.classList.contains('show'));
                 
-                try {
-                    bsCollapse.toggle();
-                } catch (err) {
-                    console.error('Error en toggle, usando fallback:', err);
-                    navbarCollapse.classList.toggle('show');
-                }
-            });
+                console.log('Bootstrap Collapse inicializado correctamente');
+            } catch (e) {
+                console.error('Error creando Collapse, usando método alternativo:', e);
+                
+                // Método alternativo sin Bootstrap
+                newToggler.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const isShowing = navbarCollapse.classList.contains('show');
+                    
+                    if (isShowing) {
+                        navbarCollapse.classList.remove('show');
+                        newToggler.setAttribute('aria-expanded', 'false');
+                    } else {
+                        navbarCollapse.classList.add('show');
+                        newToggler.setAttribute('aria-expanded', 'true');
+                    }
+                    
+                    console.log('Toggle manual - navbar está:', !isShowing ? 'abierto' : 'cerrado');
+                });
+            }
             
             // Asegurar que el botón es clickeable
             newToggler.style.pointerEvents = 'auto';
@@ -3376,7 +3438,7 @@
         
         // Conectar al servidor de streaming
         function connectStreamingServer() {
-            streamSocket = io('http://localhost:3001', {
+            streamSocket = io('http://localhost:3333', {
                 transports: ['websocket'],
                 reconnection: true
             });
@@ -3459,7 +3521,7 @@
         async function connectWebRTC() {
             try {
                 // Obtener capacidades del router
-                const response = await fetch('http://localhost:3001/api/streaming/capabilities');
+                const response = await fetch('http://localhost:3333/api/streaming/capabilities');
                 const routerRtpCapabilities = await response.json();
                 
                 // Crear device
@@ -3741,7 +3803,7 @@
                         <div class="row">
                             <div class="col-md-4 text-center mb-3">
                                 <div class="position-relative">
-                                    <img id="previewFoto" src="/images/diputados/default.png" alt="Foto" 
+                                    <img id="previewFoto" src="/images/diputados/default.svg" alt="Foto" 
                                          class="img-thumbnail mb-2" style="width: 150px; height: 150px; object-fit: cover;">
                                     <div class="mt-2">
                                         <label for="inputFoto" class="btn btn-apple btn-sm">
@@ -4361,7 +4423,6 @@
                 ${iniciativa.observaciones ? `<p><strong>Observaciones:</strong> ${iniciativa.observaciones}</p>` : ''}
             `;
             modal.show();
-        }
         }
         
         async function activarIniciativaPresidente(id, force = false) {
