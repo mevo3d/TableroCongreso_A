@@ -781,7 +781,7 @@
             position: fixed;
             top: 80px;
             right: 20px;
-            z-index: 1050;
+            z-index: 10000;
             background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
             border: none;
             color: white;
@@ -794,11 +794,16 @@
             align-items: center;
             justify-content: center;
             transition: all 0.3s;
+            pointer-events: auto !important;
         }
         
         .menu-button:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .menu-button:active {
+            transform: scale(0.95);
         }
         
         .side-menu {
@@ -812,7 +817,7 @@
             -webkit-backdrop-filter: saturate(180%) blur(20px);
             box-shadow: var(--shadow-xl);
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1049;
+            z-index: 10001;
             overflow-y: auto;
             border-left: 1px solid var(--border-color);
         }
@@ -907,7 +912,7 @@
             opacity: 0;
             visibility: hidden;
             transition: all var(--transition-base);
-            z-index: 1048;
+            z-index: 10000;
         }
         
         .menu-overlay.show {
@@ -938,7 +943,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0,0,0,0.5);
-            z-index: 1048;
+            z-index: 10000;
             display: none;
         }
         
@@ -950,15 +955,12 @@
 </head>
 <body>
     <!-- Botón de menú hamburguesa -->
-    <button class="menu-button" onclick="toggleMenu()">
+    <button class="menu-button" id="menuButton">
         <i class="fas fa-bars"></i>
     </button>
     
     <!-- Overlay del menú -->
-    <div class="menu-overlay" onclick="toggleMenu()"></div>
-    
-    <!-- Overlay del menú -->
-    <div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
+    <div class="menu-overlay" id="menuOverlay"></div>
     
     <!-- Menú lateral -->
     <div class="side-menu" id="sideMenu">
@@ -1432,18 +1434,142 @@
     <script>
         // ================ FUNCIONES GLOBALES DEL MENÚ (deben estar antes del HTML) ================
         
-        function toggleMenu() {
+        window.toggleMenu = function() {
+            console.log('Toggle menu llamado');
             const menu = document.getElementById('sideMenu');
             const overlay = document.getElementById('menuOverlay');
             
+            if (!menu || !overlay) {
+                console.error('Elementos del menú no encontrados:', { 
+                    menu: menu, 
+                    overlay: overlay,
+                    menuExists: !!document.getElementById('sideMenu'),
+                    overlayExists: !!document.getElementById('menuOverlay')
+                });
+                return;
+            }
+            
+            console.log('Estado actual del menú:', {
+                menuHasShow: menu.classList.contains('show'),
+                overlayHasShow: overlay.classList.contains('show')
+            });
+            
             if (menu.classList.contains('show')) {
+                console.log('Cerrando menú');
                 menu.classList.remove('show');
                 overlay.classList.remove('show');
             } else {
+                console.log('Abriendo menú');
                 menu.classList.add('show');
                 overlay.classList.add('show');
+                console.log('Clases después de abrir:', {
+                    menuClasses: menu.className,
+                    overlayClasses: overlay.className
+                });
             }
         }
+        
+        // Función de prueba para verificar el menú desde la consola
+        window.testMenu = function() {
+            console.log('=== PRUEBA DE MENÚ ===');
+            const menu = document.getElementById('sideMenu');
+            const overlay = document.getElementById('menuOverlay');
+            const button = document.getElementById('menuButton');
+            
+            console.log('Elementos encontrados:', {
+                menu: !!menu,
+                overlay: !!overlay,
+                button: !!button
+            });
+            
+            if (menu && overlay) {
+                console.log('Clases actuales:', {
+                    menu: menu.className,
+                    overlay: overlay.className
+                });
+                console.log('Estilos computados del menú:', {
+                    position: window.getComputedStyle(menu).position,
+                    right: window.getComputedStyle(menu).right,
+                    zIndex: window.getComputedStyle(menu).zIndex,
+                    display: window.getComputedStyle(menu).display
+                });
+            }
+            
+            console.log('Ejecutando toggleMenu...');
+            window.toggleMenu();
+        }
+        
+        // Inicializar menú al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Inicializando menú hamburguesa azul');
+            
+            // Verificar que los elementos existen
+            const menuButton = document.getElementById('menuButton');
+            const sideMenu = document.getElementById('sideMenu');
+            const menuOverlay = document.getElementById('menuOverlay');
+            
+            console.log('Elementos encontrados:', {
+                menuButton: !!menuButton,
+                sideMenu: !!sideMenu,
+                menuOverlay: !!menuOverlay
+            });
+            
+            // Agregar evento al botón si existe
+            if (menuButton) {
+                menuButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Botón de menú clickeado');
+                    try {
+                        window.toggleMenu();
+                    } catch (error) {
+                        console.error('Error al ejecutar toggleMenu:', error);
+                    }
+                });
+                console.log('Event listener agregado al botón del menú');
+            } else {
+                console.error('Botón de menú no encontrado!');
+            }
+            
+            // Agregar evento al overlay para cerrar el menú
+            if (menuOverlay) {
+                menuOverlay.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Overlay clickeado, cerrando menú');
+                    try {
+                        window.toggleMenu();
+                    } catch (error) {
+                        console.error('Error al ejecutar toggleMenu desde overlay:', error);
+                    }
+                });
+                console.log('Event listener agregado al overlay');
+            }
+            
+            // Configurar visibilidad de paneles según el rol
+            setTimeout(() => {
+                if (typeof user !== 'undefined' && user) {
+                    console.log('Configurando paneles según rol:', user.cargo_mesa_directiva);
+                    
+                    // Mostrar panel del presidente si corresponde
+                    if (user.cargo_mesa_directiva === 'presidente') {
+                        const panelPresidente = document.getElementById('panelPresidente');
+                        if (panelPresidente) {
+                            panelPresidente.style.display = 'block';
+                            console.log('Panel presidente visible');
+                        }
+                    }
+                    
+                    // Mostrar panel del secretario si corresponde
+                    if (user.cargo_mesa_directiva && user.cargo_mesa_directiva.includes('secretario')) {
+                        const panelSecretario = document.getElementById('panelSecretario');
+                        if (panelSecretario) {
+                            panelSecretario.style.display = 'block';
+                            console.log('Panel secretario visible');
+                        }
+                    }
+                }
+            }, 500);
+        });
         
         function verTableroSimplificado() {
             toggleMenu();

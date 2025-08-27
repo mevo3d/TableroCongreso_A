@@ -1293,11 +1293,15 @@ function detectarSiEsVotable(iniciativa) {
 // Actualizar estadísticas del PDF
 function actualizarEstadisticasPDF() {
     const total = iniciativasPDFActual.length;
-    const votables = iniciativasPDFActual.filter(i => i.es_votable).length;
+    const dictamenes = iniciativasPDFActual.filter(i => i.tipo_documento === 'dictamen').length;
+    const iniciativas = iniciativasPDFActual.filter(i => i.tipo_documento === 'iniciativa').length;
+    const votables = iniciativasPDFActual.filter(i => i.requiere_votacion || i.es_votable).length;
     const informativos = total - votables;
     const seleccionadas = iniciativasPDFActual.filter(i => i.seleccionada).length;
     
     document.getElementById('totalIniciativasPDF').textContent = total;
+    document.getElementById('dictamenesPDF').textContent = dictamenes;
+    document.getElementById('iniciativasPDF').textContent = iniciativas;
     document.getElementById('votablesPDF').textContent = votables;
     document.getElementById('informativosPDF').textContent = informativos;
     document.getElementById('seleccionadasPDF').textContent = seleccionadas;
@@ -1310,6 +1314,41 @@ function renderizarTablaIniciativasPDF() {
     
     tbody.innerHTML = '';
     
+    // Separar por tipo de documento
+    const dictamenes = [];
+    const iniciativas = [];
+    const puntosAcuerdo = [];
+    const otros = [];
+    
+    iniciativasPDFActual.forEach((init, index) => {
+        init.index = index; // Guardar índice original
+        
+        // Detectar tipo basado en el título o tipo_documento
+        const titulo = init.titulo || init.descripcion || '';
+        
+        if (titulo.match(/^(\d+\.\s+)?Dictamen emanado/i) || init.tipo_documento === 'dictamen') {
+            init.tipo_documento = 'dictamen';
+            init.requiere_votacion = true;
+            dictamenes.push(init);
+        } else if (titulo.match(/^(\d+\.\s+)?Iniciativa/i) || init.tipo_documento === 'iniciativa') {
+            init.tipo_documento = 'iniciativa';
+            init.requiere_votacion = false;
+            iniciativas.push(init);
+        } else if (titulo.match(/Punto\s+de\s+Acuerdo/i) || init.tipo_documento === 'punto_acuerdo') {
+            init.tipo_documento = 'punto_acuerdo';
+            init.requiere_votacion = true;
+            puntosAcuerdo.push(init);
+        } else {
+            init.tipo_documento = 'otro';
+            otros.push(init);
+        }
+    });
+    
+    // Actualizar contadores
+    document.getElementById('dictamenesPDF').textContent = dictamenes.length;
+    document.getElementById('iniciativasPDF').textContent = iniciativas.length;
+    
+    // Renderizar la tabla principal con todos los elementos
     iniciativasPDFActual.forEach((init, index) => {
         const titulo = init.titulo || init.descripcion || 'Sin título';
         
@@ -1320,9 +1359,34 @@ function renderizarTablaIniciativasPDF() {
         
         const tr = document.createElement('tr');
         
-        // Resaltar filas votables
-        if (init.es_votable) {
+        // Resaltar según tipo
+        if (init.tipo_documento === 'dictamen') {
+            tr.style.backgroundColor = 'rgba(255, 193, 7, 0.1)';
+        } else if (init.tipo_documento === 'iniciativa') {
+            tr.style.backgroundColor = 'rgba(23, 162, 184, 0.1)';
+        } else if (init.requiere_votacion) {
             tr.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+        }
+        
+        // Usar numero_display si existe, si no crear uno
+        const numeroDisplay = init.numero_display || 
+                            (init.numero_original ? `${init.numero}/${init.numero_original}` : 
+                             `${index + 1}${init.numero_original ? '/' + init.numero_original : ''}`);
+        
+        // Determinar badge de tipo
+        let tipoBadge = '';
+        let tipoColor = 'secondary';
+        if (init.tipo_documento === 'dictamen') {
+            tipoBadge = 'Dictamen';
+            tipoColor = 'warning';
+        } else if (init.tipo_documento === 'iniciativa') {
+            tipoBadge = 'Iniciativa';
+            tipoColor = 'info';
+        } else if (init.tipo_documento === 'punto_acuerdo') {
+            tipoBadge = 'P. Acuerdo';
+            tipoColor = 'success';
+        } else {
+            tipoBadge = 'Otro';
         }
         
         tr.innerHTML = `
@@ -1333,24 +1397,27 @@ function renderizarTablaIniciativasPDF() {
                        onchange="toggleIniciativaPDF(${index})">
             </td>
             <td>
-                ${init.es_votable ? '<i class="fas fa-vote-yea text-success" title="Votable"></i>' : ''}
-                ${init.numero || index + 1}
+                <strong>${numeroDisplay}</strong>
             </td>
-            <td>${titulo}</td>
             <td>
-                <span class="badge bg-${init.es_votable ? 'success' : 'secondary'}">
-                    ${init.es_votable ? 'Votable' : 'Informativo'}
+                <div style="max-width: 500px;" title="${titulo}">
+                    ${titulo.substring(0, 120)}${titulo.length > 120 ? '...' : ''}
+                </div>
+            </td>
+            <td>
+                <span class="badge bg-${tipoColor}">
+                    ${tipoBadge}
                 </span>
             </td>
             <td>
-                <span class="badge bg-${init.tipo_mayoria === 'calificada' ? 'warning' : 'info'}">
+                <span class="badge bg-${init.tipo_mayoria === 'calificada' ? 'danger' : 'primary'}">
                     ${init.tipo_mayoria || 'simple'}
                 </span>
             </td>
             <td>
-                <button class="btn btn-sm btn-outline-primary" onclick="editarIniciativaPDF(${index})">
-                    <i class="fas fa-edit"></i>
-                </button>
+                ${init.requiere_votacion ? 
+                    '<i class="fas fa-vote-yea text-success" title="Requiere votación"></i>' : 
+                    '<i class="fas fa-file-alt text-info" title="Solo turno"></i>'}
             </td>
         `;
         

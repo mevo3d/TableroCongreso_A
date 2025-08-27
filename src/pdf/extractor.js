@@ -287,9 +287,9 @@ function extraerElementos(texto, tipoSesion) {
         
         // Detectar elementos: pueden ser numerados o empezar con palabras clave
         const matchNumero = linea.match(/^(\d+)\.\s+(.+)/);
-        const esDictamen = linea.match(/^Dictamen emanado de las?\s+Comisi/i);
-        const esIniciativa = linea.match(/^Iniciativa con proyecto de decreto/i);
-        const esProposicion = linea.match(/^Proposición con Punto de Acuerdo/i);
+        const esDictamen = linea.match(/^(\d+\.\s+)?Dictamen emanado de las?\s+Comisi/i);
+        const esIniciativa = linea.match(/^(\d+\.\s+)?Iniciativa con proyecto de decreto/i);
+        const esProposicion = linea.match(/^(\d+\.\s+)?Proposición con Punto de Acuerdo/i);
         
         if ((matchNumero || esDictamen || esIniciativa || esProposicion) && tipoSeccionActual) {
             // Procesar elemento anterior si existe
@@ -301,11 +301,20 @@ function extraerElementos(texto, tipoSesion) {
             }
             
             // Iniciar nuevo elemento
+            let numeroOriginal = null;
+            
+            // Extraer número original del documento
             if (matchNumero) {
-                numeroElemento = parseInt(matchNumero[1]);
+                numeroOriginal = parseInt(matchNumero[1]);
             } else {
-                numeroElemento++;  // Incrementar si no tiene número explícito
+                // Buscar número al inicio de dictámenes, iniciativas o proposiciones
+                const matchNumeroInicio = linea.match(/^(\d+)\.\s+/);
+                if (matchNumeroInicio) {
+                    numeroOriginal = parseInt(matchNumeroInicio[1]);
+                }
             }
+            
+            numeroElemento++; // Siempre incrementar el número asignado por el programa
             
             procesandoElemento = true;
             textoAcumulado = linea;
@@ -333,6 +342,8 @@ function extraerElementos(texto, tipoSesion) {
             
             elementoActual = {
                 numero: numeroElemento,
+                numero_original: numeroOriginal,
+                numero_display: numeroOriginal ? `${numeroElemento}/${numeroOriginal}` : `${numeroElemento}`,
                 seccion: seccionActual,
                 tipo_documento: determinarTipoDocumento(linea),
                 requiere_votacion: requiereVotacionElemento,
