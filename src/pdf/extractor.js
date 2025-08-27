@@ -52,6 +52,7 @@ const CONFIGURACION_SECCIONES = {
     'DICTAMENES_PRIMERA': {
         patrones: [
             /^\w\)\s*Dictam.*Primera\s+Lectura/i,  // Cualquier letra ) Dictamen/Dictámenes Primera Lectura
+            /Dictam[eé]n\s+de\s+Primera\s+Lectura/i,  // Dictamen de Primera Lectura
             /Primera\s+Lectura/i,  // Primera Lectura en cualquier parte
             /Dictamen.*Primera\s+Lectura/i  // Dictamen... Primera Lectura
         ],
@@ -67,9 +68,10 @@ const CONFIGURACION_SECCIONES = {
     },
     'DICTAMENES_SEGUNDA': {
         patrones: [
-            /^\w\)\s*Dictám.*Segunda\s+Lectura/i,  // Cualquier letra ) Dictámenes Segunda Lectura
+            /^\w\)\s*Dict[aá]m.*Segunda\s+Lectura/i,  // Cualquier letra ) Dictámenes Segunda Lectura
+            /Dict[aá]menes\s+de\s+Segunda\s+Lectura/i,  // Dictámenes de Segunda Lectura
             /Segunda\s+Lectura/i,  // Segunda Lectura en cualquier parte
-            /Dictamen emanado de las? Comision/i  // Dictamen emanado de la/las Comisión(es)
+            /Dictamen emanado de las? Comisi/i  // Dictamen emanado de la/las Comisión(es)
         ],
         requiereVotacion: true,
         tipoVotacion: 'votacion_dictamen',
@@ -430,13 +432,13 @@ function detectarSeccion(linea) {
     // Esto detecta líneas como: "G) Dictamen de Primera Lectura" o "H) Dictámenes de Segunda Lectura"
     if (linea.match(/^[A-Z]\)\s+/)) {
         // Es un inciso, ahora determinar qué tipo basándose en el contenido
-        if (linea.match(/Primera\s+Lectura/i)) {
+        if (linea.match(/Dictam[eé]n\s+de\s+Primera\s+Lectura/i) || linea.match(/Primera\s+Lectura/i)) {
             return {
                 nombre: 'DICTAMENES_PRIMERA',
                 ...CONFIGURACION_SECCIONES.DICTAMENES_PRIMERA
             };
         }
-        if (linea.match(/Segunda\s+Lectura/i)) {
+        if (linea.match(/Dict[aá]menes\s+de\s+Segunda\s+Lectura/i) || linea.match(/Segunda\s+Lectura/i)) {
             return {
                 nombre: 'DICTAMENES_SEGUNDA',
                 ...CONFIGURACION_SECCIONES.DICTAMENES_SEGUNDA
@@ -553,11 +555,11 @@ function finalizarElemento(elemento, texto, listaElementos) {
         elemento.partido = '';
     }
     
-    // Descripción
-    elemento.descripcion = texto.length > 500 ? texto.substring(0, 497) + '...' : texto;
+    // No limitar la descripción - mantener el texto completo
+    // elemento.descripcion ya fue asignado arriba
     
-    // Solo agregar si tiene información válida
-    if (elemento.titulo && elemento.titulo.length > 10) {
+    // Solo agregar si tiene información válida (verificar descripción, no título)
+    if (elemento.descripcion && elemento.descripcion.length > 10) {
         listaElementos.push(elemento);
     }
 }
