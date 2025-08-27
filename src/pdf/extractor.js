@@ -291,7 +291,18 @@ function extraerElementos(texto, tipoSesion) {
         const esIniciativa = linea.match(/^(\d+\.\s+)?Iniciativa con proyecto de decreto/i);
         const esProposicion = linea.match(/^(\d+\.\s+)?Proposición con Punto de Acuerdo/i);
         
-        if ((matchNumero || esDictamen || esIniciativa || esProposicion) && tipoSeccionActual) {
+        // También detectar elementos que empiezan con número romano o letra
+        const matchNumeroRomano = linea.match(/^[IVXLCDM]+\.\s+(.+)/);
+        const matchLetra = linea.match(/^[a-z]\.\s+(.+)/i);
+        
+        // Detectar si es un elemento válido basado en la sección actual y el contenido
+        const esElementoValido = (matchNumero || esDictamen || esIniciativa || esProposicion || 
+                                  (tipoSeccionActual && (matchNumeroRomano || matchLetra))) && 
+                                  tipoSeccionActual && 
+                                  // Asegurar que no es un título de sección
+                                  !linea.match(/^[A-Z]\)\s+/);
+        
+        if (esElementoValido) {
             // Procesar elemento anterior si existe
             if (elementoActual && textoAcumulado) {
                 if (incisos.length > 0) {
@@ -509,22 +520,16 @@ function finalizarElemento(elemento, texto, listaElementos) {
     // Limpiar texto
     texto = texto.replace(/\s+/g, ' ').trim();
     
-    // Extraer título
-    let titulo = texto;
-    const indicePresenta = texto.search(/presentad[oa]\s+por/i);
-    if (indicePresenta > 0) {
-        titulo = texto.substring(0, indicePresenta).trim();
-    }
+    // Extraer descripción completa (NO título)
+    let descripcion = texto;
     
-    // Limpiar número del título
-    titulo = titulo.replace(/^\d+\.\s*/, '');
+    // Limpiar número del inicio si existe
+    descripcion = descripcion.replace(/^\d+\.\s*/, '');
     
-    // Limitar longitud
-    if (titulo.length > 300) {
-        titulo = titulo.substring(0, 297) + '...';
-    }
-    
-    elemento.titulo = titulo;
+    // No limitar la longitud de la descripción para preservar todo el contenido
+    // Solo poner la descripción, NO el título
+    elemento.titulo = '';  // No usar título
+    elemento.descripcion = descripcion;  // Todo el texto va en descripción
     
     // Extraer presentador y partido
     const matchPresentador = texto.match(/presentad[oa]\s+por\s+(?:el\s+|la\s+)?(?:Diputad[oa]\s+)?([^(,;]+)(?:\s*\(([A-Z]+)\))?/i);

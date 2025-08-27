@@ -535,14 +535,26 @@
                     
                     <h6 class="mb-3">Sesión: <span id="sesionNombreEdit"></span></h6>
                     
+                    <!-- Contadores por tipo -->
+                    <div class="mb-3">
+                        <span class="badge bg-warning me-2">
+                            <i class="fas fa-gavel"></i> Dictámenes: <span id="editBadgeDictamenes">0</span>
+                        </span>
+                        <span class="badge bg-info me-2">
+                            <i class="fas fa-file-alt"></i> Iniciativas: <span id="editBadgeIniciativas">0</span>
+                        </span>
+                        <span class="badge bg-success">
+                            <i class="fas fa-handshake"></i> Puntos de Acuerdo: <span id="editBadgePuntos">0</span>
+                        </span>
+                    </div>
+                    
                     <div class="table-responsive">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th width="5%">#</th>
-                                    <th width="25%">Título</th>
-                                    <th width="45%">Descripción</th>
-                                    <th width="15%">Tipo de Mayoría</th>
+                                    <th width="15%"># / Tipo</th>
+                                    <th width="65%">Descripción</th>
+                                    <th width="10%">Mayoría</th>
                                     <th width="10%">Acciones</th>
                                 </tr>
                             </thead>
@@ -2343,17 +2355,80 @@
                 return;
             }
             
-            tbody.innerHTML = iniciativasEditando.map((iniciativa, index) => `
-                <tr>
-                    <td>${iniciativa.numero || index + 1}</td>
+            // Separar por tipo
+            const dictamenes = [];
+            const iniciativas = [];
+            const puntosAcuerdo = [];
+            let contadorDictamenes = 0;
+            let contadorIniciativas = 0;
+            let contadorPuntos = 0;
+            
+            // Clasificar elementos
+            iniciativasEditando.forEach((item, index) => {
+                item.indexOriginal = index;
+                const desc = item.descripcion || item.titulo || '';
+                
+                if (desc.match(/Dictamen emanado/i)) {
+                    item.tipo = 'dictamen';
+                    dictamenes.push(item);
+                    contadorDictamenes++;
+                } else if (desc.match(/Iniciativa/i)) {
+                    item.tipo = 'iniciativa';
+                    iniciativas.push(item);
+                    contadorIniciativas++;
+                } else if (desc.match(/Punto\s+de\s+Acuerdo/i)) {
+                    item.tipo = 'punto_acuerdo';
+                    puntosAcuerdo.push(item);
+                    contadorPuntos++;
+                }
+            });
+            
+            // Actualizar contadores en badges si existen
+            const badgeDictamenes = document.getElementById('editBadgeDictamenes');
+            const badgeIniciativas = document.getElementById('editBadgeIniciativas');
+            const badgePuntos = document.getElementById('editBadgePuntos');
+            
+            if (badgeDictamenes) badgeDictamenes.textContent = contadorDictamenes;
+            if (badgeIniciativas) badgeIniciativas.textContent = contadorIniciativas;
+            if (badgePuntos) badgePuntos.textContent = contadorPuntos;
+            
+            // Renderizar tabla con todos los elementos pero con identificación visual
+            tbody.innerHTML = iniciativasEditando.map((iniciativa, index) => {
+                const desc = iniciativa.descripcion || iniciativa.titulo || '';
+                let tipoColor = '';
+                let tipoBadge = '';
+                
+                if (desc.match(/Dictamen emanado/i)) {
+                    tipoColor = 'table-warning';
+                    tipoBadge = '<span class="badge bg-warning">Dictamen</span>';
+                } else if (desc.match(/Iniciativa/i)) {
+                    tipoColor = 'table-info';
+                    tipoBadge = '<span class="badge bg-info">Iniciativa</span>';
+                } else if (desc.match(/Punto\s+de\s+Acuerdo/i)) {
+                    tipoColor = 'table-success';
+                    tipoBadge = '<span class="badge bg-success">P. Acuerdo</span>';
+                }
+                
+                // Mostrar número con formato numero_asignado/numero_original si existe
+                const numeroDisplay = iniciativa.numero_display || 
+                                    (iniciativa.numero_original ? `${index + 1}/${iniciativa.numero_original}` : (index + 1));
+                
+                return `
+                <tr class="${tipoColor}">
                     <td>
-                        <input type="text" class="form-control form-control-sm" 
-                               value="${iniciativa.titulo || ''}" 
-                               onchange="actualizarIniciativa(${index}, 'titulo', this.value)">
+                        <strong>${numeroDisplay}</strong>
+                        ${tipoBadge}
                     </td>
-                    <td>
-                        <textarea class="form-control form-control-sm" rows="2"
-                                  onchange="actualizarIniciativa(${index}, 'descripcion', this.value)">${iniciativa.descripcion || ''}</textarea>
+                    <td style="display: none;">
+                        <input type="text" class="form-control form-control-sm" 
+                               value="" 
+                               readonly
+                               placeholder="(No usar título)">
+                    </td>
+                    <td colspan="2">
+                        <textarea class="form-control form-control-sm" rows="3"
+                                  onchange="actualizarIniciativa(${index}, 'descripcion', this.value)"
+                                  placeholder="Descripción completa del elemento">${desc}</textarea>
                     </td>
                     <td>
                         <select class="form-select form-select-sm" 
@@ -2369,7 +2444,7 @@
                         </button>
                     </td>
                 </tr>
-            `).join('');
+            `;
         }
         
         // Actualizar iniciativa
