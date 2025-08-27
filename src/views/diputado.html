@@ -2757,7 +2757,7 @@
         setInterval(updateClock, 1000);
         updateClock();
         
-        // Fix para el menú hamburguesa - Solución mejorada
+        // Fix para el menú hamburguesa - Solución definitiva
         function initializeHamburgerMenu() {
             const navbarToggler = document.querySelector('.navbar-toggler');
             const navbarCollapse = document.querySelector('#navbarContent');
@@ -2768,71 +2768,147 @@
                 return;
             }
             
-            // Limpiar cualquier listener previo
-            const newToggler = navbarToggler.cloneNode(true);
-            navbarToggler.parentNode.replaceChild(newToggler, navbarToggler);
+            console.log('Inicializando menú hamburguesa...');
             
-            // Restablecer atributos de Bootstrap
-            newToggler.setAttribute('data-bs-toggle', 'collapse');
-            newToggler.setAttribute('data-bs-target', '#navbarContent');
-            
-            // Crear nueva instancia de Collapse
-            let bsCollapse;
+            // Remover cualquier instancia previa de Bootstrap Collapse
             try {
-                // Destruir instancia previa si existe
                 const existingCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
                 if (existingCollapse) {
                     existingCollapse.dispose();
                 }
-                
-                // Crear nueva instancia
-                bsCollapse = new bootstrap.Collapse(navbarCollapse, {
-                    toggle: false
-                });
-                
-                console.log('Bootstrap Collapse inicializado correctamente');
             } catch (e) {
-                console.error('Error creando Collapse, usando método alternativo:', e);
+                // Ignorar si no existe
+            }
+            
+            // Remover todos los event listeners previos clonando el botón
+            const newToggler = navbarToggler.cloneNode(true);
+            navbarToggler.parentNode.replaceChild(newToggler, navbarToggler);
+            
+            // Método híbrido que funciona tanto con Bootstrap como sin él
+            newToggler.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 
-                // Método alternativo sin Bootstrap
-                newToggler.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
+                // Intentar usar Bootstrap primero
+                try {
+                    const bsCollapse = bootstrap.Collapse.getOrCreateInstance(navbarCollapse);
+                    bsCollapse.toggle();
+                    console.log('Menú toggled con Bootstrap');
+                } catch (error) {
+                    // Fallback manual si Bootstrap falla
                     const isShowing = navbarCollapse.classList.contains('show');
                     
                     if (isShowing) {
                         navbarCollapse.classList.remove('show');
+                        navbarCollapse.style.display = 'none';
                         newToggler.setAttribute('aria-expanded', 'false');
                     } else {
                         navbarCollapse.classList.add('show');
+                        navbarCollapse.style.display = 'block';
                         newToggler.setAttribute('aria-expanded', 'true');
                     }
                     
-                    console.log('Toggle manual - navbar está:', !isShowing ? 'abierto' : 'cerrado');
-                });
-            }
+                    console.log('Menú toggled manualmente - está:', !isShowing ? 'abierto' : 'cerrado');
+                }
+            });
             
             // Asegurar que el botón es clickeable
             newToggler.style.pointerEvents = 'auto';
             newToggler.style.cursor = 'pointer';
-            newToggler.style.zIndex = '1200';
+            newToggler.style.zIndex = '10000';
             
-            // Debug para mesa directiva
+            // Asegurar que el menú colapsado también tenga z-index alto
+            navbarCollapse.style.zIndex = '99999';
+            
+            console.log('✓ Menú hamburguesa inicializado correctamente');
+            
+            // Debug
             if (user && user.cargo_mesa_directiva) {
-                console.log('Mesa directiva detectada:', user.cargo_mesa_directiva);
-                console.log('Menú hamburguesa inicializado correctamente');
-                console.log('Toggler clickeable:', window.getComputedStyle(newToggler).pointerEvents);
+                console.log('Usuario mesa directiva:', user.cargo_mesa_directiva);
+            }
+        }
+        
+        // Fix para los tabs del modal de Servicios Legislativos
+        function initializeModalTabs() {
+            const modal = document.getElementById('modalServiciosLegislativos');
+            if (!modal) return;
+            
+            console.log('Inicializando tabs del modal...');
+            
+            // Función para manejar los tabs
+            function setupTabs() {
+                const tabLinks = modal.querySelectorAll('.nav-tabs .nav-link');
+                const tabPanes = modal.querySelectorAll('.tab-content .tab-pane');
+                
+                if (tabLinks.length === 0) {
+                    console.log('No se encontraron tabs');
+                    return;
+                }
+                
+                // Remover event listeners previos y agregar nuevos
+                tabLinks.forEach(link => {
+                    // Clonar para limpiar listeners
+                    const newLink = link.cloneNode(true);
+                    link.parentNode.replaceChild(newLink, link);
+                    
+                    newLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Remover active de todos
+                        tabLinks.forEach(l => {
+                            l.classList.remove('active');
+                            l.setAttribute('aria-selected', 'false');
+                        });
+                        tabPanes.forEach(p => {
+                            p.classList.remove('show', 'active', 'fade');
+                        });
+                        
+                        // Activar el clickeado
+                        this.classList.add('active');
+                        this.setAttribute('aria-selected', 'true');
+                        
+                        const targetId = this.getAttribute('href');
+                        if (targetId && targetId.startsWith('#')) {
+                            const targetPane = document.querySelector(targetId);
+                            if (targetPane) {
+                                // Agregar clases en orden correcto
+                                targetPane.classList.add('fade');
+                                setTimeout(() => {
+                                    targetPane.classList.add('show', 'active');
+                                }, 10);
+                            }
+                        }
+                        
+                        console.log('Tab activado:', targetId);
+                    });
+                });
+                
+                console.log('✓ Tabs inicializados correctamente');
+            }
+            
+            // Inicializar cuando el modal se muestra
+            modal.addEventListener('shown.bs.modal', setupTabs);
+            
+            // También inicializar si el modal ya está visible
+            if (modal.classList.contains('show')) {
+                setupTabs();
             }
         }
         
         // Esperar a que Bootstrap esté completamente cargado
-        if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
-            setTimeout(initializeHamburgerMenu, 100);
+        if (typeof bootstrap !== 'undefined') {
+            setTimeout(() => {
+                initializeHamburgerMenu();
+                initializeModalTabs();
+            }, 100);
         } else {
             // Si Bootstrap no está listo, esperar
             window.addEventListener('load', function() {
-                setTimeout(initializeHamburgerMenu, 500);
+                setTimeout(() => {
+                    initializeHamburgerMenu();
+                    initializeModalTabs();
+                }, 500);
             });
         }
         
