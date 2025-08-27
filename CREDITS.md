@@ -7,7 +7,7 @@
 
 - **Contacto:** +52 557 012 2636
 - **Email:** mevo@mevo.com.mx
-- **Web:** www.mevostudio.com.mx
+- **Web:** www.mevo.com.mx
 
 ---
 
