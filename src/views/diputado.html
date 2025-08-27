@@ -1436,114 +1436,7 @@
     <script src="https://unpkg.com/mediasoup-client@3/lib/mediasoup-client.min.js"></script>
     <script>
         // ================ FUNCIONES GLOBALES DEL MENÚ (deben estar antes del HTML) ================
-        
-        window.toggleMenu = function() {
-            console.log('Toggle menu llamado');
-            const menu = document.getElementById('sideMenu');
-            const overlay = document.getElementById('menuOverlay');
-            
-            if (!menu || !overlay) {
-                console.error('Elementos del menú no encontrados:', { 
-                    menu: menu, 
-                    overlay: overlay,
-                    menuExists: !!document.getElementById('sideMenu'),
-                    overlayExists: !!document.getElementById('menuOverlay')
-                });
-                return;
-            }
-            
-            console.log('Estado actual del menú:', {
-                menuHasShow: menu.classList.contains('show'),
-                overlayHasShow: overlay.classList.contains('show')
-            });
-            
-            if (menu.classList.contains('show')) {
-                console.log('Cerrando menú');
-                menu.classList.remove('show');
-                overlay.classList.remove('show');
-                // Aplicar estilo inline para asegurar cierre
-                menu.style.right = '-380px';
-                overlay.style.opacity = '0';
-                overlay.style.visibility = 'hidden';
-            } else {
-                console.log('Abriendo menú');
-                menu.classList.add('show');
-                overlay.classList.add('show');
-                // Aplicar estilo inline para asegurar apertura
-                menu.style.right = '0px';
-                overlay.style.opacity = '1';
-                overlay.style.visibility = 'visible';
-                console.log('Clases y estilos después de abrir:', {
-                    menuClasses: menu.className,
-                    overlayClasses: overlay.className,
-                    menuRight: window.getComputedStyle(menu).right,
-                    overlayOpacity: window.getComputedStyle(overlay).opacity
-                });
-            }
-        }
-        
-        // Función de prueba para verificar el menú desde la consola
-        window.testMenu = function() {
-            console.log('=== PRUEBA DE MENÚ ===');
-            const menu = document.getElementById('sideMenu');
-            const overlay = document.getElementById('menuOverlay');
-            const button = document.getElementById('menuButton');
-            
-            console.log('Elementos encontrados:', {
-                menu: !!menu,
-                overlay: !!overlay,
-                button: !!button
-            });
-            
-            if (menu && overlay) {
-                console.log('Clases actuales:', {
-                    menu: menu.className,
-                    overlay: overlay.className
-                });
-                console.log('Estilos computados del menú:', {
-                    position: window.getComputedStyle(menu).position,
-                    right: window.getComputedStyle(menu).right,
-                    zIndex: window.getComputedStyle(menu).zIndex,
-                    display: window.getComputedStyle(menu).display
-                });
-            }
-            
-            console.log('Ejecutando toggleMenu...');
-            window.toggleMenu();
-        }
-        
-        // Función para resetear y abrir el menú
-        window.resetMenu = function() {
-            const menu = document.getElementById('sideMenu');
-            const overlay = document.getElementById('menuOverlay');
-            
-            if (!menu || !overlay) {
-                console.error('No se encontraron los elementos del menú');
-                return;
-            }
-            
-            // Limpiar estilos inline anteriores
-            menu.style.cssText = '';
-            overlay.style.cssText = '';
-            
-            // Quitar clases show
-            menu.classList.remove('show');
-            overlay.classList.remove('show');
-            
-            // Esperar un momento y abrir
-            setTimeout(() => {
-                console.log('Abriendo menú después de reset...');
-                menu.classList.add('show');
-                overlay.classList.add('show');
-                menu.style.right = '0px';
-                overlay.style.opacity = '1';
-                overlay.style.visibility = 'visible';
-                overlay.style.pointerEvents = 'auto';
-                
-                console.log('Menú abierto - verificar visualmente');
-                console.log('Posición actual:', window.getComputedStyle(menu).right);
-            }, 100);
-        }
+        // Nota: La función toggleMenu está definida más abajo después de inicializar los elementos del DOM
         
         // Inicializar menú al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
@@ -1859,13 +1752,17 @@
         // Función para toggle del menú (debe estar disponible globalmente)
         window.toggleMenu = function() {
             const menu = document.getElementById('sideMenu');
-            const overlay = document.querySelector('.menu-overlay');
+            const overlay = document.getElementById('menuOverlay');
             
             if (menu && overlay) {
-                menu.classList.toggle('active');
-                overlay.classList.toggle('active');
+                menu.classList.toggle('show');
+                overlay.classList.toggle('show');
+                console.log('Menú toggle ejecutado - Estado:', menu.classList.contains('show') ? 'abierto' : 'cerrado');
             } else {
-                console.error('Elementos del menú no encontrados');
+                console.error('Elementos del menú no encontrados', {
+                    menu: !!menu,
+                    overlay: !!overlay
+                });
             }
         }
         
