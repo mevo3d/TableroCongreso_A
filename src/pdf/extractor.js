@@ -6,6 +6,8 @@ const pdfParse = require('pdf-parse');
  */
 
 // Configuración de tipos de sección y sus características de votación
+// IMPORTANTE: No buscar por incisos (A,B,C,etc) ya que cambian en cada sesión
+// Buscar por el CONTENIDO después del inciso
 const CONFIGURACION_SECCIONES = {
     'PASE_LISTA': {
         patrones: [/Pase de lista/i],
@@ -32,43 +34,65 @@ const CONFIGURACION_SECCIONES = {
         descripcion: 'Aprobación del acta de sesión anterior'
     },
     'COMUNICACIONES': {
-        patrones: [/Comunicaciones/i],
+        patrones: [/^\w\)\s*Comunicaciones/i, /Comunicaciones\./i],
         requiereVotacion: false,
         tipoVotacion: 'informativo',
         descripcion: 'Lectura de comunicaciones'
     },
     'INICIATIVAS': {
-        patrones: [/^[A-Z]\)\s*Iniciativas/i],
+        patrones: [
+            /^\w\)\s*Iniciativas/i,  // Cualquier letra seguida de ) Iniciativas
+            /Iniciativas\./i,  // Iniciativas.
+            /Iniciativa con proyecto de decreto/i  // Detectar iniciativas individuales
+        ],
         requiereVotacion: false,
         tipoVotacion: 'turno_comision',
         descripcion: 'Presentación y turno a comisiones'
     },
     'DICTAMENES_PRIMERA': {
-        patrones: [/Dictámenes.*Primera\s+Lectura/i],
-        requiereVotacion: false,
+        patrones: [
+            /^\w\)\s*Dictam.*Primera\s+Lectura/i,  // Cualquier letra ) Dictamen/Dictámenes Primera Lectura
+            /Primera\s+Lectura/i,  // Primera Lectura en cualquier parte
+            /Dictamen.*Primera\s+Lectura/i  // Dictamen... Primera Lectura
+        ],
+        requiereVotacion: false, // Por defecto no, pero puede cambiar si es urgente
         tipoVotacion: 'primera_lectura',
         descripcion: 'Primera lectura, se vota en próxima sesión'
     },
+    'DICTAMENES_PRIMERA_URGENTE': {
+        patrones: [/Primera\s+Lectura.*urgente/i, /urgente.*Primera\s+Lectura/i],
+        requiereVotacion: true,
+        tipoVotacion: 'primera_lectura_urgente',
+        descripcion: 'Primera lectura con urgente y obvia resolución'
+    },
     'DICTAMENES_SEGUNDA': {
-        patrones: [/Dictámenes.*Segunda\s+Lectura/i],
+        patrones: [
+            /^\w\)\s*Dictám.*Segunda\s+Lectura/i,  // Cualquier letra ) Dictámenes Segunda Lectura
+            /Segunda\s+Lectura/i,  // Segunda Lectura en cualquier parte
+            /Dictamen emanado de las? Comision/i  // Dictamen emanado de la/las Comisión(es)
+        ],
         requiereVotacion: true,
         tipoVotacion: 'votacion_dictamen',
         descripcion: 'Segunda lectura, votación inmediata'
     },
     'PUNTOS_ACUERDO': {
-        patrones: [/Puntos?\s+de\s+Acuerdo/i],
-        requiereVotacion: false, // Por defecto no, pero puede cambiar si es urgente
+        patrones: [
+            /^\w\)\s*Propuestas?\s+de\s+Puntos?\s+de\s+Acuerdo/i,  // Cualquier letra ) Propuestas de Puntos de Acuerdo
+            /Puntos?\s+de\s+Acuerdo/i,  // Punto/Puntos de Acuerdo
+            /Proposición con Punto de Acuerdo/i  // Proposición con Punto de Acuerdo
+        ],
+        requiereVotacion: true, // Todos los puntos de acuerdo requieren votación
         tipoVotacion: 'punto_acuerdo',
         descripcion: 'Puntos de acuerdo'
     },
     'PROPOSICIONES': {
-        patrones: [/Proposiciones/i],
+        patrones: [/^\w\)\s*Proposiciones/i, /Proposiciones con/i],
         requiereVotacion: false,
         tipoVotacion: 'proposicion',
         descripcion: 'Proposiciones con punto de acuerdo'
     },
     'ASUNTOS_GENERALES': {
-        patrones: [/Asuntos\s+Generales/i],
+        patrones: [/^\w\)\s*Asuntos\s+Generales/i, /Asuntos\s+Generales/i],
         requiereVotacion: false,
         tipoVotacion: 'informativo',
         descripcion: 'Asuntos generales'
@@ -225,6 +249,7 @@ function extraerElementos(texto, tipoSesion) {
     let elementoActual = null;
     let textoAcumulado = '';
     let procesandoElemento = false;
+    let incisos = [];
     
     for (let i = 0; i < lineas.length; i++) {
         const linea = lineas[i];
@@ -234,7 +259,11 @@ function extraerElementos(texto, tipoSesion) {
         if (nuevaSeccion) {
             // Procesar elemento pendiente si existe
             if (elementoActual && textoAcumulado) {
+                if (incisos.length > 0) {
+                    elementoActual.incisos = incisos;
+                }
                 finalizarElemento(elementoActual, textoAcumulado, elementos);
+                incisos = [];
             }
             
             seccionActual = nuevaSeccion.nombre;
@@ -245,26 +274,70 @@ function extraerElementos(texto, tipoSesion) {
             continue;
         }
         
-        // Detectar elementos numerados
+        // Detectar incisos (a), b), c), etc.)
+        const matchInciso = linea.match(/^[a-z]\)\s+(.+)/i);
+        if (matchInciso && procesandoElemento) {
+            // Es un inciso del elemento actual
+            incisos.push({
+                letra: linea.match(/^([a-z])\)/i)[1],
+                texto: matchInciso[1]
+            });
+            continue;
+        }
+        
+        // Detectar elementos: pueden ser numerados o empezar con palabras clave
         const matchNumero = linea.match(/^(\d+)\.\s+(.+)/);
-        if (matchNumero && tipoSeccionActual) {
+        const esDictamen = linea.match(/^Dictamen emanado de las?\s+Comisi/i);
+        const esIniciativa = linea.match(/^Iniciativa con proyecto de decreto/i);
+        const esProposicion = linea.match(/^Proposición con Punto de Acuerdo/i);
+        
+        if ((matchNumero || esDictamen || esIniciativa || esProposicion) && tipoSeccionActual) {
             // Procesar elemento anterior si existe
             if (elementoActual && textoAcumulado) {
+                if (incisos.length > 0) {
+                    elementoActual.incisos = incisos;
+                }
                 finalizarElemento(elementoActual, textoAcumulado, elementos);
             }
             
             // Iniciar nuevo elemento
-            numeroElemento = parseInt(matchNumero[1]);
+            if (matchNumero) {
+                numeroElemento = parseInt(matchNumero[1]);
+            } else {
+                numeroElemento++;  // Incrementar si no tiene número explícito
+            }
+            
             procesandoElemento = true;
             textoAcumulado = linea;
+            incisos = []; // Reiniciar incisos para el nuevo elemento
+            
+            // Determinar si requiere votación basándose en el contenido
+            let requiereVotacionElemento = tipoSeccionActual.requiereVotacion;
+            let tipoVotacionElemento = tipoSeccionActual.tipoVotacion;
+            
+            // Los dictámenes en segunda lectura SIEMPRE se votan
+            if (esDictamen && seccionActual === 'DICTAMENES_SEGUNDA') {
+                requiereVotacionElemento = true;
+                tipoVotacionElemento = 'votacion_dictamen';
+            }
+            // Las iniciativas NO se votan (solo se turnan)
+            else if (esIniciativa) {
+                requiereVotacionElemento = false;
+                tipoVotacionElemento = 'turno_comision';
+            }
+            // Las proposiciones con punto de acuerdo SÍ se votan
+            else if (esProposicion) {
+                requiereVotacionElemento = true;
+                tipoVotacionElemento = 'punto_acuerdo';
+            }
             
             elementoActual = {
                 numero: numeroElemento,
                 seccion: seccionActual,
                 tipo_documento: determinarTipoDocumento(linea),
-                requiere_votacion: tipoSeccionActual.requiereVotacion,
-                tipo_votacion: tipoSeccionActual.tipoVotacion,
-                momento_votacion: tipoSeccionActual.requiereVotacion ? 'inmediato' : 'no_aplica',
+                requiere_votacion: requiereVotacionElemento,
+                tipo_votacion: tipoVotacionElemento,
+                momento_votacion: requiereVotacionElemento ? 'inmediato' : 'no_aplica',
                 tipo_mayoria: 'simple',
                 prioridad: 'normal',
                 caracteristicas_especiales: []
@@ -304,6 +377,9 @@ function extraerElementos(texto, tipoSesion) {
     
     // Procesar último elemento
     if (elementoActual && textoAcumulado) {
+        if (incisos.length > 0) {
+            elementoActual.incisos = incisos;
+        }
         finalizarElemento(elementoActual, textoAcumulado, elementos);
     }
     
@@ -312,13 +388,11 @@ function extraerElementos(texto, tipoSesion) {
 
 /**
  * Detecta el tipo de sección de una línea
+ * NO depende de los incisos (A,B,C) ya que cambian en cada sesión
+ * Busca por el CONTENIDO de la línea
  */
 function detectarSeccion(linea) {
-    // Primero verificar si es una línea de sección (formato A) B) etc.)
-    if (!linea.match(/^[A-Z]\)/)) {
-        return null;
-    }
-    
+    // Buscar por contenido, no por inciso
     for (const [nombre, config] of Object.entries(CONFIGURACION_SECCIONES)) {
         for (const patron of config.patrones) {
             if (linea.match(patron)) {
@@ -327,6 +401,36 @@ function detectarSeccion(linea) {
                     ...config
                 };
             }
+        }
+    }
+    
+    // Si no coincide con ningún patrón de sección, verificar si es un título de sección genérico
+    // Esto detecta líneas como: "G) Dictamen de Primera Lectura" o "H) Dictámenes de Segunda Lectura"
+    if (linea.match(/^[A-Z]\)\s+/)) {
+        // Es un inciso, ahora determinar qué tipo basándose en el contenido
+        if (linea.match(/Primera\s+Lectura/i)) {
+            return {
+                nombre: 'DICTAMENES_PRIMERA',
+                ...CONFIGURACION_SECCIONES.DICTAMENES_PRIMERA
+            };
+        }
+        if (linea.match(/Segunda\s+Lectura/i)) {
+            return {
+                nombre: 'DICTAMENES_SEGUNDA',
+                ...CONFIGURACION_SECCIONES.DICTAMENES_SEGUNDA
+            };
+        }
+        if (linea.match(/Iniciativas/i)) {
+            return {
+                nombre: 'INICIATIVAS',
+                ...CONFIGURACION_SECCIONES.INICIATIVAS
+            };
+        }
+        if (linea.match(/Puntos?\s+de\s+Acuerdo/i) || linea.match(/Propuestas?\s+de\s+Puntos/i)) {
+            return {
+                nombre: 'PUNTOS_ACUERDO',
+                ...CONFIGURACION_SECCIONES.PUNTOS_ACUERDO
+            };
         }
     }
     

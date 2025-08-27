@@ -1,161 +1,237 @@
-/* Sistema de Temas - Modo Oscuro */
-
-/* Variables de colores para modo oscuro */
+/* Sistema de Diseño Apple - Tema Oscuro */
 [data-theme="dark"] {
-    --bg-primary: #1a1a1a;
-    --bg-secondary: #2d2d2d;
-    --bg-card: #2d2d2d;
-    --bg-hover: #3d3d3d;
-    --text-primary: #e0e0e0;
-    --text-secondary: #b0b0b0;
-    --text-muted: #808080;
-    --border-color: #404040;
-    --input-bg: #2d2d2d;
-    --input-border: #404040;
-    --input-focus: #4a9eff;
-    --navbar-bg: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
-    --modal-bg: #2d2d2d;
-    --modal-header-bg: #1a1a1a;
-    --table-hover: #3d3d3d;
-    --shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.7);
+    /* Colores primarios */
+    --color-primary: #0A84FF;
+    --color-primary-hover: #0066CC;
+    --color-secondary: #5E5CE6;
+    --color-success: #30D158;
+    --color-warning: #FF9F0A;
+    --color-danger: #FF453A;
+    --color-info: #64D2FF;
+    
+    /* Escala de grises */
+    --gray-50: #1C1C1E;
+    --gray-100: #2C2C2E;
+    --gray-200: #3A3A3C;
+    --gray-300: #48484A;
+    --gray-400: #636366;
+    --gray-500: #8E8E93;
+    --gray-600: #AEAEB2;
+    --gray-700: #C7C7CC;
+    --gray-800: #D1D1D6;
+    --gray-900: #E5E5EA;
+    
+    /* Fondos */
+    --bg-primary: #000000;
+    --bg-secondary: #1C1C1E;
+    --bg-tertiary: #2C2C2E;
+    --bg-card: #1C1C1E;
+    --bg-elevated: #2C2C2E;
+    --navbar-bg: rgba(28, 28, 30, 0.72);
+    
+    /* Texto */
+    --text-primary: #FFFFFF;
+    --text-secondary: rgba(255, 255, 255, 0.86);
+    --text-tertiary: rgba(255, 255, 255, 0.6);
+    --text-quaternary: rgba(255, 255, 255, 0.3);
+    --text-inverse: #000000;
+    
+    /* Bordes */
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.15);
+    
+    /* Sombras (más sutiles en modo oscuro) */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.6);
 }
 
-/* Aplicar tema oscuro al body */
+/* Ajustes específicos para modo oscuro */
 [data-theme="dark"] body {
-    background-color: var(--bg-primary) !important;
+    background-color: var(--bg-primary);
     color: var(--text-primary) !important;
 }
 
-/* Navbar */
-[data-theme="dark"] .navbar {
-    background: var(--navbar-bg) !important;
+/* Forzar colores de texto en todos los elementos */
+[data-theme="dark"],
+[data-theme="dark"] * {
+    color: var(--text-primary);
 }
 
-/* Cards */
-[data-theme="dark"] .card {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
-    box-shadow: var(--shadow) !important;
-}
-
-[data-theme="dark"] .card-header {
-    background-color: var(--bg-secondary) !important;
-    border-bottom-color: var(--border-color) !important;
-    color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .card-body {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-}
-
-/* Corregir cards blancas con texto blanco */
-[data-theme="dark"] .card.bg-white,
-[data-theme="dark"] .bg-white {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .card.text-white {
-    color: var(--text-primary) !important;
-}
-
-/* Mantener colores especiales para headers con clases bg-* */
-[data-theme="dark"] .card-header.bg-primary,
-[data-theme="dark"] .card-header.bg-success,
-[data-theme="dark"] .card-header.bg-danger,
-[data-theme="dark"] .card-header.bg-warning,
-[data-theme="dark"] .card-header.bg-info {
-    opacity: 0.9;
-}
-
-/* Modals */
-[data-theme="dark"] .modal-content {
-    background-color: var(--modal-bg) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
-}
-
-[data-theme="dark"] .modal-header {
-    background-color: var(--modal-header-bg) !important;
-    border-bottom-color: var(--border-color) !important;
-    color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .modal-footer {
-    border-top-color: var(--border-color) !important;
-}
-
-[data-theme="dark"] .btn-close {
-    filter: invert(1);
-}
-
-/* Formularios */
-[data-theme="dark"] .form-control,
-[data-theme="dark"] .form-select {
-    background-color: var(--input-bg) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--input-border) !important;
-}
-
-[data-theme="dark"] .form-control:focus,
-[data-theme="dark"] .form-select:focus {
-    background-color: var(--input-bg) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--input-focus) !important;
-    box-shadow: 0 0 0 0.25rem rgba(74, 158, 255, 0.25) !important;
-}
-
-[data-theme="dark"] .form-control::placeholder {
-    color: var(--text-muted) !important;
-}
-
-[data-theme="dark"] .form-label {
+/* Texto secundario */
+[data-theme="dark"] .text-muted,
+[data-theme="dark"] .text-secondary,
+[data-theme="dark"] small {
     color: var(--text-secondary) !important;
 }
 
+/* Headers y títulos */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+    color: var(--text-primary) !important;
+}
+
+/* Labels y etiquetas */
+[data-theme="dark"] label,
+[data-theme="dark"] .form-label {
+    color: var(--text-primary) !important;
+}
+
+/* Párrafos y divs con contenido */
+[data-theme="dark"] p,
+[data-theme="dark"] div,
+[data-theme="dark"] span,
+[data-theme="dark"] li,
+[data-theme="dark"] td,
+[data-theme="dark"] th {
+    color: var(--text-primary);
+}
+
+/* Cards */
+[data-theme="dark"] .card,
+[data-theme="dark"] .card-body,
+[data-theme="dark"] .card-header,
+[data-theme="dark"] .card-footer,
+[data-theme="dark"] .card-title {
+    color: var(--text-primary) !important;
+}
+
+/* Modales */
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-body,
+[data-theme="dark"] .modal-footer,
+[data-theme="dark"] .modal-title {
+    color: var(--text-primary) !important;
+}
+
 /* Tablas */
-[data-theme="dark"] .table {
+[data-theme="dark"] .table,
+[data-theme="dark"] table {
+    color: var(--text-primary) !important;
+}
+
+/* Badges */
+[data-theme="dark"] .badge {
+    /* Los badges mantienen sus colores específicos */
+}
+
+/* Links */
+[data-theme="dark"] a:not(.btn):not(.badge) {
+    color: var(--color-primary);
+}
+
+[data-theme="dark"] a:not(.btn):not(.badge):hover {
+    color: var(--color-primary-hover);
+}
+
+[data-theme="dark"] .navbar {
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+[data-theme="dark"] .apple-card {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .btn-apple-secondary {
+    background: var(--gray-200);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-apple-secondary:hover {
+    background: var(--gray-300);
+}
+
+[data-theme="dark"] .dropdown-menu-apple {
+    background: var(--bg-elevated);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .dropdown-item-apple:hover {
+    background: var(--gray-200);
+}
+
+[data-theme="dark"] .modal-content-apple {
+    background: var(--bg-elevated);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .form-control-apple {
+    background: var(--gray-100);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-control-apple:focus {
+    background: var(--gray-200);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+}
+
+[data-theme="dark"] .form-control-apple::placeholder {
+    color: var(--text-quaternary);
+}
+
+/* Formularios Bootstrap estándar */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select,
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="datetime-local"],
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+    background-color: var(--gray-100) !important;
     color: var(--text-primary) !important;
     border-color: var(--border-color) !important;
-    background-color: transparent !important;
 }
 
-[data-theme="dark"] .table thead th {
-    background-color: var(--bg-secondary) !important;
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus,
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+    background-color: var(--gray-200) !important;
     color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 0.25rem rgba(10, 132, 255, 0.25) !important;
 }
 
-[data-theme="dark"] .table tbody td {
-    background-color: var(--bg-card) !important;
+[data-theme="dark"] .form-control::placeholder,
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+    color: var(--text-tertiary) !important;
+}
+
+/* Dropdowns */
+[data-theme="dark"] .dropdown-menu {
+    background-color: var(--bg-elevated) !important;
+    border-color: var(--border-color) !important;
     color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
 }
 
-[data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * {
-    background-color: rgba(255, 255, 255, 0.02) !important;
+[data-theme="dark"] .dropdown-item {
+    color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] .table-hover > tbody > tr:hover > * {
-    background-color: var(--table-hover) !important;
+[data-theme="dark"] .dropdown-item:hover,
+[data-theme="dark"] .dropdown-item:focus {
+    background-color: var(--gray-200) !important;
+    color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] .table-bordered > :not(caption) > * > * {
-    border-color: var(--border-color) !important;
-}
-
-/* Tabla específica del historial de sesiones */
-[data-theme="dark"] .historial-sesiones-table,
-[data-theme="dark"] #historialTable {
-    background-color: var(--bg-card) !important;
-}
-
-[data-theme="dark"] .historial-sesiones-table th,
-[data-theme="dark"] #historialTable th {
-    background-color: var(--bg-secondary) !important;
+/* Alertas */
+[data-theme="dark"] .alert {
     color: var(--text-primary) !important;
 }
 
@@ -166,144 +242,112 @@
     border-color: var(--border-color) !important;
 }
 
-[data-theme="dark"] .list-group-item:hover {
-    background-color: var(--bg-hover) !important;
+/* Navegación y pestañas */
+[data-theme="dark"] .nav-link {
+    color: var(--text-secondary) !important;
 }
 
-[data-theme="dark"] .list-group-item.active {
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
-}
-
-/* Badges */
-[data-theme="dark"] .badge {
-    opacity: 0.9;
-}
-
-/* Textos */
-[data-theme="dark"] .text-muted {
-    color: var(--text-muted) !important;
-}
-
-[data-theme="dark"] h1,
-[data-theme="dark"] h2,
-[data-theme="dark"] h3,
-[data-theme="dark"] h4,
-[data-theme="dark"] h5,
-[data-theme="dark"] h6 {
+[data-theme="dark"] .nav-link.active,
+[data-theme="dark"] .nav-link:hover {
     color: var(--text-primary) !important;
 }
 
-/* Alerts */
-[data-theme="dark"] .alert {
-    opacity: 0.9;
-}
-
-/* Corregir específicamente alertas de información y light */
-[data-theme="dark"] .alert-info {
-    background-color: #1a3a52 !important;
-    color: #b8d4e8 !important;
-    border-color: #164361 !important;
-}
-
-[data-theme="dark"] .alert-light {
-    background-color: #3d3d3d !important;
-    color: #e0e0e0 !important;
-    border-color: #505050 !important;
-}
-
-[data-theme="dark"] .alert-warning {
-    background-color: #5c4e00 !important;
-    color: #ffd866 !important;
-    border-color: #705f00 !important;
-}
-
-[data-theme="dark"] .alert-success {
-    background-color: #1e4620 !important;
-    color: #a3d9a5 !important;
-    border-color: #2d5f2f !important;
-}
-
-[data-theme="dark"] .alert-danger {
-    background-color: #5c1e28 !important;
-    color: #f1a5b0 !important;
-    border-color: #6d2833 !important;
-}
-
-/* Asegurar que el texto dentro de alertas sea legible */
-[data-theme="dark"] .alert strong {
-    color: inherit !important;
-    filter: brightness(1.2);
-}
-
-[data-theme="dark"] .alert a {
-    color: #6fb3ff !important;
-    text-decoration: underline;
-}
-
-[data-theme="dark"] .alert .btn {
-    opacity: 1 !important;
-}
-
-/* Dropdowns */
-[data-theme="dark"] .dropdown-menu {
-    background-color: var(--bg-secondary) !important;
-    border-color: var(--border-color) !important;
-}
-
-[data-theme="dark"] .dropdown-item {
-    color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .dropdown-item:hover {
-    background-color: var(--bg-hover) !important;
-}
-
-[data-theme="dark"] .dropdown-divider {
-    border-color: var(--border-color) !important;
-}
-
-/* Botones - mantener colores pero ajustar para mejor visibilidad */
-[data-theme="dark"] .btn {
-    opacity: 0.95;
-}
-
+/* Botones que no son de tipo primary/success/etc */
 [data-theme="dark"] .btn-light {
-    background-color: #495057 !important;
-    border-color: #495057 !important;
-    color: #fff !important;
+    background-color: var(--gray-200) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
 }
 
 [data-theme="dark"] .btn-outline-light {
-    color: #adb5bd !important;
-    border-color: #adb5bd !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
 }
 
 [data-theme="dark"] .btn-outline-light:hover {
-    background-color: #adb5bd !important;
-    color: #212529 !important;
+    background-color: var(--gray-200) !important;
+    color: var(--text-primary) !important;
 }
 
-/* Paginación */
-[data-theme="dark"] .page-link {
-    background-color: var(--bg-secondary) !important;
+[data-theme="dark"] .switch-slider {
+    background-color: var(--gray-300);
+}
+
+[data-theme="dark"] input:checked + .switch-slider {
+    background-color: var(--color-success);
+}
+
+[data-theme="dark"] .badge-apple {
+    background: var(--gray-200);
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+}
+
+/* Iconos Font Awesome */
+[data-theme="dark"] i,
+[data-theme="dark"] .fas,
+[data-theme="dark"] .far,
+[data-theme="dark"] .fab {
+    color: inherit !important;
+}
+
+/* Elementos específicos que pueden tener color fijo */
+[data-theme="dark"] .text-dark {
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .text-black {
+    color: var(--text-primary) !important;
+}
+
+/* Estadísticas y contadores */
+[data-theme="dark"] .stat-card {
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .stat-card h3,
+[data-theme="dark"] .stat-card h4,
+[data-theme="dark"] .stat-card h5,
+[data-theme="dark"] .stat-card p {
+    color: var(--text-primary) !important;
+}
+
+/* Elementos de tiempo y fecha */
+[data-theme="dark"] #currentTime,
+[data-theme="dark"] #sessionTimer,
+[data-theme="dark"] .timer,
+[data-theme="dark"] .clock {
+    color: var(--text-primary) !important;
+}
+
+/* Tooltips */
+[data-theme="dark"] .tooltip-inner {
+    background-color: var(--gray-200) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Popovers */
+[data-theme="dark"] .popover {
+    background-color: var(--bg-elevated) !important;
     border-color: var(--border-color) !important;
-    color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] .page-link:hover {
-    background-color: var(--bg-hover) !important;
+[data-theme="dark"] .popover-header {
+    background-color: var(--gray-200) !important;
     color: var(--text-primary) !important;
+    border-bottom-color: var(--border-color) !important;
 }
 
-[data-theme="dark"] .page-item.active .page-link {
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
+[data-theme="dark"] .popover-body {
+    color: var(--text-primary) !important;
 }
 
 /* Progress bars */
 [data-theme="dark"] .progress {
-    background-color: var(--bg-secondary) !important;
+    background-color: var(--gray-200) !important;
 }
 
 /* Breadcrumbs */
@@ -311,397 +355,77 @@
     background-color: var(--bg-secondary) !important;
 }
 
-[data-theme="dark"] .breadcrumb-item + .breadcrumb-item::before {
-    color: var(--text-muted) !important;
+[data-theme="dark"] .breadcrumb-item {
+    color: var(--text-secondary) !important;
 }
 
-/* Scrollbar personalizada para modo oscuro */
-[data-theme="dark"] ::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
+[data-theme="dark"] .breadcrumb-item.active {
+    color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
+/* Pagination */
+[data-theme="dark"] .page-link {
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-    background: #555;
-    border-radius: 6px;
+[data-theme="dark"] .page-link:hover {
+    background-color: var(--gray-200) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .page-item.active .page-link {
+    background-color: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+}
+
+/* Accordions */
+[data-theme="dark"] .accordion-item {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .accordion-header {
+    background-color: var(--bg-card) !important;
+}
+
+[data-theme="dark"] .accordion-button {
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .accordion-button:not(.collapsed) {
+    background-color: var(--gray-100) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .accordion-body {
+    background-color: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Spinners */
+[data-theme="dark"] .spinner-border,
+[data-theme="dark"] .spinner-grow {
+    color: var(--text-primary) !important;
 }
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-    background: #666;
+    background: var(--gray-400);
 }
 
-/* Estilos específicos para el panel de votación */
-[data-theme="dark"] .deputy-header {
-    background: var(--bg-card) !important;
-    box-shadow: var(--shadow-lg) !important;
-}
-
-[data-theme="dark"] .initiative-card {
-    background-color: var(--bg-card) !important;
-    border-color: var(--border-color) !important;
-}
-
-[data-theme="dark"] .initiative-card:hover {
-    background-color: var(--bg-hover) !important;
-}
-
-[data-theme="dark"] .initiative-card.active {
-    background-color: #28a74520 !important;
-    border-color: #28a745 !important;
-}
-
-/* Botón de cambio de tema */
-.theme-toggle {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-    background: #fff;
-    border: none;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease;
-}
-
-.theme-toggle:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-}
-
-[data-theme="dark"] .theme-toggle {
-    background: #2d2d2d;
-    color: #ffd700;
-}
-
-.theme-toggle i {
-    font-size: 20px;
-}
-
-/* Animación de transición */
-* {
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-}
-
-/* Ajustes adicionales para elementos específicos */
-[data-theme="dark"] .vote-progress {
-    background: var(--bg-secondary) !important;
-}
-
-[data-theme="dark"] .session-card {
-    background: var(--bg-card) !important;
-    border-color: var(--border-color) !important;
-}
-
-[data-theme="dark"] hr {
-    border-color: var(--border-color) !important;
-    opacity: 0.5;
-}
-
-/* Links */
-[data-theme="dark"] a {
-    color: #4a9eff;
-}
-
-[data-theme="dark"] a:hover {
-    color: #6fb3ff;
-}
-
-/* Navbar específica del tema oscuro */
-[data-theme="dark"] .navbar-dark .navbar-brand {
-    color: #fff !important;
-}
-
-/* Ajustes para inputs de búsqueda */
-[data-theme="dark"] input[type="search"] {
-    background-color: var(--input-bg) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--input-border) !important;
-}
-
-/* Tooltips */
-[data-theme="dark"] .tooltip-inner {
-    background-color: #000 !important;
-}
-
-/* Popovers */
-[data-theme="dark"] .popover {
-    background-color: var(--bg-secondary) !important;
-    border-color: var(--border-color) !important;
-}
-
-[data-theme="dark"] .popover-header {
-    background-color: var(--bg-primary) !important;
-    border-bottom-color: var(--border-color) !important;
-    color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .popover-body {
-    color: var(--text-primary) !important;
-}
-
-/* ===== CORRECCIONES ESPECÍFICAS PARA PANELES ===== */
-
-/* Panel Superadmin - Corregir cajas blancas del dashboard */
-[data-theme="dark"] .stats-card,
-[data-theme="dark"] .dashboard-card,
-[data-theme="dark"] .stat-card,
-[data-theme="dark"] .info-box,
-[data-theme="dark"] .small-box {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--border-color) !important;
-}
-
-[data-theme="dark"] .stats-number,
-[data-theme="dark"] .stat-number,
-[data-theme="dark"] .info-box-number {
-    color: var(--text-primary) !important;
-}
-
-/* Corregir específicamente las tarjetas con estadísticas numéricas */
-[data-theme="dark"] .col-md-2 .card,
-[data-theme="dark"] .col-lg-2 .card {
-    background-color: var(--bg-card) !important;
-    border: 1px solid var(--border-color) !important;
-}
-
-[data-theme="dark"] .col-md-2 .card .card-body,
-[data-theme="dark"] .col-lg-2 .card .card-body {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .col-md-2 h2,
-[data-theme="dark"] .col-lg-2 h2,
-[data-theme="dark"] .col-md-2 h3,
-[data-theme="dark"] .col-lg-2 h3 {
-    color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .col-md-2 .text-muted,
-[data-theme="dark"] .col-lg-2 .text-muted {
-    color: var(--text-secondary) !important;
-}
-
-[data-theme="dark"] .user-card,
-[data-theme="dark"] .partido-card {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-}
-
-/* Panel Diputados - Deputy header y cards */
-[data-theme="dark"] .deputy-header {
-    background: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .deputy-name,
-[data-theme="dark"] .deputy-cargo,
-[data-theme="dark"] .deputy-commission {
-    color: var(--text-primary) !important;
-}
-
-/* Corregir elementos con fondo blanco */
-[data-theme="dark"] .bg-light {
-    background-color: var(--bg-secondary) !important;
-    color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .text-dark {
-    color: var(--text-primary) !important;
-}
-
-/* Panel Operador */
-[data-theme="dark"] .upload-card,
-[data-theme="dark"] .status-card {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-}
-
-/* Panel Secretario */
-[data-theme="dark"] .vote-card,
-[data-theme="dark"] .session-info {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-}
-
-/* Panel Servicios Legislativos */
-[data-theme="dark"] .upload-zone {
-    background-color: var(--bg-secondary) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--border-color) !important;
-}
-
-[data-theme="dark"] .sesion-card {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-}
-
-/* Todos los elementos con clase white o light */
-[data-theme="dark"] [class*="bg-white"],
-[data-theme="dark"] [class*="text-white"]:not(.btn):not(.badge):not(.navbar-brand) {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-}
-
-/* Ajustar todos los elementos p, span, div sin clases específicas */
-[data-theme="dark"] p:not([class*="text-"]),
-[data-theme="dark"] span:not([class*="text-"]):not(.badge):not(.btn),
-[data-theme="dark"] div:not([class*="text-"]) {
-    color: var(--text-primary) !important;
-}
-
-/* Ajustar elementos small y labels */
-[data-theme="dark"] small,
-[data-theme="dark"] label {
-    color: var(--text-secondary) !important;
-}
-
-/* Asegurar que los textos en containers blancos sean visibles */
-[data-theme="dark"] .container-fluid,
-[data-theme="dark"] .container {
-    color: var(--text-primary) !important;
-}
-
-/* Corregir nav-tabs */
-[data-theme="dark"] .nav-tabs .nav-link {
-    color: var(--text-secondary) !important;
-    background-color: transparent !important;
-    border-color: var(--border-color) !important;
-}
-
-[data-theme="dark"] .nav-tabs .nav-link.active {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--border-color) var(--border-color) var(--bg-card) !important;
-}
-
-/* Corregir tab-content */
-[data-theme="dark"] .tab-content {
-    background-color: transparent !important;
-}
-
-[data-theme="dark"] .tab-pane {
-    color: var(--text-primary) !important;
-}
-
-/* Ajustar elementos con background-color inline */
-[data-theme="dark"] [style*="background-color: white"],
-[data-theme="dark"] [style*="background-color:#fff"],
-[data-theme="dark"] [style*="background-color: #fff"],
-[data-theme="dark"] [style*="background-color:#ffffff"],
-[data-theme="dark"] [style*="background-color: #ffffff"] {
-    background-color: var(--bg-card) !important;
-}
-
-/* Asegurar legibilidad en todos los títulos y subtítulos */
-[data-theme="dark"] .card-title,
-[data-theme="dark"] .modal-title {
-    color: var(--text-primary) !important;
-}
-
-/* Corregir elementos de estado y notificaciones */
-[data-theme="dark"] .estado-badge,
-[data-theme="dark"] .notification-card {
-    background-color: var(--bg-card) !important;
-    color: var(--text-primary) !important;
-}
-
-/* Asegurar contraste en elementos interactivos */
-[data-theme="dark"] .clickable:hover,
-[data-theme="dark"] .hoverable:hover {
-    background-color: var(--bg-hover) !important;
-}
-
-/* Corregir cualquier texto que quede blanco sobre blanco */
-[data-theme="dark"] .text-white:not(.btn):not(.badge):not(.alert) {
-    color: var(--text-primary) !important;
-}
-
-/* Ajustar contenedores principales de cada panel */
-[data-theme="dark"] .main-container,
-[data-theme="dark"] .content-wrapper,
-[data-theme="dark"] .panel-container {
-    background-color: var(--bg-primary) !important;
-    color: var(--text-primary) !important;
-}
-
-/* ===== CORRECCIONES ESPECÍFICAS SUPERADMIN DASHBOARD ===== */
-
-/* Tarjetas de estadísticas con iconos */
-[data-theme="dark"] .card.text-center {
-    background-color: var(--bg-card) !important;
-    border: 1px solid var(--border-color) !important;
-}
-
-[data-theme="dark"] .card.text-center .card-body {
-    background-color: var(--bg-card) !important;
-}
-
-[data-theme="dark"] .card.text-center h2,
-[data-theme="dark"] .card.text-center h3,
-[data-theme="dark"] .card.text-center .display-4 {
-    color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] .card.text-center .text-muted,
-[data-theme="dark"] .card.text-center small {
-    color: var(--text-secondary) !important;
-}
-
-/* Iconos en las tarjetas */
-[data-theme="dark"] .card.text-center i {
-    opacity: 0.8;
-}
-
-/* Tarjeta de sesión activa */
-[data-theme="dark"] .sesion-activa-card {
-    background-color: var(--bg-card) !important;
-    border: 1px solid #28a745 !important;
-}
-
-/* Panel de control del sistema */
-[data-theme="dark"] .control-sistema-card {
-    background-color: var(--bg-card) !important;
-    border: 1px solid var(--border-color) !important;
-}
-
-/* Asegurar visibilidad de todos los números grandes */
-[data-theme="dark"] .display-1,
-[data-theme="dark"] .display-2,
-[data-theme="dark"] .display-3,
-[data-theme="dark"] .display-4 {
-    color: var(--text-primary) !important;
-}
-
-/* Badges en modo oscuro */
-[data-theme="dark"] .badge.bg-success,
-[data-theme="dark"] .badge.bg-danger,
-[data-theme="dark"] .badge.bg-warning,
-[data-theme="dark"] .badge.bg-info {
+/* Ajustes para imágenes y medios en modo oscuro */
+[data-theme="dark"] img {
     opacity: 0.9;
 }
 
-/* Botones en las tablas */
-[data-theme="dark"] .table .btn-sm {
-    opacity: 0.95;
+[data-theme="dark"] img:hover {
+    opacity: 1;
 }
 
-/* Asegurar que el contenedor del historial tenga fondo correcto */
-[data-theme="dark"] .historial-container,
-[data-theme="dark"] #historialContainer {
-    background-color: var(--bg-card) !important;
-    padding: 1rem;
-    border-radius: 0.375rem;
-    border: 1px solid var(--border-color);
+/* Efecto de brillo reducido para modo oscuro */
+[data-theme="dark"] .glow {
+    filter: brightness(0.8);
 }

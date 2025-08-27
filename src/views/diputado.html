@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/apple-theme.css">
     <link rel="stylesheet" href="/css/dark-theme.css">
+    <link rel="stylesheet" href="/css/global-background.css">
     <script src="/js/theme-loader.js"></script>
     <style>
         body {
@@ -740,62 +741,136 @@
         .side-menu {
             position: fixed;
             top: 0;
-            right: -350px;
-            width: 350px;
+            right: -380px;
+            width: 380px;
             height: 100%;
-            background: white;
-            box-shadow: -5px 0 20px rgba(0,0,0,0.1);
-            transition: right 0.3s ease-out;
+            background: var(--bg-card);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            box-shadow: var(--shadow-xl);
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1049;
             overflow-y: auto;
+            border-left: 1px solid var(--border-color);
         }
         
-        .side-menu.active {
+        .side-menu.show {
             right: 0;
         }
         
         .side-menu-header {
-            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-            color: white;
-            padding: 20px;
+            background: var(--bg-card);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 24px;
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .side-menu-header h5 {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.4px;
+            color: var(--text-primary);
+            margin: 0;
         }
         
         .side-menu-content {
-            padding: 20px;
+            padding: 16px;
         }
         
         .menu-item {
-            display: block;
-            padding: 15px;
-            color: #333;
-            text-decoration: none;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            transition: all 0.3s;
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 14px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            margin-bottom: 4px;
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
         }
         
         .menu-item:hover {
-            background: #f0f0f0;
-            transform: translateX(5px);
+            background: var(--gray-100);
+            transform: translateX(2px);
         }
         
         .menu-item i {
-            font-size: 20px;
-            width: 30px;
+            font-size: 18px;
+            width: 24px;
             text-align: center;
-            color: #007bff;
+            color: var(--color-primary);
+            opacity: 0.8;
+        }
+        
+        .menu-item:hover i {
+            opacity: 1;
+        }
+        
+        .menu-item small {
+            display: block;
+            color: var(--text-tertiary);
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        
+        .menu-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 12px 0;
         }
         
         /* Overlay para el menú */
         .menu-overlay {
             position: fixed;
             top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-base);
+            z-index: 1048;
+        }
+        
+        .menu-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Botón de cierre del menú */
+        .btn-close-menu {
+            background: var(--gray-100);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            color: var(--text-secondary);
+        }
+        
+        .btn-close-menu:hover {
+            background: var(--gray-200);
+            transform: rotate(90deg);
+        }
             left: 0;
             width: 100%;
             height: 100%;
@@ -819,11 +894,14 @@
     <!-- Overlay del menú -->
     <div class="menu-overlay" onclick="toggleMenu()"></div>
     
+    <!-- Overlay del menú -->
+    <div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
+    
     <!-- Menú lateral -->
     <div class="side-menu" id="sideMenu">
         <div class="side-menu-header">
-            <h5 class="mb-0">Opciones</h5>
-            <button class="btn btn-sm btn-light" onclick="toggleMenu()" style="position: absolute; right: 20px;">
+            <h5>Opciones</h5>
+            <button class="btn-close-menu" onclick="toggleMenu()">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -851,7 +929,7 @@
                         <small class="text-muted">Ver quórum actual</small>
                     </div>
                 </a>
-                <hr>
+                <div class="menu-divider"></div>
             </div>
             
             <!-- Panel de Control del Secretario -->
@@ -878,7 +956,7 @@
                         <small class="text-muted">Volver al panel de votación</small>
                     </div>
                 </a>
-                <hr>
+                <div class="menu-divider"></div>
             </div>
             
             <a href="#" class="menu-item" onclick="verTableroSimplificado()">
@@ -2211,11 +2289,11 @@
                     <h5 class="alert-heading">
                         <i class="fas fa-bell"></i> Sesión Lista para Iniciar
                     </h5>
-                    <hr>
+                    <div class="menu-divider"></div>
                     <p><strong>Operador:</strong> ${data.operador}</p>
                     <p><strong>Sesión:</strong> ${data.sesion}</p>
                     <p><strong>Iniciativas cargadas:</strong> ${data.totalIniciativas}</p>
-                    <hr>
+                    <div class="menu-divider"></div>
                     <p class="mb-0">Ya puede iniciar la sesión legislativa</p>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 `;
@@ -3649,16 +3727,16 @@
     </div>
     
     <!-- Modal de Configuración Personal -->
-    <div class="modal fade" id="modalConfiguracion" tabindex="-1">
+    <div class="modal fade modal-apple" id="modalConfiguracion" tabindex="-1">
         <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title">
+            <div class="modal-content modal-content-apple">
+                <div class="modal-header modal-header-apple">
+                    <h5 class="modal-title modal-title-apple">
                         <i class="fas fa-cog"></i> Configuración Personal
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body modal-body-apple">
                     <form id="formConfiguracion">
                         <div class="row">
                             <div class="col-md-4 text-center mb-3">
@@ -3666,7 +3744,7 @@
                                     <img id="previewFoto" src="/images/diputados/default.png" alt="Foto" 
                                          class="img-thumbnail mb-2" style="width: 150px; height: 150px; object-fit: cover;">
                                     <div class="mt-2">
-                                        <label for="inputFoto" class="btn btn-sm btn-outline-primary">
+                                        <label for="inputFoto" class="btn btn-apple btn-sm">
                                             <i class="fas fa-camera"></i> Cambiar Foto
                                         </label>
                                         <input type="file" id="inputFoto" class="d-none" accept="image/*" onchange="previewImage(this)">
@@ -3675,42 +3753,40 @@
                             </div>
                             <div class="col-md-8">
                                 <div class="mb-3">
-                                    <label class="form-label">Nombre Completo</label>
-                                    <input type="text" class="form-control" id="configNombre" required>
+                                    <label class="form-label form-label-apple">Nombre Completo</label>
+                                    <input type="text" class="form-control form-control-apple" id="configNombre" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Usuario de Acceso</label>
-                                    <input type="text" class="form-control" id="configUsuario" required>
+                                    <label class="form-label form-label-apple">Usuario de Acceso</label>
+                                    <input type="text" class="form-control form-control-apple" id="configUsuario" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Nueva Contraseña</label>
-                                    <input type="password" class="form-control" id="configPassword" 
+                                    <label class="form-label form-label-apple">Nueva Contraseña</label>
+                                    <input type="password" class="form-control form-control-apple" id="configPassword" 
                                            placeholder="Dejar vacío para mantener la actual">
                                     <small class="text-muted">Mínimo 6 caracteres</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Confirmar Contraseña</label>
-                                    <input type="password" class="form-control" id="configPasswordConfirm" 
+                                    <label class="form-label form-label-apple">Confirmar Contraseña</label>
+                                    <input type="password" class="form-control form-control-apple" id="configPasswordConfirm" 
                                            placeholder="Repetir nueva contraseña">
                                 </div>
                             </div>
                         </div>
                         
-                        <hr>
+                        <div class="menu-divider"></div>
                         
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label text-muted">Partido <small>(no editable)</small></label>
-                                    <input type="text" class="form-control" id="configPartido" readonly disabled
-                                           style="background-color: #e9ecef; cursor: not-allowed; opacity: 0.7;">
+                                    <label class="form-label form-label-apple text-muted">Partido <small>(no editable)</small></label>
+                                    <input type="text" class="form-control form-control-apple" id="configPartido" readonly disabled>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label text-muted">Cargo <small>(no editable)</small></label>
-                                    <input type="text" class="form-control" id="configCargo" readonly disabled
-                                           style="background-color: #e9ecef; cursor: not-allowed; opacity: 0.7;">
+                                    <label class="form-label form-label-apple text-muted">Cargo <small>(no editable)</small></label>
+                                    <input type="text" class="form-control form-control-apple" id="configCargo" readonly disabled>
                                 </div>
                             </div>
                         </div>
@@ -3722,9 +3798,9 @@
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="guardarConfiguracion()">
+                <div class="modal-footer modal-footer-apple">
+                    <button type="button" class="btn btn-apple-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-apple" onclick="guardarConfiguracion()">
                         <i class="fas fa-save"></i> Guardar Cambios
                     </button>
                 </div>
@@ -4278,7 +4354,7 @@
             document.getElementById('detalleIniciativaContenido').innerHTML = `
                 <h5>${iniciativa.titulo || 'Sin título'}</h5>
                 <p class="text-muted">${iniciativa.descripcion || 'Sin descripción'}</p>
-                <hr>
+                <div class="menu-divider"></div>
                 <p><strong>Presentador:</strong> ${iniciativa.presentador || 'No especificado'}</p>
                 <p><strong>Partido:</strong> ${iniciativa.partido || 'No especificado'}</p>
                 <p><strong>Tipo de Mayoría:</strong> ${iniciativa.tipo_mayoria || 'Simple'}</p>

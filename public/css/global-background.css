@@ -1,0 +1,138 @@
+/* Fondo de invitación para todos los paneles */
+
+/* Aplicar a todos los contenedores principales */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/images/fondo.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+    opacity: 0.5;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Asegurar que el fondo se vea en todos los paneles */
+.container,
+.card,
+.modal-content,
+.panel,
+.voting-panel,
+.deputy-header,
+.dashboard-container {
+    position: relative;
+}
+
+/* Fondo sutil para cards y paneles */
+.card::before,
+.modal-content::before,
+.voting-panel::before,
+.deputy-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/images/fondo.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center center;
+    opacity: 0.3;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+/* Para paneles con fondo oscuro */
+[data-theme="dark"] body::before,
+[data-theme="dark"] .card::before,
+[data-theme="dark"] .modal-content::before,
+[data-theme="dark"] .voting-panel::before,
+[data-theme="dark"] .deputy-header::before {
+    opacity: 0.25;
+    filter: invert(1);
+}
+
+/* Específico para pantallas de votación */
+.voting-container {
+    position: relative;
+    min-height: 100vh;
+}
+
+.voting-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/images/fondo.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center center;
+    opacity: 0.4;
+    z-index: -1;
+}
+
+/* Para la pantalla del diputado */
+.main-content {
+    position: relative;
+}
+
+.main-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('/images/fondo.svg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center center;
+    opacity: 0.5;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Animación sutil del fondo - ahora más suave ya que es una imagen única */
+@keyframes pattern-float {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+body::before {
+    animation: pattern-float 30s ease-in-out infinite;
+}
+
+/* Alternativa: Si prefieres ver la imagen completa sin cortes, usa esta clase en el body */
+body.fondo-completo::before {
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+/* Ajustes para mejor legibilidad */
+.card-body,
+.modal-body,
+.voting-content {
+    background: rgba(255, 255, 255, 0.95);
+    position: relative;
+    z-index: 1;
+}
+
+[data-theme="dark"] .card-body,
+[data-theme="dark"] .modal-body,
+[data-theme="dark"] .voting-content {
+    background: rgba(28, 28, 30, 0.95);
+}

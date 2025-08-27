@@ -25,12 +25,20 @@
       "Bash(grep:*)",
       "Bash(del check-sesiones-table.js check-unique-constraint.js add-numero-orden-dia-column.js)",
       "Bash(del \"C:\\Users\\BALERION\\proyectos-automatizacion\\TableroAGit\\verificar-ids-diputados.js\")",
-      "Bash(del create-pausas-table.js)"
+      "Bash(del create-pausas-table.js)",
+      "Bash(git log:*)",
+      "Read(C:\\Users\\BALERION\\Downloads/**)",
+      "Read(C:\\Users\\BALERION\\Downloads/**)",
+      "Read(C:\\Users\\BALERION\\Downloads/**)",
+      "Bash(bash:*)",
+      "Bash(xcopy:*)"
     ],
     "deny": [],
     "ask": [],
     "additionalDirectories": [
-      "C:\\Users\\BALERION\\proyectos-automatizacion"
+      "C:\\Users\\BALERION\\proyectos-automatizacion",
+      "C:\\Users\\BALERION\\Downloads",
+      "C:\\c\\Users\\BALERION\\Downloads"
     ]
   }
 }

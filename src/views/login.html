@@ -42,37 +42,177 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #f5f5f7 0%, #e1e1e3 100%);
+            background: #000000;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #1d1d1f;
             transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Contenedor Parallax */
+        .parallax-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .parallax-layer {
+            position: absolute;
+            top: -15%;
+            left: -15%;
+            width: 130%;
+            height: 130%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            will-change: transform;
+            transition: transform 0.1s ease-out;
+        }
+        
+        /* Layer 1 - Nubes (más lento, más lejano) */
+        .layer-1 {
+            background-image: url('/images/parallax/layer-1-nubes.png');
+            animation: float-clouds 40s ease-in-out infinite;
+            z-index: 1;
+            /* Expandir 25% más para mejor cobertura */
+            width: 135%;
+            height: 135%;
+            top: -17.5%;
+            left: -17.5%;
+        }
+        
+        /* Layer 2 - Volcán (velocidad media) */
+        .layer-2 {
+            background-image: url('/images/parallax/layer-2-volcan.png');
+            z-index: 2;
+            animation: subtle-shift 30s ease-in-out infinite;
+        }
+        
+        /* Layer 3 - Congreso (más rápido, más cercano) */
+        .layer-3 {
+            background-image: url('/images/parallax/layer-3-congreso.png');
+            z-index: 3;
+            transform: translateX(25%); /* Mover edificio a la derecha */
+            background-position: right center;
+        }
+        
+        /* Animaciones sutiles */
+        @keyframes float-clouds {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            33% { transform: translateX(-2%) translateY(-1%); }
+            66% { transform: translateX(2%) translateY(1%); }
+        }
+        
+        @keyframes subtle-shift {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        /* Overlay gradient para mejor legibilidad */
+        .gradient-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 0, 0, 0.4) 0%,
+                rgba(0, 0, 0, 0.2) 40%,
+                rgba(0, 0, 0, 0.1) 60%,
+                rgba(0, 0, 0, 0.3) 100%
+            );
+            z-index: 4;
+        }
+        
+        /* Efecto de entrada */
+        @keyframes layer-entrance {
+            from {
+                opacity: 0;
+                transform: scale(1.1);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .layer-1 { animation: layer-entrance 1.5s ease-out, float-clouds 40s ease-in-out infinite 1.5s; }
+        .layer-2 { animation: layer-entrance 1.2s ease-out 0.3s both, subtle-shift 30s ease-in-out infinite 1.5s; }
+        .layer-3 { animation: layer-entrance 1s ease-out 0.6s both; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: transparent;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1d1d1f;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        [data-theme="dark"] .gradient-overlay {
+            background: linear-gradient(
+                135deg,
+                rgba(0, 0, 0, 0.6) 0%,
+                rgba(0, 0, 0, 0.4) 40%,
+                rgba(0, 0, 0, 0.3) 60%,
+                rgba(0, 0, 0, 0.5) 100%
+            );
         }
         
         [data-theme="dark"] body {
-            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
             color: #f5f5f7;
         }
         
-        .login-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            padding: 48px;
+        /* Contenedor del formulario con mayor z-index */
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
             max-width: 450px;
+            padding: 20px;
+        }
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 48px;
             width: 100%;
             transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            animation: card-entrance 0.8s ease-out 1s both;
+        }
+        
+        @keyframes card-entrance {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         [data-theme="dark"] .login-card {
-            background: rgba(28, 28, 30, 0.8);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(28, 28, 30, 0.95);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
         }
         
         .login-card:hover {
@@ -350,15 +490,21 @@
     </style>
 </head>
 <body>
+    <!-- Contenedor Parallax -->
+    <div class="parallax-container" id="parallaxContainer">
+        <div class="parallax-layer layer-1" data-speed="0.2"></div>
+        <div class="parallax-layer layer-2" data-speed="0.5"></div>
+        <div class="parallax-layer layer-3" data-speed="0.8"></div>
+        <div class="gradient-overlay"></div>
+    </div>
+    
     <!-- Botón de cambio de tema -->
     <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Cambiar tema">
         <i class="fas fa-moon" id="theme-icon"></i>
     </button>
     
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-5">
-                <div class="login-card">
+    <div class="login-wrapper">
+        <div class="login-card">
                     <div class="logo">
                         <div class="logos-container" id="logosContainer">
                             <!-- Los logos se cargarán dinámicamente -->
@@ -393,8 +539,6 @@
                     
                     <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;"></div>
                 </div>
-            </div>
-        </div>
     </div>
     
     <script>
@@ -582,6 +726,120 @@
                     window.location.href = '/';
             }
         }
+    </script>
+    
+    <!-- Script para efecto Parallax interactivo -->
+    <script>
+        // Efecto parallax con el movimiento del mouse
+        document.addEventListener('DOMContentLoaded', function() {
+            const parallaxContainer = document.getElementById('parallaxContainer');
+            const layers = document.querySelectorAll('.parallax-layer');
+            let isAnimating = false;
+            
+            // Función para aplicar el efecto parallax
+            function applyParallax(e) {
+                if (isAnimating) return;
+                
+                const x = e.clientX;
+                const y = e.clientY;
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight / 2;
+                
+                // Calcular el desplazamiento desde el centro
+                const moveX = (x - centerX) / centerX;
+                const moveY = (y - centerY) / centerY;
+                
+                layers.forEach(layer => {
+                    const speed = parseFloat(layer.dataset.speed) || 0.5;
+                    const translateX = moveX * 20 * speed;
+                    const translateY = moveY * 10 * speed;
+                    
+                    // Aplicar transformación con suavizado
+                    layer.style.transform = `
+                        translate(${-translateX}px, ${-translateY}px) 
+                        scale(1.1)
+                    `;
+                });
+            }
+            
+            // Efecto de respiración cuando no hay interacción
+            function breathingEffect() {
+                if (!isAnimating) return;
+                
+                layers.forEach((layer, index) => {
+                    const speed = parseFloat(layer.dataset.speed) || 0.5;
+                    const time = Date.now() * 0.0005;
+                    const translateY = Math.sin(time + index) * 5 * speed;
+                    
+                    layer.style.transform = `
+                        translateY(${translateY}px) 
+                        scale(1.1)
+                    `;
+                });
+                
+                if (isAnimating) {
+                    requestAnimationFrame(breathingEffect);
+                }
+            }
+            
+            // Eventos del mouse
+            let mouseTimeout;
+            document.addEventListener('mousemove', (e) => {
+                isAnimating = false;
+                clearTimeout(mouseTimeout);
+                applyParallax(e);
+                
+                // Reactivar animación después de 3 segundos sin movimiento
+                mouseTimeout = setTimeout(() => {
+                    isAnimating = true;
+                    breathingEffect();
+                }, 3000);
+            });
+            
+            // Efecto para dispositivos móviles con giroscopio
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', (e) => {
+                    if (isAnimating) return;
+                    
+                    const tiltX = e.gamma; // Rango [-90, 90]
+                    const tiltY = e.beta;  // Rango [-180, 180]
+                    
+                    if (tiltX !== null && tiltY !== null) {
+                        layers.forEach(layer => {
+                            const speed = parseFloat(layer.dataset.speed) || 0.5;
+                            const translateX = (tiltX / 90) * 30 * speed;
+                            const translateY = (tiltY / 180) * 20 * speed;
+                            
+                            layer.style.transform = `
+                                translate(${translateX}px, ${translateY}px) 
+                                scale(1.1)
+                            `;
+                        });
+                    }
+                });
+            }
+            
+            // Iniciar efecto de respiración
+            setTimeout(() => {
+                isAnimating = true;
+                breathingEffect();
+            }, 2000);
+            
+            // Efecto de profundidad al hacer scroll (si hubiera scroll)
+            window.addEventListener('scroll', () => {
+                const scrolled = window.pageYOffset;
+                layers.forEach(layer => {
+                    const speed = parseFloat(layer.dataset.speed) || 0.5;
+                    const yPos = -(scrolled * speed);
+                    layer.style.transform = `translateY(${yPos}px) scale(1.1)`;
+                });
+            });
+        });
+        
+        // Efecto de entrada suave al cargar
+        window.addEventListener('load', () => {
+            document.body.classList.add('loaded');
+        });
     </script>
 </body>
 </html>

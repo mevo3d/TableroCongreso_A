@@ -1,0 +1,138 @@
+/* Sistema de Diseño Apple - Tema Oscuro */
+[data-theme="dark"] {
+    /* Colores primarios */
+    --color-primary: #0A84FF;
+    --color-primary-hover: #0066CC;
+    --color-secondary: #5E5CE6;
+    --color-success: #30D158;
+    --color-warning: #FF9F0A;
+    --color-danger: #FF453A;
+    --color-info: #64D2FF;
+    
+    /* Escala de grises */
+    --gray-50: #1C1C1E;
+    --gray-100: #2C2C2E;
+    --gray-200: #3A3A3C;
+    --gray-300: #48484A;
+    --gray-400: #636366;
+    --gray-500: #8E8E93;
+    --gray-600: #AEAEB2;
+    --gray-700: #C7C7CC;
+    --gray-800: #D1D1D6;
+    --gray-900: #E5E5EA;
+    
+    /* Fondos */
+    --bg-primary: #000000;
+    --bg-secondary: #1C1C1E;
+    --bg-tertiary: #2C2C2E;
+    --bg-card: #1C1C1E;
+    --bg-elevated: #2C2C2E;
+    --navbar-bg: rgba(28, 28, 30, 0.72);
+    
+    /* Texto */
+    --text-primary: #FFFFFF;
+    --text-secondary: rgba(255, 255, 255, 0.86);
+    --text-tertiary: rgba(255, 255, 255, 0.6);
+    --text-quaternary: rgba(255, 255, 255, 0.3);
+    --text-inverse: #000000;
+    
+    /* Bordes */
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.15);
+    
+    /* Sombras (más sutiles en modo oscuro) */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.5);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Ajustes específicos para modo oscuro */
+[data-theme="dark"] body {
+    background-color: var(--bg-primary);
+}
+
+[data-theme="dark"] .navbar {
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+[data-theme="dark"] .apple-card {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .btn-apple-secondary {
+    background: var(--gray-200);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-apple-secondary:hover {
+    background: var(--gray-300);
+}
+
+[data-theme="dark"] .dropdown-menu-apple {
+    background: var(--bg-elevated);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .dropdown-item-apple:hover {
+    background: var(--gray-200);
+}
+
+[data-theme="dark"] .modal-content-apple {
+    background: var(--bg-elevated);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .form-control-apple {
+    background: var(--gray-100);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-control-apple:focus {
+    background: var(--gray-200);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+}
+
+[data-theme="dark"] .form-control-apple::placeholder {
+    color: var(--text-quaternary);
+}
+
+[data-theme="dark"] .switch-slider {
+    background-color: var(--gray-300);
+}
+
+[data-theme="dark"] input:checked + .switch-slider {
+    background-color: var(--color-success);
+}
+
+[data-theme="dark"] .badge-apple {
+    background: var(--gray-200);
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-400);
+}
+
+/* Ajustes para imágenes y medios en modo oscuro */
+[data-theme="dark"] img {
+    opacity: 0.9;
+}
+
+[data-theme="dark"] img:hover {
+    opacity: 1;
+}
+
+/* Efecto de brillo reducido para modo oscuro */
+[data-theme="dark"] .glow {
+    filter: brightness(0.8);
+}

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/apple-theme.css">
     <link rel="stylesheet" href="/css/dark-theme.css">
+    <link rel="stylesheet" href="/css/global-background.css">
     <script src="/js/theme-loader.js"></script>
     <style>
         /* Colores neutros */
@@ -130,6 +131,53 @@
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
+        }
+        
+        /* Estilos para pestañas dinámicas */
+        .nav-tabs .nav-link {
+            color: var(--text-primary);
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            background-color: var(--bg-hover);
+            border-color: var(--border-color);
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: var(--bg-card);
+            border-color: var(--border-color) var(--border-color) var(--bg-card);
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+        
+        /* Badges en pestañas con colores específicos */
+        .nav-tabs .badge-warning {
+            background-color: #ff9800 !important;
+            animation: pulse 2s infinite;
+        }
+        
+        .nav-tabs .badge-danger {
+            background-color: #dc3545 !important;
+        }
+        
+        .nav-tabs .badge-info {
+            background-color: #17a2b8 !important;
+        }
+        
+        .nav-tabs .badge-success {
+            background-color: #28a745 !important;
+        }
+        
+        /* Contenedor de pestañas */
+        .tab-content {
+            background-color: var(--bg-card);
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 5px 5px;
         }
     </style>
 </head>
@@ -379,9 +427,26 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <div id="initiativesList">
-                            <p class="text-muted text-center">No hay iniciativas cargadas</p>
+                        <!-- Pestañas dinámicas para categorías de iniciativas -->
+                        <ul class="nav nav-tabs mb-3" id="initiativesTabs" role="tablist" style="display: none;">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="todas-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#todas" type="button" role="tab">
+                                    <i class="fas fa-list"></i> Todas
+                                    <span class="badge bg-secondary ms-1" id="countTodas">0</span>
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <!-- Contenido de las pestañas -->
+                        <div class="tab-content" id="initiativesTabContent">
+                            <div class="tab-pane fade show active" id="todas" role="tabpanel">
+                                <div id="initiativesList">
+                                    <p class="text-muted text-center">No hay iniciativas cargadas</p>
+                                </div>
+                            </div>
                         </div>
+                        
                         <!-- Botón para notificar a mesa directiva -->
                         <div id="notificarMesaContainer" class="mt-3" style="display: none;">
                             <div class="d-grid">
@@ -1069,22 +1134,218 @@
             }
         }
         
-        // Mostrar iniciativas
+        // Mostrar iniciativas con pestañas dinámicas
         function displayInitiatives(initiatives) {
             // Mostrar/ocultar botón de notificar si hay iniciativas
             const notificarContainer = document.getElementById('notificarMesaContainer');
             if (notificarContainer) {
                 notificarContainer.style.display = initiatives.length > 0 ? 'block' : 'none';
             }
-            const container = document.getElementById('initiativesList');
             
             if (initiatives.length === 0) {
-                container.innerHTML = '<p class="text-muted text-center">No hay iniciativas</p>';
+                document.getElementById('initiativesList').innerHTML = '<p class="text-muted text-center">No hay iniciativas</p>';
+                document.getElementById('initiativesTabs').style.display = 'none';
                 return;
             }
             
+            // Categorizar iniciativas
+            const categorias = categorizarIniciativas(initiatives);
+            
+            // Mostrar pestañas
+            mostrarPestanas(categorias);
+            
+            // Mostrar contenido de la pestaña activa
+            mostrarContenidoPestanas(categorias);
+        }
+        
+        // Función para categorizar iniciativas por tipo
+        function categorizarIniciativas(initiatives) {
+            const categorias = {
+                todas: initiatives,
+                primeraLecturaUrgente: [],
+                segundaLectura: [],
+                puntosAcuerdo: [],
+                extraordinarias: [],
+                otras: []
+            };
+            
+            initiatives.forEach(init => {
+                // Extraordinarias
+                if (init.tipo_iniciativa === 'extraordinaria') {
+                    categorias.extraordinarias.push(init);
+                }
+                
+                // Primera lectura urgente (con obvia resolución)
+                if (init.tipo_votacion && init.tipo_votacion.includes('primera_lectura_urgente')) {
+                    categorias.primeraLecturaUrgente.push(init);
+                }
+                // Segunda lectura
+                else if (init.titulo && init.titulo.toLowerCase().includes('segunda lectura')) {
+                    categorias.segundaLectura.push(init);
+                }
+                // Puntos de acuerdo
+                else if (init.tipo_votacion === 'punto_acuerdo' || 
+                        (init.titulo && init.titulo.toLowerCase().includes('punto de acuerdo'))) {
+                    categorias.puntosAcuerdo.push(init);
+                }
+                // Otras
+                else if (!init.tipo_iniciativa || init.tipo_iniciativa !== 'extraordinaria') {
+                    categorias.otras.push(init);
+                }
+            });
+            
+            return categorias;
+        }
+        
+        // Función para mostrar las pestañas dinámicas
+        function mostrarPestanas(categorias) {
+            const tabsContainer = document.getElementById('initiativesTabs');
+            const tabsHtml = [];
+            
+            // Siempre mostrar pestaña "Todas"
+            tabsHtml.push(`
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="todas-tab" data-bs-toggle="tab" 
+                            data-bs-target="#todas" type="button" role="tab">
+                        <i class="fas fa-list"></i> Todas
+                        <span class="badge bg-secondary ms-1">${categorias.todas.length}</span>
+                    </button>
+                </li>
+            `);
+            
+            // Primera Lectura Urgente
+            if (categorias.primeraLecturaUrgente.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="primeraLecturaUrgente-tab" data-bs-toggle="tab" 
+                                data-bs-target="#primeraLecturaUrgente" type="button" role="tab">
+                            <i class="fas fa-bolt"></i> Primera Lectura Urgente
+                            <span class="badge bg-warning ms-1">${categorias.primeraLecturaUrgente.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // Segunda Lectura
+            if (categorias.segundaLectura.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="segundaLectura-tab" data-bs-toggle="tab" 
+                                data-bs-target="#segundaLectura" type="button" role="tab">
+                            <i class="fas fa-book-reader"></i> Segunda Lectura
+                            <span class="badge bg-danger ms-1">${categorias.segundaLectura.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // Puntos de Acuerdo
+            if (categorias.puntosAcuerdo.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="puntosAcuerdo-tab" data-bs-toggle="tab" 
+                                data-bs-target="#puntosAcuerdo" type="button" role="tab">
+                            <i class="fas fa-handshake"></i> Puntos de Acuerdo
+                            <span class="badge bg-info ms-1">${categorias.puntosAcuerdo.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // Extraordinarias
+            if (categorias.extraordinarias.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="extraordinarias-tab" data-bs-toggle="tab" 
+                                data-bs-target="#extraordinarias" type="button" role="tab">
+                            <i class="fas fa-star"></i> Extraordinarias
+                            <span class="badge bg-warning ms-1" style="animation: pulse 2s infinite;">${categorias.extraordinarias.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            tabsContainer.innerHTML = tabsHtml.join('');
+            tabsContainer.style.display = 'flex';
+        }
+        
+        // Función para mostrar el contenido de las pestañas
+        function mostrarContenidoPestanas(categorias) {
+            const contentContainer = document.getElementById('initiativesTabContent');
+            const contentHtml = [];
+            
+            // Contenido para "Todas"
+            contentHtml.push(`
+                <div class="tab-pane fade show active" id="todas" role="tabpanel">
+                    <div id="initiativesList">
+                        ${renderizarIniciativas(categorias.todas)}
+                    </div>
+                </div>
+            `);
+            
+            // Contenido para Primera Lectura Urgente
+            if (categorias.primeraLecturaUrgente.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="primeraLecturaUrgente" role="tabpanel">
+                        <div class="alert alert-warning mb-3">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            Estas iniciativas requieren votación inmediata por urgente y obvia resolución
+                        </div>
+                        ${renderizarIniciativas(categorias.primeraLecturaUrgente)}
+                    </div>
+                `);
+            }
+            
+            // Contenido para Segunda Lectura
+            if (categorias.segundaLectura.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="segundaLectura" role="tabpanel">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle"></i> 
+                            Todas las iniciativas de segunda lectura requieren votación
+                        </div>
+                        ${renderizarIniciativas(categorias.segundaLectura)}
+                    </div>
+                `);
+            }
+            
+            // Contenido para Puntos de Acuerdo
+            if (categorias.puntosAcuerdo.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="puntosAcuerdo" role="tabpanel">
+                        <div class="alert alert-success mb-3">
+                            <i class="fas fa-check-circle"></i> 
+                            Los puntos de acuerdo requieren votación para su aprobación
+                        </div>
+                        ${renderizarIniciativas(categorias.puntosAcuerdo)}
+                    </div>
+                `);
+            }
+            
+            // Contenido para Extraordinarias
+            if (categorias.extraordinarias.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="extraordinarias" role="tabpanel">
+                        <div class="alert alert-warning mb-3">
+                            <i class="fas fa-star"></i> 
+                            Iniciativas extraordinarias agregadas durante la sesión
+                        </div>
+                        ${renderizarIniciativas(categorias.extraordinarias)}
+                    </div>
+                `);
+            }
+            
+            contentContainer.innerHTML = contentHtml.join('');
+        }
+        
+        // Función auxiliar para renderizar las iniciativas
+        function renderizarIniciativas(initiatives) {
+            if (initiatives.length === 0) {
+                return '<p class="text-muted text-center">No hay iniciativas en esta categoría</p>';
+            }
+            
             // Agregar controles de selección múltiple
-            let headerHtml = `
+            let html = `
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="selectAllInitiatives" onchange="toggleSelectAll()">
@@ -1098,7 +1359,7 @@
                 </div>
             `;
             
-            const initiativesHtml = initiatives.map(init => {
+            html += initiatives.map(init => {
                 // Determinar si requiere votación
                 const requiereVotacion = init.requiere_votacion || 
                     (init.tipo_votacion && !init.tipo_votacion.toLowerCase().includes('comisión'));
@@ -1123,6 +1384,7 @@
                                         ${requiereVotacion ? '<i class="fas fa-vote-yea text-success me-2" title="Requiere votación"></i>' : ''}
                                         ${init.numero_orden_dia ? `${init.numero}/${init.numero_orden_dia}` : init.numero}. ${init.titulo || init.descripcion || 'Sin descripción'}
                                         ${init.tipo_iniciativa === 'extraordinaria' ? '<span class="badge badge-extraordinary ms-2">⚡ EXTRAORDINARIA</span>' : ''}
+                                        ${init.incisos && init.incisos.length > 0 ? `<small class="text-muted ms-2">(${init.incisos.length} incisos)</small>` : ''}
                                     </h6>
                                     ${init.presentador ? `
                                         <div class="small mb-1">
@@ -1130,6 +1392,14 @@
                                             <strong>Presentada por:</strong> ${init.presentador}
                                             ${init.partido_presentador ? `<span class="badge badge-partido ${getPartidoBadgeClass(init.partido_presentador)} ms-1">${init.partido_presentador}</span>` : ''}
                                         </div>
+                                    ` : ''}
+                                    ${init.incisos && init.incisos.length > 0 ? `
+                                        <details class="small mt-1">
+                                            <summary style="cursor: pointer;">Ver incisos</summary>
+                                            <ul class="mb-0">
+                                                ${init.incisos.map(inciso => `<li>${inciso.letra}) ${inciso.texto}</li>`).join('')}
+                                            </ul>
+                                        </details>
                                     ` : ''}
                                     <span class="badge bg-secondary">${init.tipo_mayoria || 'Simple'}</span>
                                     ${init.activa ? '<span class="badge bg-success ms-1">ACTIVA</span>' : ''}
@@ -1188,8 +1458,7 @@
             `;
             }).join('');
             
-            // Combinar header y contenido
-            container.innerHTML = headerHtml + initiativesHtml;
+            return html;
         }
         
         // Funciones para selección múltiple
