@@ -2563,7 +2563,14 @@
                 const userCommissionEl = document.getElementById('userCommission');
                 
                 if (fullNameEl) fullNameEl.textContent = data.nombre_completo || data.nombre || 'Diputado';
-                if (userCargoEl) userCargoEl.textContent = data.cargo_legislativo || data.cargo_mesa_directiva || 'Diputado';
+                if (userCargoEl) {
+                    // Mostrar cargo oficial para Isaac Pimentel (Presidente de la Mesa Directiva)
+                    if (data.nombre_completo === 'Isaac Pimentel Mejía' && data.cargo_mesa_directiva === 'presidente') {
+                        userCargoEl.textContent = 'Presidente de la Mesa Directiva del H. Congreso del Estado de Morelos';
+                    } else {
+                        userCargoEl.textContent = data.cargo_legislativo || data.cargo_mesa_directiva || 'Diputado';
+                    }
+                }
                 if (userCommissionEl) userCommissionEl.textContent = data.comision || 'Sin comisión asignada';
                 
                 // Obtener datos del partido

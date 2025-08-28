@@ -138,41 +138,88 @@ function obtenerVotosIniciativa(db, iniciativaId, req, callback) {
             return;
         }
         
-        // Mapeo de nombres para orden correcto (apellido primero)
-        const ORDEN_DIPUTADOS = {
-            'Gerardo Abarca Peña': 'Abarca Peña, Gerardo',
-            'Alfredo Domínguez Mandujano': 'Domínguez Mandujano, Alfredo',
-            'Brenda Espinoza López': 'Espinoza López, Brenda',
-            'Andrea Valentina Guadalupe Gordillo Vega': 'Gordillo Vega, Andrea Valentina Guadalupe',
-            'Sergio Omar Livera Chavarría': 'Livera Chavarría, Sergio Omar',
-            'Gonzala Eleonor Martínez Gómez': 'Martínez Gómez, Gonzala Eleonor',
-            'Óscar Daniel Martínez Terrazas': 'Martínez Terrazas, Óscar Daniel',
-            'Guillermina Maya Rendón': 'Maya Rendón, Guillermina',
-            'Martha Melissa Montes de Oca Montoya': 'Montes de Oca Montoya, Martha Melissa',
-            'Luis Eduardo Pedrero González': 'Pedrero González, Luis Eduardo',
-            'Isaac Pimentel Mejía': 'Pimentel Mejía, Isaac',
-            'Luz Dary Quevedo Maldonado': 'Quevedo Maldonado, Luz Dary',
-            'Rafael Reyes Reyes': 'Reyes Reyes, Rafael',
-            'Ruth Cleotilde Rodríguez López': 'Rodríguez López, Ruth Cleotilde',
-            'Tania Valentina Rodríguez Ruiz': 'Rodríguez Ruiz, Tania Valentina',
-            'Nayla Carolina Ruíz Rodríguez': 'Ruíz Rodríguez, Nayla Carolina',
-            'Alberto Sánchez Ortega': 'Sánchez Ortega, Alberto',
-            'Francisco Erik Sánchez Zavala': 'Sánchez Zavala, Francisco Erik',
-            'Jazmín Juana Solano López': 'Solano López, Jazmín Juana',
-            'Alfonso de Jesús Sotelo Martínez': 'Sotelo Martínez, Alfonso de Jesús'
+        // Mapeo de nombres para formato correcto sin comas (nombres como están en BD)
+        const NOMBRE_FORMATO = {
+            'Gerardo Abarca Peña': 'Abarca Peña Gerardo',
+            'Alfredo Domínguez Mandujano': 'Domínguez Mandujano Alfredo',
+            'Brenda Espinoza López': 'Espinoza López Brenda',
+            'Andrea Valentina Guadalupe Gordillo Vega': 'Gordillo Vega Andrea Valentina Guadalupe',
+            'Sergio Omar Livera Chavarría': 'Livera Chavarría Sergio Omar',
+            'Eleonor Martínez Gómez': 'Martínez Gómez Gonzala Eleonor',
+            'Daniel Martínez Terrazas': 'Martínez Terrazas Óscar Daniel',
+            'Guillermina Maya Rendón': 'Maya Rendón Guillermina',
+            'Melissa Montes de Oca Montoya': 'Montes de Oca Montoya Martha Melissa',
+            'Luis Eduardo Pedrero González': 'Pedrero González Luis Eduardo',
+            'Isaac Pimentel Mejía': 'Pimentel Mejía Isaac',
+            'Luz Dary Quevedo Maldonado': 'Quevedo Maldonado Luz Dary',
+            'Rafael Reyes Reyes': 'Reyes Reyes Rafael',
+            'Ruth Cleotilde Rodríguez López': 'Rodríguez López Ruth Cleotilde',
+            'Tania Valentina Rodríguez Ruiz': 'Rodríguez Ruiz Tania Valentina',
+            'Nayla Carolina Ruiz Rodríguez': 'Ruíz Rodríguez Nayla Carolina',
+            'Alberto Sánchez Ortega': 'Sánchez Ortega Alberto',
+            'Francisco Erik Sánchez Zavala': 'Sánchez Zavala Francisco Erik',
+            'Jazmín Juana Solano López': 'Solano López Jazmín Juana',
+            'Alfonso de Jesús Sotelo Martínez': 'Sotelo Martínez Alfonso de Jesús'
         };
         
-        // Aplicar formato de apellido primero para mostrar
+        // Orden específico de diputados
+        const ORDEN_ESPECIFICO = [
+            'Abarca Peña Gerardo',
+            'Domínguez Mandujano Alfredo',
+            'Espinoza López Brenda',
+            'Gordillo Vega Andrea Valentina Guadalupe',
+            'Livera Chavarría Sergio Omar',
+            'Martínez Gómez Gonzala Eleonor',
+            'Martínez Terrazas Óscar Daniel',
+            'Maya Rendón Guillermina',
+            'Montes de Oca Montoya Martha Melissa',
+            'Pedrero González Luis Eduardo',
+            'Pimentel Mejía Isaac',
+            'Quevedo Maldonado Luz Dary',
+            'Reyes Reyes Rafael',
+            'Rodríguez López Ruth Cleotilde',
+            'Rodríguez Ruiz Tania Valentina',
+            'Ruíz Rodríguez Nayla Carolina',
+            'Sánchez Ortega Alberto',
+            'Sánchez Zavala Francisco Erik',
+            'Solano López Jazmín Juana',
+            'Sotelo Martínez Alfonso de Jesús'
+        ];
+        
+        // Mapeo de orden por ID de diputado (basado en los IDs reales de la BD)
+        const ORDEN_POR_ID = {
+            18: 1,  // Gerardo Abarca Peña
+            12: 2,  // Alfredo Domínguez Mandujano
+            17: 3,  // Brenda Espinoza López
+            6: 4,   // Andrea Valentina Guadalupe Gordillo Vega
+            7: 5,   // Sergio Omar Livera Chavarría
+            22: 6,  // Eleonor Martínez Gómez (Gonzala Eleonor)
+            5: 7,   // Daniel Martínez Terrazas (Óscar Daniel)
+            8: 8,   // Guillermina Maya Rendón
+            15: 9,  // Melissa Montes de Oca Montoya (Martha Melissa)
+            21: 10, // Luis Eduardo Pedrero González
+            16: 11, // Isaac Pimentel Mejía
+            19: 12, // Luz Dary Quevedo Maldonado
+            10: 13, // Rafael Reyes Reyes
+            23: 14, // Ruth Cleotilde Rodríguez López
+            20: 15, // Tania Valentina Rodríguez Ruiz
+            11: 16, // Nayla Carolina Ruiz Rodríguez
+            24: 17, // Alberto Sánchez Ortega
+            13: 18, // Francisco Erik Sánchez Zavala
+            9: 19,  // Jazmín Juana Solano López
+            14: 20  // Alfonso de Jesús Sotelo Martínez
+        };
+        
+        // Aplicar formato sin comas y asignar orden
         votos = votos.map(voto => ({
             ...voto,
-            nombre_mostrar: ORDEN_DIPUTADOS[voto.nombre_completo] || voto.nombre_completo
+            nombre_mostrar: NOMBRE_FORMATO[voto.nombre_completo] || voto.nombre_completo,
+            orden_pantalla: ORDEN_POR_ID[voto.id] || 999
         }));
         
-        // Ordenar por apellido usando el formato correcto
+        // Ordenar según el orden definido por ID
         votos.sort((a, b) => {
-            const nombreA = a.nombre_mostrar || a.nombre_completo;
-            const nombreB = b.nombre_mostrar || b.nombre_completo;
-            return nombreA.localeCompare(nombreB, 'es');
+            return a.orden_pantalla - b.orden_pantalla;
         });
         
         // Convertir URLs de fotos a absolutas

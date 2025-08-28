@@ -386,6 +386,7 @@ router.get('/pdf/:sesionId', async (req, res) => {
             doc.text(`A Favor: ${iniciativa.votos_favor}`);
             doc.text(`En Contra: ${iniciativa.votos_contra}`);
             doc.text(`Abstención: ${iniciativa.votos_abstencion}`);
+            doc.text(`Votación Total: ${total}`);
             doc.text(`Resultado: ${aprobada ? 'APROBADA' : 'RECHAZADA'}`, { 
                 underline: true,
                 color: aprobada ? 'green' : 'red'
@@ -501,6 +502,7 @@ router.get('/word/:sesionId', async (req, res) => {
                     new TableCell({ children: [new Paragraph({ text: "A Favor", bold: true })] }),
                     new TableCell({ children: [new Paragraph({ text: "En Contra", bold: true })] }),
                     new TableCell({ children: [new Paragraph({ text: "Abstención", bold: true })] }),
+                    new TableCell({ children: [new Paragraph({ text: "Total", bold: true })] }),
                     new TableCell({ children: [new Paragraph({ text: "Resultado", bold: true })] })
                 ]
             })
@@ -518,6 +520,7 @@ router.get('/word/:sesionId', async (req, res) => {
                         new TableCell({ children: [new Paragraph(iniciativa.votos_favor.toString())] }),
                         new TableCell({ children: [new Paragraph(iniciativa.votos_contra.toString())] }),
                         new TableCell({ children: [new Paragraph(iniciativa.votos_abstencion.toString())] }),
+                        new TableCell({ children: [new Paragraph(total.toString())] }),
                         new TableCell({ children: [new Paragraph(aprobada ? "APROBADA" : "RECHAZADA")] })
                     ]
                 })

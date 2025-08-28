@@ -1103,28 +1103,28 @@
         }
         
         function formatNameLastNameFirst(name) {
-            // Mapeo específico de nombres para formato correcto
+            // Mapeo específico de nombres para formato correcto sin comas
             const ORDEN_DIPUTADOS = {
-                'Gerardo Abarca Peña': 'Abarca Peña, Gerardo',
-                'Alfredo Domínguez Mandujano': 'Domínguez Mandujano, Alfredo',
-                'Brenda Espinoza López': 'Espinoza López, Brenda',
-                'Andrea Valentina Guadalupe Gordillo Vega': 'Gordillo Vega, Andrea Valentina Guadalupe',
-                'Sergio Omar Livera Chavarría': 'Livera Chavarría, Sergio Omar',
-                'Gonzala Eleonor Martínez Gómez': 'Martínez Gómez, Gonzala Eleonor',
-                'Óscar Daniel Martínez Terrazas': 'Martínez Terrazas, Óscar Daniel',
-                'Guillermina Maya Rendón': 'Maya Rendón, Guillermina',
-                'Martha Melissa Montes de Oca Montoya': 'Montes de Oca Montoya, Martha Melissa',
-                'Luis Eduardo Pedrero González': 'Pedrero González, Luis Eduardo',
-                'Isaac Pimentel Mejía': 'Pimentel Mejía, Isaac',
-                'Luz Dary Quevedo Maldonado': 'Quevedo Maldonado, Luz Dary',
-                'Rafael Reyes Reyes': 'Reyes Reyes, Rafael',
-                'Ruth Cleotilde Rodríguez López': 'Rodríguez López, Ruth Cleotilde',
-                'Tania Valentina Rodríguez Ruiz': 'Rodríguez Ruiz, Tania Valentina',
-                'Nayla Carolina Ruíz Rodríguez': 'Ruíz Rodríguez, Nayla Carolina',
-                'Alberto Sánchez Ortega': 'Sánchez Ortega, Alberto',
-                'Francisco Erik Sánchez Zavala': 'Sánchez Zavala, Francisco Erik',
-                'Jazmín Juana Solano López': 'Solano López, Jazmín Juana',
-                'Alfonso de Jesús Sotelo Martínez': 'Sotelo Martínez, Alfonso de Jesús'
+                'Gerardo Abarca Peña': 'Abarca Peña Gerardo',
+                'Alfredo Domínguez Mandujano': 'Domínguez Mandujano Alfredo',
+                'Brenda Espinoza López': 'Espinoza López Brenda',
+                'Andrea Valentina Guadalupe Gordillo Vega': 'Gordillo Vega Andrea Valentina Guadalupe',
+                'Sergio Omar Livera Chavarría': 'Livera Chavarría Sergio Omar',
+                'Gonzala Eleonor Martínez Gómez': 'Martínez Gómez Gonzala Eleonor',
+                'Óscar Daniel Martínez Terrazas': 'Martínez Terrazas Óscar Daniel',
+                'Guillermina Maya Rendón': 'Maya Rendón Guillermina',
+                'Martha Melissa Montes de Oca Montoya': 'Montes de Oca Montoya Martha Melissa',
+                'Luis Eduardo Pedrero González': 'Pedrero González Luis Eduardo',
+                'Isaac Pimentel Mejía': 'Pimentel Mejía Isaac',
+                'Luz Dary Quevedo Maldonado': 'Quevedo Maldonado Luz Dary',
+                'Rafael Reyes Reyes': 'Reyes Reyes Rafael',
+                'Ruth Cleotilde Rodríguez López': 'Rodríguez López Ruth Cleotilde',
+                'Tania Valentina Rodríguez Ruiz': 'Rodríguez Ruiz Tania Valentina',
+                'Nayla Carolina Ruíz Rodríguez': 'Ruíz Rodríguez Nayla Carolina',
+                'Alberto Sánchez Ortega': 'Sánchez Ortega Alberto',
+                'Francisco Erik Sánchez Zavala': 'Sánchez Zavala Francisco Erik',
+                'Jazmín Juana Solano López': 'Solano López Jazmín Juana',
+                'Alfonso de Jesús Sotelo Martínez': 'Sotelo Martínez Alfonso de Jesús'
             };
             
             return ORDEN_DIPUTADOS[name] || name;
