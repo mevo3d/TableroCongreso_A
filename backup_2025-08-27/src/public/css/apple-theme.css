@@ -1,0 +1,478 @@
+/* Sistema de Diseño Apple - Tema Claro */
+:root {
+    /* Colores primarios */
+    --color-primary: #007AFF;
+    --color-primary-hover: #0051D5;
+    --color-secondary: #5856D6;
+    --color-success: #34C759;
+    --color-warning: #FF9500;
+    --color-danger: #FF3B30;
+    --color-info: #5AC8FA;
+    
+    /* Escala de grises */
+    --gray-50: #F9FAFB;
+    --gray-100: #F2F2F7;
+    --gray-200: #E5E5EA;
+    --gray-300: #D1D1D6;
+    --gray-400: #C7C7CC;
+    --gray-500: #AEAEB2;
+    --gray-600: #8E8E93;
+    --gray-700: #636366;
+    --gray-800: #48484A;
+    --gray-900: #2C2C2E;
+    
+    /* Fondos */
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F2F2F7;
+    --bg-tertiary: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-elevated: #FFFFFF;
+    --navbar-bg: rgba(255, 255, 255, 0.72);
+    
+    /* Texto */
+    --text-primary: #000000;
+    --text-secondary: #3C3C43;
+    --text-tertiary: #8E8E93;
+    --text-quaternary: #C7C7CC;
+    --text-inverse: #FFFFFF;
+    
+    /* Bordes */
+    --border-color: rgba(60, 60, 67, 0.12);
+    --border-strong: rgba(60, 60, 67, 0.18);
+    --border-radius: 10px;
+    --border-radius-lg: 15px;
+    --border-radius-xl: 20px;
+    
+    /* Sombras */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.16);
+    
+    /* Efectos */
+    --blur-sm: blur(8px);
+    --blur-md: blur(20px);
+    --blur-lg: blur(40px);
+    
+    /* Transiciones */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Fuentes */
+    --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", sans-serif;
+}
+
+/* Estilos base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-stack);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Navbar con efecto glassmorphism */
+.navbar {
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    background: var(--navbar-bg) !important;
+    border-bottom: 0.5px solid var(--border-color);
+    transition: all var(--transition-base);
+}
+
+/* Cards con estilo Apple */
+.apple-card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    transition: all var(--transition-base);
+}
+
+.apple-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+/* Botones estilo Apple */
+.btn-apple {
+    font-family: var(--font-stack);
+    font-weight: 500;
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    border: none;
+    background: var(--color-primary);
+    color: white;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 15px;
+    letter-spacing: -0.24px;
+}
+
+.btn-apple:hover {
+    background: var(--color-primary-hover);
+    transform: scale(1.02);
+}
+
+.btn-apple:active {
+    transform: scale(0.98);
+}
+
+.btn-apple-secondary {
+    background: var(--gray-100);
+    color: var(--text-primary);
+}
+
+.btn-apple-secondary:hover {
+    background: var(--gray-200);
+}
+
+.btn-apple-danger {
+    background: var(--color-danger);
+    color: white;
+}
+
+.btn-apple-danger:hover {
+    background: #E6342B;
+}
+
+/* Menú desplegable estilo Apple */
+.dropdown-menu-apple {
+    background: var(--bg-card);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-xl);
+    padding: 8px;
+    min-width: 250px;
+    animation: slideDown var(--transition-base);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-item-apple {
+    padding: 10px 16px;
+    border-radius: 8px;
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+}
+
+.dropdown-item-apple:hover {
+    background: var(--gray-100);
+}
+
+.dropdown-item-apple i {
+    width: 20px;
+    text-align: center;
+    color: var(--text-tertiary);
+}
+
+.dropdown-divider-apple {
+    height: 1px;
+    background: var(--border-color);
+    margin: 8px 0;
+}
+
+/* Modal estilo Apple */
+.modal-apple {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.modal-content-apple {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-xl);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+}
+
+.modal-header-apple {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    padding: 20px 24px;
+}
+
+.modal-title-apple {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+    color: var(--text-primary);
+}
+
+.modal-body-apple {
+    padding: 24px;
+}
+
+.modal-footer-apple {
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    padding: 16px 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+/* Forms estilo Apple */
+.form-control-apple {
+    background: var(--gray-100);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 12px 16px;
+    font-size: 15px;
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+    font-family: var(--font-stack);
+}
+
+.form-control-apple:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    background: var(--bg-card);
+}
+
+.form-control-apple:disabled {
+    background: var(--gray-100);
+    color: var(--text-tertiary);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.form-label-apple {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    letter-spacing: -0.08px;
+}
+
+/* Switch toggle estilo iOS */
+.switch-ios {
+    position: relative;
+    display: inline-block;
+    width: 51px;
+    height: 31px;
+}
+
+.switch-ios input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--gray-400);
+    transition: var(--transition-base);
+    border-radius: 31px;
+}
+
+.switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 27px;
+    width: 27px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: var(--transition-base);
+    border-radius: 50%;
+    box-shadow: var(--shadow-sm);
+}
+
+input:checked + .switch-slider {
+    background-color: var(--color-success);
+}
+
+input:checked + .switch-slider:before {
+    transform: translateX(20px);
+}
+
+/* Badges estilo Apple */
+.badge-apple {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.08px;
+    background: var(--gray-100);
+    color: var(--text-secondary);
+}
+
+.badge-apple-primary {
+    background: rgba(0, 122, 255, 0.15);
+    color: var(--color-primary);
+}
+
+.badge-apple-success {
+    background: rgba(52, 199, 89, 0.15);
+    color: var(--color-success);
+}
+
+.badge-apple-warning {
+    background: rgba(255, 149, 0, 0.15);
+    color: var(--color-warning);
+}
+
+.badge-apple-danger {
+    background: rgba(255, 59, 48, 0.15);
+    color: var(--color-danger);
+}
+
+/* Alertas estilo Apple */
+.alert-apple {
+    padding: 16px 20px;
+    border-radius: var(--border-radius-lg);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.alert-apple-info {
+    background: rgba(90, 200, 250, 0.1);
+    border-color: rgba(90, 200, 250, 0.3);
+    color: var(--color-info);
+}
+
+.alert-apple-success {
+    background: rgba(52, 199, 89, 0.1);
+    border-color: rgba(52, 199, 89, 0.3);
+    color: var(--color-success);
+}
+
+.alert-apple-warning {
+    background: rgba(255, 149, 0, 0.1);
+    border-color: rgba(255, 149, 0, 0.3);
+    color: var(--color-warning);
+}
+
+.alert-apple-danger {
+    background: rgba(255, 59, 48, 0.1);
+    border-color: rgba(255, 59, 48, 0.3);
+    color: var(--color-danger);
+}
+
+/* Animaciones suaves */
+.fade-in {
+    animation: fadeIn var(--transition-slow);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.slide-up {
+    animation: slideUp var(--transition-base);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Utilidades */
+.backdrop-blur {
+    backdrop-filter: var(--blur-md);
+    -webkit-backdrop-filter: var(--blur-md);
+}
+
+.text-muted-apple {
+    color: var(--text-tertiary) !important;
+}
+
+.shadow-apple {
+    box-shadow: var(--shadow-md);
+}
+
+.border-apple {
+    border: 1px solid var(--border-color);
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gray-400);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500);
+}
+
+/* Focus visible para accesibilidad */
+*:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Transiciones para cambios de tema */
+body,
+.navbar,
+.apple-card,
+.modal-content-apple,
+.form-control-apple,
+.dropdown-menu-apple {
+    transition: background-color var(--transition-base), 
+                border-color var(--transition-base),
+                color var(--transition-base);
+}

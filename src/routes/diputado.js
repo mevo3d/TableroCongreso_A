@@ -301,7 +301,9 @@ router.post('/iniciar-sesion', (req, res) => {
                             id: sesionPreparada.id,
                             nombre: sesionPreparada.nombre,
                             fecha,
-                            iniciada_por: user.cargo_mesa_directiva || user.role
+                            iniciada_por: user.cargo_mesa_directiva || user.role,
+                            mensaje: 'El Presidente de la Mesa Directiva acaba de iniciar la sesión',
+                            aviso_operador: true
                         });
                         
                         res.json({ 
@@ -351,7 +353,9 @@ router.post('/iniciar-sesion', (req, res) => {
                         id: sesionPreparada.id,
                         nombre: sesionPreparada.nombre,
                         fecha,
-                        iniciada_por: user.cargo_mesa_directiva || user.role
+                        iniciada_por: user.cargo_mesa_directiva || user.role,
+                        mensaje: 'El Presidente de la Mesa Directiva acaba de iniciar la sesión',
+                        aviso_operador: true
                     });
                     
                     // Notificar que el pase de lista está activo

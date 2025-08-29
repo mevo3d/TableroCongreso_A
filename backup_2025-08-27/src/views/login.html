@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Votación - Login</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Votación">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#16213e">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/icon-192.png">
+    <link rel="shortcut icon" href="/favicon.ico">
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="/icon-180.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png">
+    
+    <!-- Android/Chrome Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/apple-theme.css">
+    <link rel="stylesheet" href="/css/dark-theme.css">
+    <script src="/js/theme-loader.js"></script>
+    <style>
+        /* Estilo Apple */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1d1d1f;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Contenedor Parallax */
+        .parallax-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .parallax-layer {
+            position: absolute;
+            top: -15%;
+            left: -15%;
+            width: 130%;
+            height: 130%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            will-change: transform;
+            transition: transform 0.1s ease-out;
+        }
+        
+        /* Layer 1 - Nubes (más lento, más lejano) */
+        .layer-1 {
+            background-image: url('/images/parallax/layer-1-nubes.png');
+            animation: float-clouds 40s ease-in-out infinite;
+            z-index: 1;
+            /* Expandir 25% más para mejor cobertura */
+            width: 135%;
+            height: 135%;
+            top: -17.5%;
+            left: -17.5%;
+        }
+        
+        /* Layer 2 - Volcán (velocidad media) */
+        .layer-2 {
+            background-image: url('/images/parallax/layer-2-volcan.png');
+            z-index: 2;
+            animation: subtle-shift 30s ease-in-out infinite;
+        }
+        
+        /* Layer 3 - Congreso (más rápido, más cercano) */
+        .layer-3 {
+            background-image: url('/images/parallax/layer-3-congreso.png');
+            z-index: 3;
+            transform: translateX(25%); /* Mover edificio a la derecha */
+            background-position: right center;
+        }
+        
+        /* Animaciones sutiles */
+        @keyframes float-clouds {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            33% { transform: translateX(-2%) translateY(-1%); }
+            66% { transform: translateX(2%) translateY(1%); }
+        }
+        
+        @keyframes subtle-shift {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        /* Overlay gradient para mejor legibilidad */
+        .gradient-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 0, 0, 0.4) 0%,
+                rgba(0, 0, 0, 0.2) 40%,
+                rgba(0, 0, 0, 0.1) 60%,
+                rgba(0, 0, 0, 0.3) 100%
+            );
+            z-index: 4;
+        }
+        
+        /* Efecto de entrada */
+        @keyframes layer-entrance {
+            from {
+                opacity: 0;
+                transform: scale(1.1);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .layer-1 { animation: layer-entrance 1.5s ease-out, float-clouds 40s ease-in-out infinite 1.5s; }
+        .layer-2 { animation: layer-entrance 1.2s ease-out 0.3s both, subtle-shift 30s ease-in-out infinite 1.5s; }
+        .layer-3 { animation: layer-entrance 1s ease-out 0.6s both; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: transparent;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1d1d1f;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        [data-theme="dark"] .gradient-overlay {
+            background: linear-gradient(
+                135deg,
+                rgba(0, 0, 0, 0.6) 0%,
+                rgba(0, 0, 0, 0.4) 40%,
+                rgba(0, 0, 0, 0.3) 60%,
+                rgba(0, 0, 0, 0.5) 100%
+            );
+        }
+        
+        [data-theme="dark"] body {
+            color: #f5f5f7;
+        }
+        
+        /* Contenedor del formulario con mayor z-index */
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+        }
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 48px;
+            width: 100%;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            animation: card-entrance 0.8s ease-out 1s both;
+        }
+        
+        @keyframes card-entrance {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        [data-theme="dark"] .login-card {
+            background: rgba(28, 28, 30, 0.95);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .login-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+        }
+        
+        [data-theme="dark"] .login-card:hover {
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .logos-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 24px;
+            min-height: 80px;
+        }
+        
+        .logos-container img {
+            max-height: 80px;
+            max-width: 150px;
+            object-fit: contain;
+            filter: brightness(0.95);
+            transition: all 0.3s ease;
+        }
+        
+        [data-theme="dark"] .logos-container img {
+            filter: brightness(0.9) invert(0.9);
+        }
+        
+        .logo h2 {
+            color: #1d1d1f;
+            font-weight: 600;
+            font-size: 28px;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        
+        [data-theme="dark"] .logo h2 {
+            color: #f5f5f7;
+        }
+        
+        .logo p {
+            color: #86868b;
+            font-size: 14px;
+            font-weight: 400;
+        }
+        
+        [data-theme="dark"] .logo p {
+            color: #a1a1a6;
+        }
+        
+        .form-control {
+            background: rgba(118, 118, 128, 0.12);
+            color: #1d1d1f;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            font-weight: 400;
+        }
+        
+        [data-theme="dark"] .form-control {
+            background: rgba(118, 118, 128, 0.24);
+            color: #f5f5f7;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .form-control::placeholder {
+            color: #86868b;
+        }
+        
+        [data-theme="dark"] .form-control::placeholder {
+            color: #a1a1a6;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #007aff;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+            background: rgba(118, 118, 128, 0.08);
+        }
+        
+        [data-theme="dark"] .form-control:focus {
+            border-color: #0a84ff;
+            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+            background: rgba(118, 118, 128, 0.16);
+        }
+        
+        .btn-login {
+            background: linear-gradient(135deg, #007aff, #0051d5);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            letter-spacing: -0.2px;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+        }
+        
+        .btn-login:hover {
+            background: linear-gradient(135deg, #0051d5, #007aff);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 122, 255, 0.3);
+            color: white;
+        }
+        
+        [data-theme="dark"] .btn-login {
+            background: linear-gradient(135deg, #0a84ff, #0066cc);
+            box-shadow: 0 4px 12px rgba(10, 132, 255, 0.2);
+        }
+        
+        [data-theme="dark"] .btn-login:hover {
+            background: linear-gradient(135deg, #0066cc, #0a84ff);
+            box-shadow: 0 6px 20px rgba(10, 132, 255, 0.3);
+        }
+        
+        .alert {
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-info {
+            background: rgba(0, 122, 255, 0.1);
+            color: #007aff;
+            border: 1px solid rgba(0, 122, 255, 0.2);
+        }
+        
+        [data-theme="dark"] .alert-info {
+            background: rgba(10, 132, 255, 0.15);
+            color: #0a84ff;
+            border: 1px solid rgba(10, 132, 255, 0.3);
+        }
+        
+        .alert-info strong {
+            color: inherit;
+            font-weight: 600;
+        }
+        
+        /* Botón de cambio de tema */
+        .theme-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+            color: #1d1d1f;
+        }
+        
+        [data-theme="dark"] .theme-toggle-btn {
+            background: rgba(28, 28, 30, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #f5f5f7;
+        }
+        
+        .theme-toggle-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        [data-theme="dark"] .theme-toggle-btn:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .theme-toggle-btn i {
+            font-size: 20px;
+        }
+        
+        /* Contenedor del input de contraseña con botón */
+        .password-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .password-input-wrapper .form-control {
+            padding-right: 48px;
+        }
+        
+        /* Botón de mostrar/ocultar contraseña */
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            background: transparent;
+            border: none;
+            color: #86868b;
+            cursor: pointer;
+            padding: 6px 10px;
+            transition: all 0.2s ease;
+            z-index: 10;
+            border-radius: 6px;
+        }
+        
+        [data-theme="dark"] .password-toggle {
+            color: #a1a1a6;
+        }
+        
+        .password-toggle:hover {
+            color: #007aff;
+            background: rgba(0, 122, 255, 0.05);
+        }
+        
+        [data-theme="dark"] .password-toggle:hover {
+            color: #0a84ff;
+            background: rgba(10, 132, 255, 0.1);
+        }
+        
+        .password-toggle:focus {
+            outline: none;
+        }
+        
+        .password-toggle i {
+            font-size: 16px;
+        }
+        
+        /* Label estilo Apple */
+        .form-label {
+            color: #1d1d1f;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            letter-spacing: -0.2px;
+        }
+        
+        [data-theme="dark"] .form-label {
+            color: #f5f5f7;
+        }
+        
+        /* Loading spinner */
+        .spinner-border {
+            width: 20px;
+            height: 20px;
+            border-width: 2px;
+        }
+        
+        /* Efectos de animación */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .login-card {
+            animation: fadeIn 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- Contenedor Parallax -->
+    <div class="parallax-container" id="parallaxContainer">
+        <div class="parallax-layer layer-1" data-speed="0.2"></div>
+        <div class="parallax-layer layer-2" data-speed="0.5"></div>
+        <div class="parallax-layer layer-3" data-speed="0.8"></div>
+        <div class="gradient-overlay"></div>
+    </div>
+    
+    <!-- Botón de cambio de tema -->
+    <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Cambiar tema">
+        <i class="fas fa-moon" id="theme-icon"></i>
+    </button>
+    
+    <div class="login-wrapper">
+        <div class="login-card">
+                    <div class="logo">
+                        <div class="logos-container" id="logosContainer">
+                            <!-- Los logos se cargarán dinámicamente -->
+                        </div>
+                        <h2>Sistema de Votación</h2>
+                        <p id="congressName">Congreso del Estado</p>
+                    </div>
+                    
+                    <form id="loginForm">
+                        <div class="mb-4">
+                            <label for="username" class="form-label">Usuario</label>
+                            <input type="text" class="form-control" id="username" 
+                                   placeholder="Ingrese su usuario" required autocomplete="username">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="password" class="form-label">Contraseña</label>
+                            <div class="password-input-wrapper">
+                                <input type="password" class="form-control" id="password" 
+                                       placeholder="Ingrese su contraseña" required autocomplete="current-password">
+                                <button type="button" class="password-toggle" onclick="togglePassword()">
+                                    <i class="fas fa-eye" id="password-icon"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-login w-100" id="loginBtn">
+                            <span id="loginText">Iniciar Sesión</span>
+                            <span id="loginSpinner" class="spinner-border spinner-border-sm ms-2" style="display: none;"></span>
+                        </button>
+                    </form>
+                    
+                    <div id="errorMessage" class="alert alert-danger mt-3" style="display: none;"></div>
+                </div>
+    </div>
+    
+    <script>
+        // Verificar si ya hay una sesión activa
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
+        
+        if (token && user) {
+            const userData = JSON.parse(user);
+            redirectToPanel(userData.role);
+        }
+        
+        // Cargar configuración del sistema
+        async function loadSystemConfig() {
+            try {
+                const response = await fetch('/api/configuracion/public');
+                if (response.ok) {
+                    const config = await response.json();
+                    
+                    // Actualizar nombre del congreso
+                    if (config.nombre_congreso) {
+                        document.getElementById('congressName').textContent = config.nombre_congreso;
+                    }
+                    
+                    // Actualizar logos
+                    const logosContainer = document.getElementById('logosContainer');
+                    logosContainer.innerHTML = '';
+                    
+                    if (config.logo_congreso) {
+                        const img1 = document.createElement('img');
+                        img1.src = config.logo_congreso;
+                        img1.alt = 'Logo Congreso';
+                        logosContainer.appendChild(img1);
+                    }
+                    
+                    if (config.logo_secundario) {
+                        const img2 = document.createElement('img');
+                        img2.src = config.logo_secundario;
+                        img2.alt = 'Logo Secundario';
+                        logosContainer.appendChild(img2);
+                    }
+                    
+                    // Si no hay logos, mostrar uno por defecto
+                    if (!config.logo_congreso && !config.logo_secundario) {
+                        const defaultImg = document.createElement('img');
+                        defaultImg.src = '/uploads/logo-1754407608820.png';
+                        defaultImg.alt = 'Logo';
+                        logosContainer.appendChild(defaultImg);
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
+            }
+        }
+        
+        // Cargar configuración al inicio
+        loadSystemConfig();
+        
+        // Toggle password visibility
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const passwordIcon = document.getElementById('password-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                passwordIcon.classList.remove('fa-eye');
+                passwordIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                passwordIcon.classList.remove('fa-eye-slash');
+                passwordIcon.classList.add('fa-eye');
+            }
+        }
+        
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            const icon = document.getElementById('theme-icon');
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            if (newTheme === 'dark') {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        }
+        
+        // Load saved theme
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            
+            html.setAttribute('data-theme', savedTheme);
+            
+            if (savedTheme === 'dark') {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            }
+        });
+        
+        // Login form submission
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginText = document.getElementById('loginText');
+            const loginSpinner = document.getElementById('loginSpinner');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // UI feedback
+            loginBtn.disabled = true;
+            loginText.textContent = 'Iniciando...';
+            loginSpinner.style.display = 'inline-block';
+            errorMessage.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Guardar token y datos del usuario
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    // Registrar dispositivo para PWA
+                    if ('serviceWorker' in navigator) {
+                        try {
+                            await navigator.serviceWorker.register('/sw.js');
+                            console.log('Service Worker registrado');
+                        } catch (error) {
+                            console.error('Error registrando Service Worker:', error);
+                        }
+                    }
+                    
+                    // Redireccionar según el rol
+                    redirectToPanel(data.user.role);
+                } else {
+                    errorMessage.textContent = data.error || 'Usuario o contraseña incorrectos';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Error de conexión. Por favor, intente nuevamente.';
+                errorMessage.style.display = 'block';
+            } finally {
+                loginBtn.disabled = false;
+                loginText.textContent = 'Iniciar Sesión';
+                loginSpinner.style.display = 'none';
+            }
+        });
+        
+        function redirectToPanel(role) {
+            switch(role) {
+                case 'superadmin':
+                    window.location.href = '/superadmin';
+                    break;
+                case 'diputado':
+                    window.location.href = '/diputado';
+                    break;
+                case 'operador':
+                    window.location.href = '/operador';
+                    break;
+                case 'secretario':
+                    window.location.href = '/secretario';
+                    break;
+                case 'servicios_legislativos':
+                    window.location.href = '/servicios-legislativos';
+                    break;
+                default:
+                    window.location.href = '/';
+            }
+        }
+    </script>
+    
+    <!-- Script para efecto Parallax interactivo -->
+    <script>
+        // Efecto parallax con el movimiento del mouse
+        document.addEventListener('DOMContentLoaded', function() {
+            const parallaxContainer = document.getElementById('parallaxContainer');
+            const layers = document.querySelectorAll('.parallax-layer');
+            let isAnimating = false;
+            
+            // Función para aplicar el efecto parallax
+            function applyParallax(e) {
+                if (isAnimating) return;
+                
+                const x = e.clientX;
+                const y = e.clientY;
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight / 2;
+                
+                // Calcular el desplazamiento desde el centro
+                const moveX = (x - centerX) / centerX;
+                const moveY = (y - centerY) / centerY;
+                
+                layers.forEach(layer => {
+                    const speed = parseFloat(layer.dataset.speed) || 0.5;
+                    const translateX = moveX * 20 * speed;
+                    const translateY = moveY * 10 * speed;
+                    
+                    // Aplicar transformación con suavizado
+                    layer.style.transform = `
+                        translate(${-translateX}px, ${-translateY}px) 
+                        scale(1.1)
+                    `;
+                });
+            }
+            
+            // Efecto de respiración cuando no hay interacción
+            function breathingEffect() {
+                if (!isAnimating) return;
+                
+                layers.forEach((layer, index) => {
+                    const speed = parseFloat(layer.dataset.speed) || 0.5;
+                    const time = Date.now() * 0.0005;
+                    const translateY = Math.sin(time + index) * 5 * speed;
+                    
+                    layer.style.transform = `
+                        translateY(${translateY}px) 
+                        scale(1.1)
+                    `;
+                });
+                
+                if (isAnimating) {
+                    requestAnimationFrame(breathingEffect);
+                }
+            }
+            
+            // Eventos del mouse
+            let mouseTimeout;
+            document.addEventListener('mousemove', (e) => {
+                isAnimating = false;
+                clearTimeout(mouseTimeout);
+                applyParallax(e);
+                
+                // Reactivar animación después de 3 segundos sin movimiento
+                mouseTimeout = setTimeout(() => {
+                    isAnimating = true;
+                    breathingEffect();
+                }, 3000);
+            });
+            
+            // Efecto para dispositivos móviles con giroscopio
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', (e) => {
+                    if (isAnimating) return;
+                    
+                    const tiltX = e.gamma; // Rango [-90, 90]
+                    const tiltY = e.beta;  // Rango [-180, 180]
+                    
+                    if (tiltX !== null && tiltY !== null) {
+                        layers.forEach(layer => {
+                            const speed = parseFloat(layer.dataset.speed) || 0.5;
+                            const translateX = (tiltX / 90) * 30 * speed;
+                            const translateY = (tiltY / 180) * 20 * speed;
+                            
+                            layer.style.transform = `
+                                translate(${translateX}px, ${translateY}px) 
+                                scale(1.1)
+                            `;
+                        });
+                    }
+                });
+            }
+            
+            // Iniciar efecto de respiración
+            setTimeout(() => {
+                isAnimating = true;
+                breathingEffect();
+            }, 2000);
+            
+            // Efecto de profundidad al hacer scroll (si hubiera scroll)
+            window.addEventListener('scroll', () => {
+                const scrolled = window.pageYOffset;
+                layers.forEach(layer => {
+                    const speed = parseFloat(layer.dataset.speed) || 0.5;
+                    const yPos = -(scrolled * speed);
+                    layer.style.transform = `translateY(${yPos}px) scale(1.1)`;
+                });
+            });
+        });
+        
+        // Efecto de entrada suave al cargar
+        window.addEventListener('load', () => {
+            document.body.classList.add('loaded');
+        });
+    </script>
+</body>
+</html>

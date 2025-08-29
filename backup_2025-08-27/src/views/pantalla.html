@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Votación Electrónica - Congreso del Estado</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Verdana&display=swap');
+        
+        body {
+            background: #2c2c2c;
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .main-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Encabezado */
+        .header {
+            background: #1a1a1a;
+            padding: 15px 20px;
+            text-align: center;
+            border-bottom: 2px solid #444;
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 2.2em;
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        
+        /* Info de la iniciativa */
+        .initiative-info {
+            background: #222;
+            padding: 12px 20px;
+            border-bottom: 1px solid #444;
+            min-height: 120px;
+            max-height: 144px; /* 20% más de altura */
+            height: auto;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Estilos para iniciativas extraordinarias */
+        .initiative-info.extraordinary {
+            background: linear-gradient(135deg, #3d2f00 0%, #2d2200 100%);
+            border-bottom: 2px solid #ff9800;
+            position: relative;
+        }
+        
+        .initiative-info.extraordinary::after {
+            content: "⚡ EXTRAORDINARIA";
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background: linear-gradient(135deg, #ff9800 0%, #ff6b00 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(255, 152, 0, 0.5);
+            animation: pulseWarning 2s infinite;
+        }
+        
+        @keyframes pulseWarning {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .initiative-info h2 {
+            display: none; /* Ocultar título para ganar espacio */
+        }
+        
+        .initiative-info p {
+            color: #ddd;
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            line-height: 1.4;
+            word-wrap: break-word;
+            font-size: 1.3em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 4; /* Permitir hasta 4 líneas */
+            -webkit-box-orient: vertical;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Contenedor principal con tabla y resumen */
+        .content-wrapper {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            background: #1f1f1f;
+        }
+        
+        /* Tabla de votación */
+        .voting-table-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 25px; /* 35px */
+            padding-right: 20px; /* 35px */
+            display: flex;
+            gap: 10px; /* 20px */
+        }
+        
+        /* Nuevo contenedor sin panel lateral */
+        .content-wrapper-full {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #2c2c2c;
+        }
+        
+        .voting-table-container-full {
+            height: calc(100vh - 144px - 100px); /* Ajustado para nueva altura de iniciativa */
+            overflow-y: auto;
+            padding: 5px 10px; /* 15px y 20px */
+            display: flex;
+            gap: 120px; /* tenia 30px */
+            justify-content: center;
+        }
+        
+        /* Resultados en la parte inferior */
+        .results-bottom {
+            background: #1a1a1a;
+            padding: 5px 5px;
+            border-top: 2px solid #444;
+            height: 70px;
+            min-height: 70px;
+            max-height: 70px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .results-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .logo-left, .logo-right {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;  /* Reducido de 120px */
+            flex-shrink: 0;
+        }
+        
+        .results-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;  /* Reducido de 60px */
+            align-items: center;
+            flex: 1;
+        }
+        
+        .result-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;  /* Reducido de 10px */
+            font-size: 1.1em;  /* Reducido de 1.3em */
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .result-label {
+            font-family: 'Montserrat', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;  /* Reducido de 1px */
+            font-size: 0.9em;  /* Tamaño reducido */
+        }
+        
+        .result-circle {
+            width: 30px;  /* Reducido de 35px */
+            min-width: 30px;
+            max-width: 30px;
+            height: 30px;  /* Reducido de 35px */
+            min-height: 30px;
+            max-height: 30px;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+            display: inline-block;
+        }
+        
+        .result-circle-favor {
+            background-color: #28A745;
+        }
+        
+        .result-circle-contra {
+            background-color: #DC3545;
+        }
+        
+        .result-circle-abstencion {
+            background-color: #FFC107;
+        }
+        
+        .result-number {
+            font-size: 1.3em;  /* Reducido de 1.5em */
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            min-width: 35px;  /* Reducido de 45px */
+            text-align: center;
+        }
+        
+        .voting-column {
+            width: 400px;
+            min-width: 400px;
+            max-width: 400px;
+        }
+        
+        .voting-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .voting-table tr {
+            height: 48px;
+            border-bottom: 1px solid #444;
+        }
+        
+        .voting-table tr:nth-child(even) {
+            background-color: #333;
+        }
+        
+        .voting-table tr:nth-child(odd) {
+            background-color: #2a2a2a;
+        }
+        
+        .voting-table td {
+            padding: 0px 8px 6px 8px;
+            vertical-align: middle;
+        }
+        
+        /* Columna 1: Logo del partido */
+        .party-logo {
+            width: 45px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .party-icon {
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0 auto;
+        }
+        
+        /* Iconos y colores de partidos según la imagen */
+        .party-morena .party-icon { 
+            background-color: #8B1B1B; 
+            color: white;
+            font-size: 16px;
+        }
+        .party-pan .party-icon { 
+            background-color: #1B4788; 
+            color: white;
+        }
+        .party-mc .party-icon { 
+            background-color: #FF6B00; 
+            color: white;
+        }
+        .party-pt .party-icon { 
+            background-color: #E31E24; 
+            color: white;
+            font-size: 24px;
+        }
+        .party-pvem .party-icon { 
+            background-color: #00A550; 
+            color: white;
+        }
+        .party-pri .party-icon { 
+            background-color: #CD1C22; 
+            color: white;
+        }
+        .party-nueva-alianza .party-icon { 
+            background-color: #00B8B2; 
+            color: white;
+        }
+        
+        
+        /* Columna 3: Nombre del diputado */
+        .deputy-name {
+            color: white;
+            font-family: 'Verdana', sans-serif;
+            font-size: 1.2em;
+            padding-left: 10px;
+            padding-right: 15px;
+            font-weight: bold;
+            line-height: 1.3;
+            max-height: 2.6em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 260px;
+            width: auto; /* Permitir expansión horizontal */
+            max-width: 260px; /* Límite máximo aumentado para nombres largos */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            flex: 1;
+        }
+        
+        /* Columnas de círculos de votación */
+        .vote-circles {
+            width: 130px;
+            text-align: center;
+            display: flex;
+            justify-content: flex-end;
+            gap: 5px;
+            padding: 0 10px;
+            flex-shrink: 0;
+        }
+        
+        .circle {
+            display: inline-block;
+            width: 30px;
+            min-width: 30px;
+            max-width: 30px;
+            height: 30px;
+            min-height: 30px;
+            max-height: 30px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        /* Círculos por defecto (grises) */
+        .circle-default {
+            background-color: #4a4a4a;
+            border: 1px solid #666;
+        }
+        
+        /* Círculos iluminados cuando hay voto */
+        .circle-favor {
+            background-color: #28A745 !important;
+            border: 2px solid #1e7e34 !important;
+            box-shadow: 0 0 8px rgba(40, 167, 69, 0.6) !important;
+        }
+        
+        .circle-contra {
+            background-color: #DC3545 !important;
+            border: 2px solid #bd2130 !important;
+            box-shadow: 0 0 8px rgba(220, 53, 69, 0.6) !important;
+        }
+        
+        .circle-abstencion {
+            background-color: #FFC107 !important;
+            border: 2px solid #e0a800 !important;
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.6) !important;
+        }
+        
+        /* Panel de resumen */
+        .summary-panel {
+            width: 200px;
+            background: #d4d4d4;
+            color: black;
+            padding: 15px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-left: 2px solid #666;
+        }
+        
+        .logo-container {
+            width: 190px;
+            height: 190px;
+            margin: 10px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .escudo-morelos {
+            width: 180px;
+            height: 180px;
+            background: #f0f0f0;
+            border: 3px solid #666;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .escudo-content {
+            text-align: center;
+        }
+        
+        .escudo-text {
+            font-size: 9px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            line-height: 1.2;
+            margin-bottom: 5px;
+        }
+        
+        .escudo-star {
+            font-size: 30px;
+            color: #666;
+            margin: 5px 0;
+        }
+        
+        .escudo-plantas {
+            font-size: 24px;
+            color: #228B22;
+        }
+        
+        .legislativo-text {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+            letter-spacing: 3px;
+            margin-top: 10px;
+        }
+        
+        .vote-summary {
+            width: 100%;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .summary-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 1.0em;
+            justify-content: flex-start;
+            padding-left: 10px;
+        }
+        
+        .summary-circle {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .summary-circle-favor {
+            background-color: #28A745;
+        }
+        
+        .summary-circle-contra {
+            background-color: #DC3545;
+        }
+        
+        .summary-circle-abstencion {
+            background-color: #FFC107;
+        }
+        
+        .summary-number {
+            font-size: 1.2em;
+            margin-right: 8px;
+            min-width: 30px;
+            text-align: right;
+        }
+        
+        /* Pantalla de sin actividad */
+        .no-voting {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            background: #2c2c2c;
+        }
+        
+        .no-voting i {
+            font-size: 5em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+            color: #888;
+        }
+        
+        .no-voting h2 {
+            opacity: 0.7;
+            color: #aaa;
+        }
+        
+        /* Animación para nuevos votos */
+        @keyframes voteAnimation {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.3);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .vote-animated {
+            animation: voteAnimation 0.5s ease-out;
+        }
+        
+        /* Scrollbar personalizada */
+        .voting-table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .voting-table-container::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        .voting-table-container::-webkit-scrollbar-thumb {
+            background: #666;
+            border-radius: 4px;
+        }
+        
+        .voting-table-container::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+        
+        /* Modo Standalone para OBS */
+        body.standalone-mode {
+            background: transparent !important;
+        }
+        
+        body.standalone-mode .main-container {
+            background: transparent;
+        }
+        
+        body.standalone-mode .header {
+            display: none;
+        }
+        
+        body.standalone-mode.hide-header .header {
+            display: none !important;
+        }
+        
+        body.standalone-mode.hide-sidebar .summary-panel {
+            display: none !important;
+        }
+        
+        body.standalone-mode.transparent-bg {
+            background: transparent !important;
+        }
+        
+        body.standalone-mode.transparent-bg .main-container,
+        body.standalone-mode.transparent-bg .content-wrapper,
+        body.standalone-mode.transparent-bg .voting-table-container,
+        body.standalone-mode.transparent-bg .initiative-info {
+            background: transparent !important;
+        }
+        
+        body.standalone-mode.transparent-bg .voting-table tr:nth-child(even) {
+            background-color: rgba(51, 51, 51, 0.8);
+        }
+        
+        body.standalone-mode.transparent-bg .voting-table tr:nth-child(odd) {
+            background-color: rgba(42, 42, 42, 0.8);
+        }
+        
+        /* Modo chromakey */
+        body.chromakey-mode {
+            background: #00ff00 !important;
+        }
+        
+        body.chromakey-mode .main-container {
+            background: #00ff00 !important;
+        }
+        
+        /* Ajustes de resolución personalizados */
+        body.custom-resolution {
+            overflow: hidden;
+        }
+        
+        body.custom-resolution .main-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* Modo minimalista */
+        body.minimal-mode .initiative-info {
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+        
+        body.minimal-mode .voting-table tr {
+            height: 36px;
+        }
+        
+        body.minimal-mode .circle {
+            width: 20px;
+            height: 20px;
+        }
+        
+        /* Info overlay para OBS */
+        .obs-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 10000;
+            display: none;
+        }
+        
+        body.show-obs-info .obs-info {
+            display: block;
+        }
+        
+        /* Modo solo resultados */
+        body.results-only-mode .voting-table-container {
+            display: none !important;
+        }
+        
+        body.results-only-mode .content-wrapper {
+            justify-content: center;
+        }
+        
+        body.results-only-mode .summary-panel {
+            width: 400px;
+            border-left: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        /* Ajustes para streaming */
+        body.standalone-mode.transparent-bg .summary-panel {
+            background: rgba(212, 212, 212, 0.95);
+        }
+        
+        /* Optimización para captura OBS */
+        body.standalone-mode * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Prevenir scrollbars en modo OBS */
+        body.standalone-mode {
+            overflow: hidden !important;
+        }
+        
+        body.standalone-mode .voting-table-container {
+            scrollbar-width: none;
+        }
+        
+        body.standalone-mode .voting-table-container::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/global-background.css">
+</head>
+<body>
+    <!-- Info panel para OBS (solo visible con parámetro) -->
+    <div class="obs-info" id="obsInfo">
+        <div>Modo: <span id="obsMode">Normal</span></div>
+        <div>Resolución: <span id="obsResolution">Auto</span></div>
+        <div>FPS: <span id="obsFPS">60</span></div>
+    </div>
+    
+    <div class="main-container" id="mainContainer">
+        <!-- Contenido dinámico se cargará aquí -->
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let currentState = null;
+        let previousVotes = {};
+        let partidosData = {};
+        let configuracionSistema = {};
+        let obsConfig = {
+            mode: 'normal',
+            resolution: 'auto',
+            showHeader: true,
+            showSidebar: true,
+            transparentBg: false,
+            chromakey: false,
+            minimal: false,
+            showInfo: false
+        };
+        
+        // Parsear parámetros URL para OBS
+        function parseOBSParams() {
+            const params = new URLSearchParams(window.location.search);
+            
+            // Modo standalone para OBS
+            if (params.get('standalone') === 'true' || params.get('obs') === 'true') {
+                document.body.classList.add('standalone-mode');
+                obsConfig.mode = 'standalone';
+            }
+            
+            // Ocultar header
+            if (params.get('header') === 'false' || params.get('noheader') === 'true') {
+                document.body.classList.add('hide-header');
+                obsConfig.showHeader = false;
+            }
+            
+            // Ocultar sidebar
+            if (params.get('sidebar') === 'false' || params.get('nosidebar') === 'true') {
+                document.body.classList.add('hide-sidebar');
+                obsConfig.showSidebar = false;
+            }
+            
+            // Fondo transparente
+            if (params.get('transparent') === 'true' || params.get('bg') === 'transparent') {
+                document.body.classList.add('transparent-bg');
+                obsConfig.transparentBg = true;
+            }
+            
+            // Modo chromakey
+            if (params.get('chromakey') === 'true' || params.get('greenscreen') === 'true') {
+                document.body.classList.add('chromakey-mode');
+                obsConfig.chromakey = true;
+                // Establecer color chromakey personalizado si se proporciona
+                const chromaColor = params.get('chromacolor');
+                if (chromaColor) {
+                    document.body.style.backgroundColor = `#${chromaColor}`;
+                }
+            }
+            
+            // Resolución personalizada
+            const width = params.get('width');
+            const height = params.get('height');
+            if (width && height) {
+                document.body.classList.add('custom-resolution');
+                obsConfig.resolution = `${width}x${height}`;
+                // Ajustar viewport si es necesario
+                const mainContainer = document.getElementById('mainContainer');
+                if (mainContainer) {
+                    mainContainer.style.width = `${width}px`;
+                    mainContainer.style.height = `${height}px`;
+                    mainContainer.style.maxWidth = '100%';
+                    mainContainer.style.maxHeight = '100%';
+                }
+            }
+            
+            // Modo minimalista
+            if (params.get('minimal') === 'true') {
+                document.body.classList.add('minimal-mode');
+                obsConfig.minimal = true;
+            }
+            
+            // Mostrar info de OBS
+            if (params.get('info') === 'true' || params.get('debug') === 'true') {
+                document.body.classList.add('show-obs-info');
+                obsConfig.showInfo = true;
+                updateOBSInfo();
+            }
+            
+            // Escala de fuente personalizada
+            const fontScale = params.get('fontscale');
+            if (fontScale) {
+                document.documentElement.style.fontSize = `${fontScale}%`;
+            }
+            
+            // Modo solo votación (sin header ni sidebar)
+            if (params.get('voting-only') === 'true') {
+                document.body.classList.add('standalone-mode', 'hide-header', 'hide-sidebar');
+                obsConfig.mode = 'voting-only';
+                obsConfig.showHeader = false;
+                obsConfig.showSidebar = false;
+            }
+            
+            // Modo solo resultados (solo panel de resumen)
+            if (params.get('results-only') === 'true') {
+                document.body.classList.add('results-only-mode');
+                obsConfig.mode = 'results-only';
+            }
+        }
+        
+        // Actualizar panel de información OBS
+        function updateOBSInfo() {
+            const obsInfo = document.getElementById('obsInfo');
+            if (obsInfo && obsConfig.showInfo) {
+                document.getElementById('obsMode').textContent = obsConfig.mode;
+                document.getElementById('obsResolution').textContent = obsConfig.resolution;
+                
+                // Agregar info adicional
+                const additionalInfo = [];
+                if (obsConfig.transparentBg) additionalInfo.push('Transparente');
+                if (obsConfig.chromakey) additionalInfo.push('Chromakey');
+                if (obsConfig.minimal) additionalInfo.push('Minimalista');
+                if (!obsConfig.showHeader) additionalInfo.push('Sin Header');
+                if (!obsConfig.showSidebar) additionalInfo.push('Sin Sidebar');
+                
+                if (additionalInfo.length > 0) {
+                    const infoDiv = document.createElement('div');
+                    infoDiv.innerHTML = `Opciones: ${additionalInfo.join(', ')}`;
+                    obsInfo.appendChild(infoDiv);
+                }
+            }
+        }
+        
+        // Inicializar configuración OBS
+        parseOBSParams();
+        
+        // Cargar configuración, partidos y luego el estado
+        Promise.all([loadConfiguracion(), loadPartidos()]).then(() => {
+            loadState();
+        });
+        
+        // Cargar configuración del sistema
+        async function loadConfiguracion() {
+            try {
+                const response = await fetch('/api/configuracion/public');
+                if (response.ok) {
+                    configuracionSistema = await response.json();
+                    console.log('Configuración cargada:', configuracionSistema);
+                }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
+            }
+        }
+        
+        // Cargar información de partidos
+        async function loadPartidos() {
+            try {
+                const response = await fetch('/api/pantalla/partidos');
+                if (response.ok) {
+                    const partidos = await response.json();
+                    console.log('Partidos cargados:', partidos);
+                    // Crear mapa de partidos por siglas
+                    partidos.forEach(partido => {
+                        partidosData[partido.siglas] = partido;
+                    });
+                    console.log('Mapa de partidos:', partidosData);
+                }
+            } catch (error) {
+                console.error('Error cargando partidos:', error);
+            }
+        }
+        
+        async function loadState() {
+            try {
+                const response = await fetch('/api/pantalla/estado');
+                const data = await response.json();
+                console.log('Estado recibido:', data);
+                updateDisplay(data);
+            } catch (error) {
+                console.error('Error:', error);
+                showNoVoting();
+            }
+        }
+        
+        function updateDisplay(data) {
+            currentState = data;
+            
+            if (data.estado === 'sin_actividad') {
+                showNoVoting();
+            } else if (data.estado === 'votacion_activa' || data.estado === 'ultima_votacion') {
+                showVoting(data);
+            }
+        }
+        
+        function showNoVoting() {
+            document.getElementById('mainContainer').innerHTML = `
+                <div class="no-voting">
+                    <i class="fas fa-clock"></i>
+                    <h2>Sin Actividad de Votación</h2>
+                    <p>Esperando inicio de sesión legislativa...</p>
+                </div>
+            `;
+        }
+        
+        function renderVotingColumns(votos) {
+            // Dividir diputados en dos grupos de máximo 10 cada uno
+            const column1 = votos.slice(0, 10);
+            const column2 = votos.slice(10, 20);
+            
+            const renderTable = (votosColumn) => {
+                return `
+                    <div class="voting-column">
+                        <table class="voting-table">
+                            ${votosColumn.map(v => {
+                                const partyClass = v.partido ? `party-${v.partido.toLowerCase().replace(/\s+/g, '-')}` : '';
+                                const voteClass = v.voto.replace('_', '-');
+                                const isNewVote = previousVotes[v.id] !== v.voto && v.voto !== 'sin_voto';
+                                
+                                // Obtener datos del partido
+                                const partidoInfo = partidosData[v.partido] || null;
+                                const partyColor = partidoInfo ? partidoInfo.color_primario : '#666';
+                                const partyLogo = partidoInfo ? partidoInfo.logo_url : null;
+                                
+                                // Actualizar registro de votos previos
+                                if (v.voto !== 'sin_voto') {
+                                    previousVotes[v.id] = v.voto;
+                                }
+                                
+                                
+                                if (partyLogo) {
+                                    console.log('Party Logo:', partyLogo);
+                                }
+                                
+                                return `
+                                    <tr style="display: flex; align-items: center;">
+                                        <td class="party-logo ${partyClass}">
+                                            ${partyLogo ? 
+                                                `<img src="${partyLogo}" alt="${v.partido}" style="height: 35px; max-width: 40px; object-fit: contain;" onerror="this.style.display='none'">` :
+                                                `<div class="party-icon" style="background-color: ${partyColor}">
+                                                    ${v.partido ? v.partido.charAt(0) : '?'}
+                                                </div>`
+                                            }
+                                        </td>
+                                        <td class="deputy-name" title="${v.nombre_completo}">${v.nombre_mostrar || v.nombre_completo}</td>
+                                        <td class="vote-circles">
+                                            <span class="circle circle-default ${v.voto === 'favor' ? 'circle-favor' : ''} ${isNewVote && v.voto === 'favor' ? 'vote-animated' : ''}" title="A favor"></span>
+                                            <span class="circle circle-default ${v.voto === 'contra' ? 'circle-contra' : ''} ${isNewVote && v.voto === 'contra' ? 'vote-animated' : ''}" title="En contra"></span>
+                                            <span class="circle circle-default ${v.voto === 'abstencion' ? 'circle-abstencion' : ''} ${isNewVote && v.voto === 'abstencion' ? 'vote-animated' : ''}" title="Abstención"></span>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </table>
+                    </div>
+                `;
+            };
+            
+            let html = '';
+            if (column1.length > 0) html += renderTable(column1);
+            if (column2.length > 0) html += renderTable(column2);
+            
+            return html;
+        }
+        
+        // Función para ajustar el tamaño del texto si es muy largo
+        function adjustTextSize(text) {
+            const length = text.length;
+            let fontSize = '1.3em'; // Tamaño por defecto
+            
+            if (length > 300) {
+                fontSize = '1.1em';
+            }
+            if (length > 400) {
+                fontSize = '1.0em';
+            }
+            if (length > 500) {
+                fontSize = '0.95em';
+            }
+            if (length > 600) {
+                fontSize = '0.9em';
+            }
+            
+            return fontSize;
+        }
+        
+        function showVoting(data) {
+            const isActive = data.estado === 'votacion_activa';
+            // Si no hay descripción ni título, no mostrar nada
+            const iniciativaText = data.iniciativa.descripcion || data.iniciativa.titulo || '';
+            const textSize = adjustTextSize(iniciativaText);
+            
+            const html = `
+                <!-- Header removido -->
+                
+                <div class="initiative-info ${data.iniciativa.tipo_iniciativa === 'extraordinaria' ? 'extraordinary' : ''}" id="initiativeInfo">
+                    ${iniciativaText ? `<p style="font-size: ${textSize};">${iniciativaText}</p>` : ''}
+                </div>
+                
+                <div class="content-wrapper-full">
+                    <div class="voting-table-container-full">
+                        ${renderVotingColumns(data.votos)}
+                    </div>
+                    
+                    <div class="results-bottom">
+                        <div class="results-wrapper">
+                            <div class="logo-left">
+                                ${configuracionSistema.logo_congreso ? 
+                                    `<img src="${configuracionSistema.logo_congreso}" alt="Logo Congreso" 
+                                         style="height: 50px; max-width: 70px; object-fit: contain;">` :
+                                    `<img src="/uploads/logo-1754407608820.png" alt="Logo Congreso" 
+                                         style="height: 50px; max-width: 70px; object-fit: contain;">`
+                                }
+                            </div>
+                            <div class="results-container">
+                                <div class="result-item">
+                                    <span class="result-label">A FAVOR</span>
+                                    <span class="result-circle result-circle-favor"></span>
+                                    <span class="result-number">${String(data.conteo.favor).padStart(2, '0')}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-label">EN CONTRA</span>
+                                    <span class="result-circle result-circle-contra"></span>
+                                    <span class="result-number">${String(data.conteo.contra).padStart(2, '0')}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-label">ABSTENCIÓN</span>
+                                    <span class="result-circle result-circle-abstencion"></span>
+                                    <span class="result-number">${String(data.conteo.abstencion).padStart(2, '0')}</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-label">VOTACIÓN TOTAL</span>
+                                    <span class="result-circle" style="background-color: #6c757d;"></span>
+                                    <span class="result-number">${String(data.conteo.total || 0).padStart(2, '0')}</span>
+                                </div>
+                            </div>
+                            <div class="logo-right">
+                                ${configuracionSistema.logo_secundario ? 
+                                    `<img src="${configuracionSistema.logo_secundario}" alt="Logo Secundario" 
+                                         style="height: 50px; max-width: 70px; object-fit: contain;">` :
+                                    ''
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('mainContainer').innerHTML = html;
+            
+            // Ajustar texto después de renderizar si se desborda
+            setTimeout(() => {
+                const initiativeEl = document.querySelector('.initiative-info p');
+                if (initiativeEl) {
+                    const container = document.querySelector('.initiative-info');
+                    const maxHeight = 144; // Altura máxima del contenedor
+                    
+                    // Verificar si el texto se desborda
+                    if (initiativeEl.scrollHeight > maxHeight - 24) { // 24px de padding
+                        // Reducir tamaño de fuente progresivamente hasta que quepa
+                        let currentSize = parseFloat(window.getComputedStyle(initiativeEl).fontSize);
+                        while (initiativeEl.scrollHeight > maxHeight - 24 && currentSize > 12) {
+                            currentSize -= 1;
+                            initiativeEl.style.fontSize = currentSize + 'px';
+                        }
+                    }
+                }
+            }, 100);
+        }
+        
+        
+        // Eventos de Socket.IO
+        socket.on('iniciativa-activa', () => {
+            previousVotes = {}; // Reset votos previos para nueva votación
+            loadState();
+        });
+        
+        socket.on('voto-emitido', () => {
+            loadState();
+        });
+        
+        socket.on('votacion-cerrada', () => {
+            setTimeout(loadState, 1000);
+        });
+        
+        socket.on('sesion-cerrada', () => {
+            showNoVoting();
+        });
+        
+        socket.on('sesion-creada', () => {
+            loadState();
+        });
+        
+        // Actualizar periódicamente
+        setInterval(loadState, 5000);
+        
+        // Pantalla completa con F11
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F11') {
+                e.preventDefault();
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+        
+        // Escuchar mensajes del operador para sugerir pantalla completa
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.action === 'suggestFullscreen') {
+                // Mostrar sugerencia de pantalla completa
+                if (!document.fullscreenElement) {
+                    // Crear notificación temporal
+                    const notification = document.createElement('div');
+                    notification.style.cssText = `
+                        position: fixed;
+                        top: 10px;
+                        right: 10px;
+                        background: rgba(0,0,0,0.8);
+                        color: white;
+                        padding: 15px 20px;
+                        border-radius: 5px;
+                        font-family: 'Montserrat', sans-serif;
+                        font-size: 14px;
+                        z-index: 10000;
+                        cursor: pointer;
+                        transition: opacity 0.3s;
+                    `;
+                    notification.innerHTML = `
+                        <i class="fas fa-expand"></i> Presiona F11 para pantalla completa
+                    `;
+                    notification.onclick = () => {
+                        document.documentElement.requestFullscreen();
+                        notification.remove();
+                    };
+                    document.body.appendChild(notification);
+                    
+                    // Remover después de 5 segundos
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.style.opacity = '0';
+                            setTimeout(() => notification.remove(), 300);
+                        }
+                    }, 5000);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

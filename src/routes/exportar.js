@@ -71,7 +71,7 @@ async function obtenerDatosSesion(db, sesionId) {
                 db.all(`
                     SELECT v.*, u.nombre_completo, u.partido, i.numero as numero_iniciativa, i.titulo
                     FROM votos v
-                    JOIN usuarios u ON v.diputado_id = u.id
+                    JOIN usuarios u ON v.usuario_id = u.id
                     JOIN iniciativas i ON v.iniciativa_id = i.id
                     WHERE i.sesion_id = ?
                     ORDER BY i.numero, u.nombre_completo

@@ -1,0 +1,3391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Superadmin - Sistema de Votación</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Cropper.js para recorte de imágenes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <link rel="stylesheet" href="/css/apple-theme.css">
+    <link rel="stylesheet" href="/css/dark-theme.css">
+    <link rel="stylesheet" href="/css/global-background.css">
+    <link rel="stylesheet" href="/css/global-theme.css">
+    <script src="/js/theme-loader.js"></script>
+    <style>
+        body {
+            background-color: var(--bg-primary);
+        }
+        .navbar { 
+            background-color: var(--navbar-bg) !important;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+        .stat-card h3 {
+            font-size: 36px;
+            margin-bottom: 5px;
+            color: var(--text-primary);
+        }
+        .stat-card small {
+            color: var(--text-secondary);
+        }
+        .stat-card i {
+            font-size: 30px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+        .card {
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            background: var(--bg-card);
+        }
+        .card-header {
+            background-color: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .btn-primary {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+        .btn-primary:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+        .badge {
+            padding: 5px 10px;
+        }
+        .vote-badge-favor { background-color: #28a745; }
+        .vote-badge-contra { background-color: #dc3545; }
+        .vote-badge-abstencion { background-color: #6c757d; }
+        .vote-badge-pendiente { background-color: #ffc107; color: #000; }
+        
+        .logo-preview {
+            max-height: 60px;
+            max-width: 120px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .foto-preview {
+            max-height: 120px;
+            max-width: 120px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        
+        /* Estilos para la consola */
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+            border-left: 3px solid transparent;
+            line-height: 1.4;
+        }
+        .log-entry.log-log {
+            border-left-color: #888;
+            color: #d4d4d4;
+        }
+        .log-entry.log-info {
+            border-left-color: #2196F3;
+            color: #64B5F6;
+        }
+        .log-entry.log-warn {
+            border-left-color: #ff9800;
+            color: #FFB74D;
+        }
+        .log-entry.log-error {
+            border-left-color: #f44336;
+            color: #EF5350;
+        }
+        .log-entry.log-debug {
+            border-left-color: #9c27b0;
+            color: #BA68C8;
+        }
+        .log-timestamp {
+            color: #888;
+            font-size: 11px;
+            margin-right: 10px;
+        }
+        .log-type {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 11px;
+            margin-right: 8px;
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+        .log-type.type-log { background: #333; }
+        .log-type.type-info { background: #1976D2; }
+        .log-type.type-warn { background: #F57C00; }
+        .log-type.type-error { background: #D32F2F; }
+        .log-type.type-debug { background: #7B1FA2; }
+        
+        /* Estilos para el panel de temas */
+        .color-group {
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+        
+        .form-control-color {
+            width: 50px;
+            height: 38px;
+            padding: 2px;
+        }
+        
+        .preview-container {
+            background: var(--bg-primary);
+        }
+        
+        .mini-navbar {
+            background: var(--navbar-bg);
+            color: var(--navbar-text);
+            border-radius: 5px;
+        }
+        
+        #previewCard {
+            transition: all 0.3s;
+        }
+        
+        #previewCardHeader {
+            transition: all 0.3s;
+        }
+        
+        #previewBtnPrimary {
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+        }
+        
+        #previewBtnSuccess {
+            background-color: var(--color-success);
+            color: white;
+            border: none;
+        }
+        
+        #previewBtnDanger {
+            background-color: var(--color-danger);
+            color: white;
+            border: none;
+        }
+        
+        /* Estilos para el modal de recorte de imagen */
+        .crop-modal {
+            max-width: 800px;
+        }
+        
+        .cropper-container {
+            max-height: 500px;
+        }
+        
+        .preview-crop {
+            width: 150px;
+            height: 150px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            overflow: hidden;
+            margin: 10px auto;
+            background-color: var(--bg-secondary);
+        }
+        
+        .preview-crop img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .crop-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .crop-controls button {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, #1a2332, #263241) !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0, 0, 0, 0.3); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-crown"></i> Panel Superadministrador
+            </span>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3" id="userName"></span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Tabs de navegación -->
+        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="usuarios-tab" data-bs-toggle="tab" data-bs-target="#usuarios" type="button">
+                    <i class="fas fa-users"></i> Usuarios
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="partidos-tab" data-bs-toggle="tab" data-bs-target="#partidos" type="button">
+                    <i class="fas fa-flag"></i> Partidos
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="configuracion-tab" data-bs-toggle="tab" data-bs-target="#configuracion" type="button">
+                    <i class="fas fa-cog"></i> Configuración
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="themes-tab" data-bs-toggle="tab" data-bs-target="#themes" type="button">
+                    <i class="fas fa-palette"></i> Temas
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="consola-tab" data-bs-toggle="tab" data-bs-target="#consola" type="button">
+                    <i class="fas fa-terminal"></i> Consola
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="temas-tab" data-bs-toggle="tab" data-bs-target="#temas" type="button">
+                    <i class="fas fa-palette"></i> Personalización
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab content -->
+        <div class="tab-content" id="myTabContent">
+            <!-- Dashboard Tab -->
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                <!-- Estadísticas generales -->
+                <div class="row mb-4">
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-users"></i>
+                            <h3 id="totalUsuarios">0</h3>
+                            <small>Total Usuarios</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-user-tie"></i>
+                            <h3 id="totalDiputados">0</h3>
+                            <small>Diputados</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-calendar"></i>
+                            <h3 id="totalSesiones">0</h3>
+                            <small>Sesiones</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-file-alt"></i>
+                            <h3 id="totalIniciativas">0</h3>
+                            <small>Iniciativas</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-vote-yea"></i>
+                            <h3 id="totalVotos">0</h3>
+                            <small>Votos Emitidos</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="stat-card">
+                            <i class="fas fa-circle" id="sessionIndicator" style="color: #dc3545;"></i>
+                            <h6 id="sesionActiva">Sin sesión</h6>
+                            <small>Estado Actual</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de Acciones Rápidas -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-primary btn-lg" onclick="window.location.href='/estadisticas-diputados'">
+                                <i class="fas fa-chart-bar"></i> Ver Estadísticas de Diputados
+                            </button>
+                            <button class="btn btn-success btn-lg" onclick="window.location.href='/historial-sesiones'">
+                                <i class="fas fa-history"></i> Historial de Sesiones
+                            </button>
+                            <button class="btn btn-warning btn-lg" onclick="abrirConfiguracion()">
+                                <i class="fas fa-cog"></i> Configuración del Sistema
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Usuarios Conectados -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-users"></i> Usuarios Conectados en Tiempo Real
+                                    <span class="badge bg-light text-dark ms-2" id="totalConectados">0</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="usuariosConectadosContainer" class="row">
+                                    <div class="col-12 text-center text-muted">
+                                        <i class="fas fa-spinner fa-spin"></i> Esperando conexiones...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sesiones y votación activa -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-history"></i> Historial de Sesiones</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Sesión</th>
+                                                <th>Fecha</th>
+                                                <th>Iniciativas</th>
+                                                <th>Votadas</th>
+                                                <th>Estado</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="sessionsTable">
+                                            <tr>
+                                                <td colspan="7" class="text-center">Cargando...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-tools"></i> Control del Sistema</h6>
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-danger btn-sm w-100 mb-2" onclick="cerrarSesion()">
+                                    <i class="fas fa-gavel"></i> Clausurar Sesión Activa
+                                </button>
+                                <button class="btn btn-primary btn-sm w-100" onclick="loadDashboard()">
+                                    <i class="fas fa-sync"></i> Actualizar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usuarios Tab -->
+            <div class="tab-pane fade" id="usuarios" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-users"></i> Gestión de Usuarios</h5>
+                        <button class="btn btn-primary btn-sm" onclick="showNewUserModal()">
+                            <i class="fas fa-plus"></i> Nuevo Usuario
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Foto</th>
+                                        <th>Usuario</th>
+                                        <th>Contraseña</th>
+                                        <th>Nombre</th>
+                                        <th>Rol</th>
+                                        <th>Cargo</th>
+                                        <th>Partido</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTable">
+                                    <tr>
+                                        <td colspan="9" class="text-center">Cargando usuarios...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Partidos Tab -->
+            <div class="tab-pane fade" id="partidos" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-flag"></i> Gestión de Partidos Políticos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Logo</th>
+                                        <th>Partido</th>
+                                        <th>Siglas</th>
+                                        <th>Color</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="partidosTable">
+                                    <tr>
+                                        <td colspan="5" class="text-center">Cargando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuración Tab -->
+            <div class="tab-pane fade" id="configuracion" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cog"></i> Configuración del Sistema</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="configForm">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre del Congreso</label>
+                                <input type="text" class="form-control" id="nombreCongreso" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Logo Principal del Congreso</label>
+                                        <div class="mb-2" id="logoPrincipalPreview"></div>
+                                        <input type="file" class="form-control" id="logoCongreso" accept="image/*">
+                                        <small class="text-muted">Máximo 5MB - JPG, PNG, GIF, SVG</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Logo Secundario</label>
+                                        <div class="mb-2" id="logoSecundarioPreview"></div>
+                                        <input type="file" class="form-control" id="logoSecundario" accept="image/*">
+                                        <small class="text-muted">Máximo 5MB - JPG, PNG, GIF, SVG</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Configuración
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Themes Tab -->
+            <div class="tab-pane fade" id="themes" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-palette"></i> Personalización de Temas</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Selector de tema predefinido -->
+                        <div class="mb-4">
+                            <h6>Temas Predefinidos</h6>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-outline-warning" onclick="applyPresetTheme('standard')">
+                                    <i class="fas fa-star"></i> Standard
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="applyPresetTheme('default')">
+                                    <i class="fas fa-sun"></i> Clásico
+                                </button>
+                                <button class="btn btn-outline-dark" onclick="applyPresetTheme('dark')">
+                                    <i class="fas fa-moon"></i> Oscuro
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="applyPresetTheme('apple')">
+                                    <i class="fab fa-apple"></i> Apple
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="applyPresetTheme('windows11')">
+                                    <i class="fab fa-windows"></i> Windows 11
+                                </button>
+                                <button class="btn btn-outline-info" onclick="applyPresetTheme('blue')">
+                                    <i class="fas fa-water"></i> Azul
+                                </button>
+                                <button class="btn btn-outline-success" onclick="applyPresetTheme('green')">
+                                    <i class="fas fa-leaf"></i> Verde
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="applyPresetTheme('red')">
+                                    <i class="fas fa-fire"></i> Rojo
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Editor de colores personalizado -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Colores Principales</h6>
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Fondo del Navbar</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="navbarBg" value="#212529">
+                                        <input type="text" class="form-control" id="navbarBgText" value="#212529">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('navbarBg')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Texto del Navbar</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="navbarText" value="#ffffff">
+                                        <input type="text" class="form-control" id="navbarTextInput" value="#ffffff">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('navbarText')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Fondo Principal</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="bgPrimary" value="#f8f9fa">
+                                        <input type="text" class="form-control" id="bgPrimaryText" value="#f8f9fa">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('bgPrimary')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Fondo de Tarjetas</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="bgCard" value="#ffffff">
+                                        <input type="text" class="form-control" id="bgCardText" value="#ffffff">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('bgCard')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6>Colores de Acento</h6>
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Color Primario</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="colorPrimary" value="#007bff">
+                                        <input type="text" class="form-control" id="colorPrimaryText" value="#007bff">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('colorPrimary')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Color Success</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="colorSuccess" value="#28a745">
+                                        <input type="text" class="form-control" id="colorSuccessText" value="#28a745">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('colorSuccess')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Color Danger</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="colorDanger" value="#dc3545">
+                                        <input type="text" class="form-control" id="colorDangerText" value="#dc3545">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('colorDanger')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Color Warning</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="colorWarning" value="#ffc107">
+                                        <input type="text" class="form-control" id="colorWarningText" value="#ffc107">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('colorWarning')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Encabezados de Cards -->
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <h6>Encabezados de Tarjetas</h6>
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Fondo del Encabezado</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="cardHeaderBg" value="#e9ecef">
+                                        <input type="text" class="form-control" id="cardHeaderBgText" value="#e9ecef">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('cardHeaderBg')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Texto del Encabezado</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="cardHeaderText" value="#495057">
+                                        <input type="text" class="form-control" id="cardHeaderTextInput" value="#495057">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('cardHeaderText')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6>Textos</h6>
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Texto Principal</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="textPrimary" value="#212529">
+                                        <input type="text" class="form-control" id="textPrimaryInput" value="#212529">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('textPrimary')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="color-group mb-3">
+                                    <label class="form-label">Texto Secundario</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="textSecondary" value="#6c757d">
+                                        <input type="text" class="form-control" id="textSecondaryInput" value="#6c757d">
+                                        <button class="btn btn-outline-secondary" onclick="resetColor('textSecondary')">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Vista previa -->
+                        <div class="mt-4">
+                            <h6>Vista Previa</h6>
+                            <div class="preview-container p-3 border rounded">
+                                <div class="mini-navbar p-2 mb-3" id="previewNavbar">
+                                    <span class="text-white fw-bold">Navbar de Ejemplo</span>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card" id="previewCard">
+                                            <div class="card-header" id="previewCardHeader">
+                                                Encabezado de Tarjeta
+                                            </div>
+                                            <div class="card-body">
+                                                <p id="previewText">Texto de ejemplo</p>
+                                                <button class="btn btn-sm" id="previewBtnPrimary">Primario</button>
+                                                <button class="btn btn-sm" id="previewBtnSuccess">Success</button>
+                                                <button class="btn btn-sm" id="previewBtnDanger">Danger</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Botones de acción -->
+                        <div class="mt-4">
+                            <button class="btn btn-primary" onclick="saveTheme()">
+                                <i class="fas fa-save"></i> Guardar Tema
+                            </button>
+                            <button class="btn btn-success" onclick="applyTheme()">
+                                <i class="fas fa-check"></i> Aplicar Cambios
+                            </button>
+                            <button class="btn btn-warning" onclick="exportTheme()">
+                                <i class="fas fa-download"></i> Exportar Tema
+                            </button>
+                            <button class="btn btn-info" onclick="importTheme()">
+                                <i class="fas fa-upload"></i> Importar Tema
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetAllColors()">
+                                <i class="fas fa-undo-alt"></i> Restablecer Todo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Consola Tab -->
+            <div class="tab-pane fade" id="consola" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-terminal"></i> Consola del Sistema</h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="toggleAutoScroll()">
+                                <i class="fas fa-arrows-alt-v"></i> <span id="autoScrollText">Auto-scroll: ON</span>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="clearConsole()">
+                                <i class="fas fa-trash"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="consoleOutput" style="
+                            background: #1e1e1e;
+                            color: #d4d4d4;
+                            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                            font-size: 13px;
+                            height: 600px;
+                            overflow-y: auto;
+                            padding: 10px;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        ">
+                            <div class="text-center text-muted p-3">
+                                <i class="fas fa-spinner fa-spin"></i> Conectando a la consola...
+                            </div>
+                        </div>
+                        <div class="border-top p-2 bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <span id="consoleStatus">
+                                        <i class="fas fa-circle text-danger"></i> Desconectado
+                                    </span>
+                                </small>
+                                <small class="text-muted">
+                                    Logs: <span id="logCount">0</span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Temas/Personalización Tab -->
+            <div class="tab-pane fade" id="temas" role="tabpanel">
+                <div class="row">
+                    <!-- Panel de Colores -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-palette"></i> Personalización de Colores</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <!-- Colores Principales -->
+                                    <div class="col-md-6">
+                                        <h6 class="mb-3">Colores Principales</h6>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Color Primario</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorPrimary" value="#2c3e50">
+                                                <input type="text" class="form-control" 
+                                                       id="colorPrimaryHex" value="#2c3e50" maxlength="7">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Color Secundario</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorSecondary" value="#7f8c8d">
+                                                <input type="text" class="form-control" 
+                                                       id="colorSecondaryHex" value="#7f8c8d" maxlength="7">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Color de Acento</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorAccent" value="#3498db">
+                                                <input type="text" class="form-control" 
+                                                       id="colorAccentHex" value="#3498db" maxlength="7">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Colores de Estado -->
+                                    <div class="col-md-6">
+                                        <h6 class="mb-3">Colores de Estado</h6>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Éxito (A Favor)</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorSuccess" value="#27ae60">
+                                                <input type="text" class="form-control" 
+                                                       id="colorSuccessHex" value="#27ae60" maxlength="7">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Peligro (En Contra)</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorDanger" value="#e74c3c">
+                                                <input type="text" class="form-control" 
+                                                       id="colorDangerHex" value="#e74c3c" maxlength="7">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Advertencia (Abstención)</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="colorWarning" value="#f39c12">
+                                                <input type="text" class="form-control" 
+                                                       id="colorWarningHex" value="#f39c12" maxlength="7">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Colores de Fondo -->
+                                    <div class="col-md-6">
+                                        <h6 class="mb-3">Fondos</h6>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Fondo Principal</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="bgPrimary" value="#f8f9fa">
+                                                <input type="text" class="form-control" 
+                                                       id="bgPrimaryHex" value="#f8f9fa" maxlength="7">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Fondo de Tarjetas</label>
+                                            <div class="input-group">
+                                                <input type="color" class="form-control form-control-color" 
+                                                       id="bgCard" value="#ffffff">
+                                                <input type="text" class="form-control" 
+                                                       id="bgCardHex" value="#ffffff" maxlength="7">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Temas Predefinidos -->
+                                    <div class="col-md-6">
+                                        <h6 class="mb-3">Temas Predefinidos</h6>
+                                        
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-outline-secondary" onclick="applyTheme('neutral')">
+                                                <i class="fas fa-circle-half-stroke"></i> Neutro (Por defecto)
+                                            </button>
+                                            <button class="btn btn-outline-primary" onclick="applyTheme('professional')">
+                                                <i class="fas fa-briefcase"></i> Profesional
+                                            </button>
+                                            <button class="btn btn-outline-dark" onclick="applyTheme('dark')">
+                                                <i class="fas fa-moon"></i> Oscuro
+                                            </button>
+                                            <button class="btn btn-outline-info" onclick="applyTheme('congress')">
+                                                <i class="fas fa-landmark"></i> Congreso
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Botones de acción -->
+                                <div class="mt-4 d-flex justify-content-between">
+                                    <button class="btn btn-secondary" onclick="resetColors()">
+                                        <i class="fas fa-undo"></i> Restablecer
+                                    </button>
+                                    <div>
+                                        <button class="btn btn-primary me-2" onclick="previewColors()">
+                                            <i class="fas fa-eye"></i> Vista Previa
+                                        </button>
+                                        <button class="btn btn-success" onclick="saveColors()">
+                                            <i class="fas fa-save"></i> Guardar Cambios
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Panel de Vista Previa -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-eye"></i> Vista Previa</h5>
+                            </div>
+                            <div class="card-body" id="themePreview">
+                                <div class="preview-container p-3" style="border-radius: 8px;">
+                                    <h6 class="preview-primary">Título Principal</h6>
+                                    <p class="preview-text">Texto de ejemplo para mostrar cómo se verán los colores.</p>
+                                    
+                                    <div class="mb-3">
+                                        <button class="btn preview-btn-primary btn-sm">Botón Primario</button>
+                                        <button class="btn preview-btn-secondary btn-sm ms-2">Secundario</button>
+                                    </div>
+                                    
+                                    <div class="preview-card p-2 mb-2">
+                                        <small>Tarjeta de ejemplo</small>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <span class="badge preview-badge-success">A Favor</span>
+                                        <span class="badge preview-badge-danger">En Contra</span>
+                                        <span class="badge preview-badge-warning">Abstención</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Información adicional -->
+                        <div class="card mt-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Información</h6>
+                                <p class="small text-muted">
+                                    Los cambios de color se aplicarán a todos los paneles del sistema 
+                                    excepto el panel de diputados.
+                                </p>
+                                <p class="small text-muted mb-0">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Los colores se guardan en la base de datos y se aplicarán 
+                                    automáticamente al iniciar sesión.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para nuevo/editar usuario -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userModalTitle">Nuevo Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label class="form-label">Usuario</label>
+                            <input type="text" class="form-control" id="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="password">
+                            <small class="text-muted">Dejar en blanco para mantener la actual</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nombre Completo</label>
+                            <input type="text" class="form-control" id="nombreCompleto" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Rol</label>
+                            <select class="form-select" id="role" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="diputado">Diputado</option>
+                                <option value="secretario">Secretario</option>
+                                <option value="operador">Operador</option>
+                                <option value="superadmin">Superadmin</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="cargoField">
+                            <label class="form-label">Cargo en Mesa Directiva</label>
+                            <select class="form-select" id="cargoMesaDirectiva">
+                                <option value="">Sin cargo</option>
+                                <option value="presidente">Presidente</option>
+                                <option value="vicepresidente">Vicepresidente</option>
+                                <option value="secretario1">Secretario 1</option>
+                                <option value="secretario2">Secretario 2</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="coordinadorField">
+                            <label class="form-label">Es Coordinador de Partido</label>
+                            <select class="form-select" id="cargoCoordinador">
+                                <option value="">No es coordinador</option>
+                                <option value="MORENA">Coordinador - MORENA</option>
+                                <option value="PAN">Coordinador - PAN</option>
+                                <option value="PRI">Coordinador - PRI</option>
+                                <option value="PT">Coordinador - PT</option>
+                                <option value="PVEM">Coordinador - PVEM</option>
+                                <option value="MC">Coordinador - MC</option>
+                                <option value="NUEVA ALIANZA">Coordinador - NUEVA ALIANZA</option>
+                                <option value="IND">Coordinador - Independiente</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="partidoField">
+                            <label class="form-label">Partido</label>
+                            <select class="form-select" id="partido">
+                                <option value="">Seleccionar...</option>
+                                <option value="MORENA">MORENA</option>
+                                <option value="PAN">PAN</option>
+                                <option value="PRI">PRI</option>
+                                <option value="PT">PT</option>
+                                <option value="PVEM">PVEM</option>
+                                <option value="MC">MC</option>
+                                <option value="NUEVA ALIANZA">NUEVA ALIANZA</option>
+                                <option value="IND">Independiente</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="comisionField">
+                            <label class="form-label">Comisión</label>
+                            <input type="text" class="form-control" id="comision" placeholder="Ej: Comisión de Salud">
+                        </div>
+                        <div class="mb-3" id="cargoLegislativoField">
+                            <label class="form-label">Cargo Legislativo</label>
+                            <select class="form-select" id="cargoLegislativo">
+                                <option value="">Sin cargo legislativo</option>
+                                <optgroup label="Junta Política y de Coordinación">
+                                    <option value="Presidente - Junta Política">Presidente - Junta Política y de Coordinación</option>
+                                    <option value="Vicepresidente - Junta Política">Vicepresidente - Junta Política y de Coordinación</option>
+                                    <option value="Secretario - Junta Política">Secretario - Junta Política y de Coordinación</option>
+                                    <option value="Vocal - Junta Política">Vocal - Junta Política y de Coordinación</option>
+                                </optgroup>
+                                <optgroup label="Comisiones">
+                                    <option value="Presidente - Comisión">Presidente de Comisión</option>
+                                    <option value="Secretario - Comisión">Secretario de Comisión</option>
+                                    <option value="Vocal - Comisión">Vocal de Comisión</option>
+                                </optgroup>
+                                <optgroup label="Otros cargos">
+                                    <option value="otro">Otro cargo (especificar en campo de comisión)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="fotoField">
+                            <label class="form-label">Fotografía</label>
+                            <div id="fotoPreview" class="mb-2"></div>
+                            <input type="file" class="form-control" id="fotoUsuario" accept="image/*">
+                            <small class="text-muted">JPG, PNG - Máximo 5MB</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveUser()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para recortar imagen -->
+    <div class="modal fade" id="cropModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered crop-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Recortar Imagen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="cancelarRecorte()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="cropper-container">
+                                <img id="imagenParaRecortar" style="max-width: 100%;">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-center">Vista previa</h6>
+                            <div class="preview-crop">
+                                <img id="previewRecorte">
+                            </div>
+                            <div class="crop-controls">
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="rotarImagen(-90)">
+                                    <i class="fas fa-rotate-left"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="rotarImagen(90)">
+                                    <i class="fas fa-rotate-right"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="resetearRecorte()">
+                                    <i class="fas fa-sync"></i>
+                                </button>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> Ajusta el área de recorte para centrar el rostro.
+                                    La imagen se guardará como cuadrada.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cancelarRecorte()">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="aplicarRecorte()">
+                        <i class="fas fa-crop"></i> Aplicar Recorte
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Cropper.js para recorte de imágenes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const user = JSON.parse(localStorage.getItem('user'));
+        const token = localStorage.getItem('token');
+        const userModal = new bootstrap.Modal(document.getElementById('userModal'));
+        const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
+        let partidosData = {}; // Para almacenar datos de partidos
+        let cropper = null; // Instancia de Cropper.js
+        let imagenRecortada = null; // Para almacenar la imagen recortada
+        
+        // Identificar usuario al conectarse
+        if (user) {
+            socket.emit('identificar-usuario', {
+                nombre: user.nombre_completo || user.username,
+                rol: 'SuperAdmin'
+            });
+        }
+        
+        if (!token || !user || user.role !== 'superadmin') {
+            window.location.href = '/';
+        }
+        
+        document.getElementById('userName').textContent = user.nombre;
+        
+        // Cargar todo al iniciar
+        loadDashboard();
+        loadPartidos().then(() => {
+            loadUsers(); // Cargar usuarios después de tener los partidos
+        });
+        loadConfig();
+        cargarUsuariosConectados();
+        
+        // Cargar dashboard
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/superadmin/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById('totalUsuarios').textContent = data.total_usuarios || 0;
+                document.getElementById('totalDiputados').textContent = data.total_diputados || 0;
+                document.getElementById('totalSesiones').textContent = data.total_sesiones || 0;
+                document.getElementById('totalIniciativas').textContent = data.total_iniciativas || 0;
+                document.getElementById('totalVotos').textContent = data.total_votos || 0;
+                
+                if (data.sesion_activa) {
+                    document.getElementById('sesionActiva').textContent = 'Sesión Activa';
+                    document.getElementById('sessionIndicator').style.color = '#28a745';
+                } else {
+                    document.getElementById('sesionActiva').textContent = 'Sin Sesión';
+                    document.getElementById('sessionIndicator').style.color = '#dc3545';
+                }
+                
+                loadSessions();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Cargar usuarios
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/superadmin/usuarios', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                const tbody = document.getElementById('usersTable');
+                
+                tbody.innerHTML = data.usuarios.map(user => {
+                    // Preparar datos para pasarlos a editUser
+                    window[`userData_${user.id}`] = {
+                        id: user.id,
+                        username: user.username,
+                        nombre_completo: user.nombre_completo,
+                        role: user.role,
+                        cargo_mesa_directiva: user.cargo_mesa_directiva || '',
+                        cargo_coordinador: user.cargo_coordinador || '',
+                        partido: user.partido || '',
+                        comision: user.comision || '',
+                        cargo_legislativo: user.cargo_legislativo || '',
+                        foto_url: user.foto_url || '',
+                        password_plain: user.password_plain || ''
+                    };
+                    
+                    // Obtener datos del partido para el color
+                    const partido = partidosData ? partidosData[user.partido] : null;
+                    const partyColor = partido ? partido.color_primario : '#666';
+                    const inicial = user.nombre_completo ? user.nombre_completo.charAt(0) : '?';
+                    
+                    return `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>
+                                ${user.foto_url ? 
+                                    `<img src="${user.foto_url}" alt="${user.nombre_completo}" 
+                                         style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd;">` :
+                                    `<div style="width: 40px; height: 40px; border-radius: 50%; 
+                                         background-color: ${partyColor}; color: white; 
+                                         display: flex; align-items: center; justify-content: center;
+                                         font-weight: bold; font-size: 18px;">
+                                        ${inicial}
+                                    </div>`
+                                }
+                            </td>
+                            <td>${user.username}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">${user.password_plain || '***'}</span>
+                                    <button class="btn btn-sm btn-outline-secondary" 
+                                            onclick="copyToClipboard('${user.password_plain || ''}')" 
+                                            title="Copiar contraseña">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>${user.nombre_completo}</td>
+                            <td><span class="badge bg-secondary">${user.role}</span></td>
+                            <td>${user.cargo_mesa_directiva || '-'}</td>
+                            <td>${user.partido || '-'}</td>
+                            <td>
+                                <span class="badge bg-${user.activo ? 'success' : 'danger'}">
+                                    ${user.activo ? 'Activo' : 'Inactivo'}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="editUser(window.userData_${user.id})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="toggleUser(${user.id})">
+                                    <i class="fas fa-${user.activo ? 'ban' : 'check'}"></i>
+                                </button>
+                                ${user.role !== 'superadmin' ? `
+                                    <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Cargar sesiones
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/superadmin/sesiones', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                const tbody = document.getElementById('sessionsTable');
+                
+                if (data.sesiones.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay sesiones registradas</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = data.sesiones.map(sesion => `
+                    <tr>
+                        <td>${sesion.id}</td>
+                        <td>${sesion.nombre}</td>
+                        <td>${new Date(sesion.fecha).toLocaleDateString()}</td>
+                        <td>${sesion.total_iniciativas}</td>
+                        <td>${sesion.iniciativas_votadas}</td>
+                        <td>
+                            <span class="badge bg-${sesion.activa ? 'success' : 'secondary'}">
+                                ${sesion.activa ? 'ACTIVA' : 'CERRADA'}
+                            </span>
+                        </td>
+                        <td>
+                            ${!sesion.activa ? `
+                                <button class="btn btn-sm btn-primary" onclick="descargarReporteSesion(${sesion.id})" title="Descargar Reporte PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                </button>
+                            ` : '<span class="text-muted">-</span>'}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Cargar configuración
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/superadmin/configuracion', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const config = await response.json();
+                
+                document.getElementById('nombreCongreso').value = config.nombre_congreso || '';
+                
+                if (config.logo_congreso) {
+                    document.getElementById('logoPrincipalPreview').innerHTML = 
+                        `<img src="${config.logo_congreso}" class="logo-preview">`;
+                }
+                
+                if (config.logo_secundario) {
+                    document.getElementById('logoSecundarioPreview').innerHTML = 
+                        `<img src="${config.logo_secundario}" class="logo-preview">`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Guardar configuración
+        document.getElementById('configForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('nombre_congreso', document.getElementById('nombreCongreso').value);
+            
+            const logoCongreso = document.getElementById('logoCongreso').files[0];
+            if (logoCongreso) {
+                formData.append('logo_congreso', logoCongreso);
+            }
+            
+            const logoSecundario = document.getElementById('logoSecundario').files[0];
+            if (logoSecundario) {
+                formData.append('logo_secundario', logoSecundario);
+            }
+            
+            try {
+                const response = await fetch('/api/superadmin/configuracion', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    alert('Configuración guardada correctamente');
+                    loadConfig();
+                } else {
+                    alert('Error al guardar configuración');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al guardar configuración');
+            }
+        });
+        
+        // Mostrar modal nuevo usuario
+        function showNewUserModal() {
+            document.getElementById('userModalTitle').textContent = 'Nuevo Usuario';
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+            document.getElementById('username').disabled = false;
+            document.getElementById('password').required = true;
+            
+            // Ocultar campos específicos de diputado inicialmente
+            document.getElementById('cargoField').style.display = 'none';
+            document.getElementById('coordinadorField').style.display = 'none';
+            document.getElementById('partidoField').style.display = 'none';
+            document.getElementById('comisionField').style.display = 'none';
+            document.getElementById('cargoLegislativoField').style.display = 'none';
+            document.getElementById('fotoField').style.display = 'none';
+            
+            // Limpiar preview de foto
+            document.getElementById('fotoPreview').innerHTML = '';
+            
+            userModal.show();
+        }
+        
+        // Editar usuario
+        function editUser(userData) {
+            document.getElementById('userModalTitle').textContent = 'Editar Usuario';
+            document.getElementById('userId').value = userData.id;
+            document.getElementById('username').value = userData.username;
+            document.getElementById('username').disabled = true;
+            document.getElementById('password').value = userData.password_plain || '';
+            document.getElementById('password').placeholder = userData.password_plain ? 'Contraseña actual' : 'Ingrese nueva contraseña';
+            document.getElementById('password').required = false;
+            document.getElementById('nombreCompleto').value = userData.nombre_completo;
+            document.getElementById('role').value = userData.role;
+            document.getElementById('cargoMesaDirectiva').value = userData.cargo_mesa_directiva;
+            // Establecer valor del coordinador basado en el cargo guardado
+            const cargoCoord = userData.cargo_coordinador || '';
+            if (cargoCoord.includes('MORENA')) {
+                document.getElementById('cargoCoordinador').value = 'MORENA';
+            } else if (cargoCoord.includes('PAN')) {
+                document.getElementById('cargoCoordinador').value = 'PAN';
+            } else if (cargoCoord.includes('PRI')) {
+                document.getElementById('cargoCoordinador').value = 'PRI';
+            } else if (cargoCoord.includes('PT')) {
+                document.getElementById('cargoCoordinador').value = 'PT';
+            } else if (cargoCoord.includes('PVEM')) {
+                document.getElementById('cargoCoordinador').value = 'PVEM';
+            } else if (cargoCoord.includes('MC')) {
+                document.getElementById('cargoCoordinador').value = 'MC';
+            } else if (cargoCoord.includes('NUEVA ALIANZA')) {
+                document.getElementById('cargoCoordinador').value = 'NUEVA ALIANZA';
+            } else if (cargoCoord.includes('IND') || cargoCoord.includes('Independiente')) {
+                document.getElementById('cargoCoordinador').value = 'IND';
+            } else {
+                document.getElementById('cargoCoordinador').value = '';
+            }
+            document.getElementById('partido').value = userData.partido;
+            document.getElementById('comision').value = userData.comision;
+            
+            // Establecer valor del cargo legislativo
+            const cargoLeg = userData.cargo_legislativo || '';
+            if (cargoLeg.includes('Junta Política') || cargoLeg.includes('Comisión')) {
+                // Intentar encontrar la opción exacta
+                const selectCargo = document.getElementById('cargoLegislativo');
+                let found = false;
+                for (let option of selectCargo.options) {
+                    if (option.value && cargoLeg.includes(option.value.split(' - ')[0])) {
+                        selectCargo.value = option.value;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    selectCargo.value = 'otro';
+                    document.getElementById('comision').value = cargoLeg;
+                }
+            } else if (cargoLeg) {
+                document.getElementById('cargoLegislativo').value = 'otro';
+                document.getElementById('comision').value = cargoLeg;
+            } else {
+                document.getElementById('cargoLegislativo').value = '';
+            }
+            
+            // Mostrar foto existente
+            if (userData.foto_url) {
+                document.getElementById('fotoPreview').innerHTML = 
+                    `<img src="${userData.foto_url}" class="foto-preview" alt="Foto actual">`;
+            } else {
+                document.getElementById('fotoPreview').innerHTML = '';
+            }
+            
+            // Mostrar/ocultar campos según rol
+            const showDiputadoFields = userData.role === 'diputado';
+            document.getElementById('cargoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('coordinadorField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('partidoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('comisionField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('cargoLegislativoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('fotoField').style.display = showDiputadoFields ? 'block' : 'none';
+            
+            userModal.show();
+        }
+        
+        // ========== FUNCIONES DE RECORTE DE IMAGEN ==========
+        
+        // Mostrar modal de recorte
+        function mostrarModalRecorte(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const img = document.getElementById('imagenParaRecortar');
+                img.src = e.target.result;
+                
+                // Cerrar modal de usuario temporalmente
+                userModal.hide();
+                
+                // Mostrar modal de recorte
+                cropModal.show();
+                
+                // Inicializar Cropper después de que el modal se muestre
+                setTimeout(() => {
+                    if (cropper) {
+                        cropper.destroy();
+                    }
+                    
+                    cropper = new Cropper(img, {
+                        aspectRatio: 1, // Cuadrado
+                        viewMode: 2,
+                        dragMode: 'move',
+                        autoCropArea: 0.8,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                        preview: '#previewRecorte',
+                        ready: function() {
+                            // Centrar el área de recorte
+                            this.cropper.reset();
+                        }
+                    });
+                }, 300);
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // Rotar imagen
+        function rotarImagen(grados) {
+            if (cropper) {
+                cropper.rotate(grados);
+            }
+        }
+        
+        // Resetear recorte
+        function resetearRecorte() {
+            if (cropper) {
+                cropper.reset();
+            }
+        }
+        
+        // Cancelar recorte
+        function cancelarRecorte() {
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            imagenRecortada = null;
+            document.getElementById('fotoUsuario').value = '';
+            document.getElementById('fotoPreview').innerHTML = '';
+            cropModal.hide();
+            userModal.show();
+        }
+        
+        // Aplicar recorte
+        function aplicarRecorte() {
+            if (cropper) {
+                // Obtener canvas con imagen recortada
+                const canvas = cropper.getCroppedCanvas({
+                    width: 300,
+                    height: 300,
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high'
+                });
+                
+                // Convertir canvas a blob
+                canvas.toBlob(function(blob) {
+                    imagenRecortada = new File([blob], 'foto_recortada.jpg', {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    
+                    // Mostrar vista previa en el modal de usuario
+                    const previewUrl = canvas.toDataURL('image/jpeg');
+                    document.getElementById('fotoPreview').innerHTML = `
+                        <img src="${previewUrl}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
+                        <br>
+                        <small class="text-success"><i class="fas fa-check"></i> Imagen recortada lista</small>
+                    `;
+                    
+                    // Limpiar y cerrar modal de recorte
+                    cropper.destroy();
+                    cropper = null;
+                    cropModal.hide();
+                    userModal.show();
+                    
+                }, 'image/jpeg', 0.9);
+            }
+        }
+        
+        // Guardar usuario
+        async function saveUser() {
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const nombre_completo = document.getElementById('nombreCompleto').value;
+            const role = document.getElementById('role').value;
+            const cargo_mesa_directiva = document.getElementById('cargoMesaDirectiva').value;
+            // Construir el texto del cargo coordinador basado en la selección
+            const coordinadorPartido = document.getElementById('cargoCoordinador').value;
+            let cargo_coordinador = '';
+            if (coordinadorPartido) {
+                cargo_coordinador = `Coordinador Grupo Parlamentario ${coordinadorPartido}`;
+            }
+            const partido = document.getElementById('partido').value;
+            const comision = document.getElementById('comision').value;
+            // Obtener el cargo legislativo correctamente
+            let cargo_legislativo = document.getElementById('cargoLegislativo').value;
+            if (cargo_legislativo === 'otro') {
+                // Si es "otro", usar el valor del campo comisión como cargo
+                cargo_legislativo = document.getElementById('comision').value;
+            } else if (cargo_legislativo && cargo_legislativo !== '') {
+                // Si es un cargo predefinido, agregar el nombre de la comisión si existe
+                const comisionName = document.getElementById('comision').value;
+                if (comisionName && (cargo_legislativo.includes('Comisión'))) {
+                    cargo_legislativo = cargo_legislativo.replace('Comisión', comisionName);
+                }
+            }
+            // Usar la imagen recortada si existe, si no usar el archivo original
+            const fotoFile = imagenRecortada || document.getElementById('fotoUsuario').files[0];
+            
+            // Preparar FormData para manejar archivos
+            const formData = new FormData();
+            formData.append('nombre_completo', nombre_completo);
+            formData.append('cargo_mesa_directiva', cargo_mesa_directiva);
+            formData.append('cargo_coordinador', cargo_coordinador);
+            formData.append('partido', partido);
+            formData.append('comision', comision);
+            formData.append('cargo_legislativo', cargo_legislativo);
+            
+            if (fotoFile) {
+                formData.append('foto', fotoFile);
+            }
+            
+            if (userId) {
+                // Actualizar
+                if (password) formData.append('password', password);
+                
+                try {
+                    const response = await fetch(`/api/superadmin/usuarios/${userId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        userModal.hide();
+                        imagenRecortada = null; // Limpiar imagen recortada
+                        document.getElementById('fotoPreview').innerHTML = '';
+                        loadUsers();
+                        alert('Usuario actualizado correctamente');
+                    } else {
+                        alert('Error al actualizar usuario');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al actualizar usuario');
+                }
+            } else {
+                // Crear nuevo
+                formData.append('username', username);
+                formData.append('password', password);
+                formData.append('role', role);
+                
+                try {
+                    const response = await fetch('/api/superadmin/usuarios', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        userModal.hide();
+                        imagenRecortada = null; // Limpiar imagen recortada
+                        document.getElementById('fotoPreview').innerHTML = '';
+                        loadUsers();
+                        alert('Usuario creado correctamente');
+                    } else {
+                        const data = await response.json();
+                        alert(data.error || 'Error al crear usuario');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al crear usuario');
+                }
+            }
+        }
+        
+        // Toggle usuario activo/inactivo
+        async function toggleUser(userId) {
+            try {
+                const response = await fetch(`/api/superadmin/usuario/${userId}/toggle`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    loadUsers();
+                } else {
+                    alert('Error al actualizar usuario');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al actualizar usuario');
+            }
+        }
+        
+        // Eliminar usuario
+        async function deleteUser(userId) {
+            if (!confirm('¿Eliminar este usuario permanentemente?')) return;
+            
+            try {
+                const response = await fetch(`/api/superadmin/usuarios/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    loadUsers();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Error al eliminar usuario');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al eliminar usuario');
+            }
+        }
+        
+        // Clausurar sesión activa
+        async function cerrarSesion() {
+            if (!confirm('¿Clausurar la sesión activa?\n\nEsto cerrará todas las votaciones activas y finalizará formalmente la sesión legislativa.')) return;
+            
+            try {
+                const response = await fetch('/api/superadmin/cerrar-sesion', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    let mensaje = 'Sesión clausurada correctamente';
+                    if (data.estadisticas) {
+                        mensaje += `\n\nEstadísticas finales:\n`;
+                        mensaje += `- Iniciativas: ${data.estadisticas.total_iniciativas || 0}\n`;
+                        mensaje += `- Aprobadas: ${data.estadisticas.aprobadas || 0}\n`;
+                        mensaje += `- Rechazadas: ${data.estadisticas.rechazadas || 0}\n`;
+                        mensaje += `- Participación: ${data.estadisticas.participacion || 0} diputados`;
+                    }
+                    alert(mensaje);
+                    loadDashboard();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Error al clausurar sesión');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cerrar sesión');
+            }
+        }
+        
+        // Mostrar/ocultar campos según rol
+        document.getElementById('role').addEventListener('change', (e) => {
+            const role = e.target.value;
+            const showDiputadoFields = role === 'diputado';
+            document.getElementById('cargoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('coordinadorField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('partidoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('comisionField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('cargoLegislativoField').style.display = showDiputadoFields ? 'block' : 'none';
+            document.getElementById('fotoField').style.display = showDiputadoFields ? 'block' : 'none';
+        });
+        
+        // Cargar partidos
+        async function loadPartidos() {
+            try {
+                const response = await fetch('/api/superadmin/partidos', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const partidos = await response.json();
+                    // Crear mapa de partidos por siglas
+                    partidosData = {};
+                    partidos.forEach(partido => {
+                        partidosData[partido.siglas] = partido;
+                    });
+                    displayPartidos(partidos);
+                } else {
+                    console.error('Error cargando partidos');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Mostrar partidos
+        function displayPartidos(partidos) {
+            const tbody = document.getElementById('partidosTable');
+            
+            if (partidos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay partidos registrados</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = partidos.map(partido => `
+                <tr>
+                    <td>
+                        ${partido.logo_url ? 
+                            `<img src="${partido.logo_url}" alt="${partido.siglas}" style="height: 40px; max-width: 60px; object-fit: contain;">` :
+                            '<i class="fas fa-image text-muted" style="font-size: 2em;"></i>'
+                        }
+                    </td>
+                    <td>${partido.nombre}</td>
+                    <td><strong>${partido.siglas}</strong></td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 30px; height: 30px; background-color: ${partido.color_primario}; border: 1px solid #ccc; border-radius: 5px;"></div>
+                            <small>${partido.color_primario}</small>
+                        </div>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="editPartido(${partido.id}, '${partido.siglas}', '${partido.color_primario}', '${partido.logo_url || ''}')">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Editar partido
+        function editPartido(id, siglas, color, logoUrl) {
+            const formHtml = `
+                <form id="editPartidoForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Logo del Partido</label>
+                        ${logoUrl ? `<div class="mb-2"><img src="${logoUrl}" style="height: 60px; max-width: 100px; object-fit: contain;"></div>` : ''}
+                        <input type="file" class="form-control" id="partidoLogo" accept="image/*">
+                        <small class="text-muted">Formatos: PNG, JPG, SVG. Máximo 20MB</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Color Primario</label>
+                        <input type="color" class="form-control" id="partidoColor" value="${color}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </form>
+            `;
+            
+            Swal.fire({
+                title: `Editar ${siglas}`,
+                html: formHtml,
+                showCancelButton: true,
+                showConfirmButton: false,
+                cancelButtonText: 'Cancelar',
+                didOpen: () => {
+                    document.getElementById('editPartidoForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        
+                        const formData = new FormData();
+                        const logoFile = document.getElementById('partidoLogo').files[0];
+                        const color = document.getElementById('partidoColor').value;
+                        
+                        if (logoFile) {
+                            formData.append('logo', logoFile);
+                        }
+                        formData.append('color_primario', color);
+                        
+                        try {
+                            const response = await fetch(`/api/superadmin/partido/${id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: formData
+                            });
+                            
+                            if (response.ok) {
+                                Swal.fire('Éxito', 'Partido actualizado correctamente', 'success');
+                                loadPartidos();
+                            } else {
+                                const error = await response.json();
+                                Swal.fire('Error', error.error || 'Error al actualizar partido', 'error');
+                            }
+                        } catch (error) {
+                            Swal.fire('Error', 'Error al actualizar partido', 'error');
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Descargar reporte PDF de sesión
+        async function descargarReporteSesion(sesionId) {
+            try {
+                const response = await fetch(`/api/operador/reporte-sesion/${sesionId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Error al generar el reporte');
+                }
+                
+                // Obtener el blob del PDF
+                const blob = await response.blob();
+                
+                // Crear URL temporal para descarga
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reporte_sesion_${sesionId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Reporte descargado',
+                    text: 'El reporte PDF se ha descargado correctamente',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo descargar el reporte PDF'
+                });
+            }
+        }
+        
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+        
+        // Funciones de la consola
+        let autoScroll = true;
+        let logCounter = 0;
+        
+        function initConsole() {
+            // Suscribirse a los logs de consola
+            socket.emit('console:subscribe');
+            
+            // Escuchar logs históricos
+            socket.on('console:history', (logs) => {
+                const consoleOutput = document.getElementById('consoleOutput');
+                consoleOutput.innerHTML = '';
+                logs.forEach(log => addLogToConsole(log));
+                updateStatus(true);
+            });
+            
+            // Escuchar nuevos logs
+            socket.on('console:log', (log) => {
+                addLogToConsole(log);
+            });
+            
+            // Escuchar limpieza de consola
+            socket.on('console:cleared', () => {
+                document.getElementById('consoleOutput').innerHTML = '<div class="text-center text-muted p-3">Consola limpiada</div>';
+                logCounter = 0;
+                document.getElementById('logCount').textContent = '0';
+            });
+            
+            // Manejar desconexión
+            socket.on('disconnect', () => {
+                updateStatus(false);
+            });
+            
+            socket.on('connect', () => {
+                updateStatus(true);
+                socket.emit('console:subscribe');
+                // Re-identificar al reconectar
+                if (user) {
+                    socket.emit('identificar-usuario', {
+                        nombre: user.nombre_completo || user.username,
+                        rol: 'SuperAdmin'
+                    });
+                }
+            });
+            
+            // Escuchar actualizaciones de usuarios conectados
+            socket.on('usuarios-conectados-actualizado', (usuarios) => {
+                actualizarUsuariosConectados(usuarios);
+            });
+        }
+        
+        // Función para actualizar la visualización de usuarios conectados
+        function actualizarUsuariosConectados(usuarios) {
+            const container = document.getElementById('usuariosConectadosContainer');
+            const total = document.getElementById('totalConectados');
+            
+            total.textContent = usuarios.length;
+            
+            if (usuarios.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center text-muted">
+                        <i class="fas fa-user-slash"></i> No hay usuarios conectados
+                    </div>
+                `;
+                return;
+            }
+            
+            // Agrupar usuarios por rol
+            const porRol = {};
+            usuarios.forEach(user => {
+                const rol = user.rol || 'Desconocido';
+                if (!porRol[rol]) porRol[rol] = [];
+                porRol[rol].push(user);
+            });
+            
+            let html = '';
+            Object.keys(porRol).forEach(rol => {
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <small class="text-muted fw-bold">${rol} (${porRol[rol].length})</small>
+                            </div>
+                            <div class="card-body p-2">
+                                <ul class="list-unstyled mb-0">`;
+                
+                porRol[rol].forEach(user => {
+                    const tiempo = new Date(user.conectadoEn);
+                    const horaConexion = tiempo.toLocaleTimeString('es-MX', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                    
+                    html += `
+                        <li class="mb-1 d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-circle text-success" style="font-size: 8px;"></i>
+                                ${user.nombre}
+                                ${user.cargo ? `<small class="text-muted">(${user.cargo})</small>` : ''}
+                            </span>
+                            <small class="text-muted">${horaConexion}</small>
+                        </li>`;
+                });
+                
+                html += `
+                                </ul>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Cargar usuarios conectados al iniciar
+        async function cargarUsuariosConectados() {
+            try {
+                const response = await fetch('/api/usuarios-conectados', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    actualizarUsuariosConectados(data.usuarios);
+                }
+            } catch (error) {
+                console.error('Error cargando usuarios conectados:', error);
+            }
+        }
+        
+        function addLogToConsole(log) {
+            const consoleOutput = document.getElementById('consoleOutput');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry log-${log.type}`;
+            
+            const timestamp = new Date(log.timestamp).toLocaleTimeString('es-MX', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            
+            const typeLabel = document.createElement('span');
+            typeLabel.className = `log-type type-${log.type}`;
+            typeLabel.textContent = log.type.toUpperCase();
+            
+            const timestampSpan = document.createElement('span');
+            timestampSpan.className = 'log-timestamp';
+            timestampSpan.textContent = timestamp;
+            
+            const messageSpan = document.createElement('span');
+            messageSpan.textContent = log.message;
+            
+            logDiv.appendChild(timestampSpan);
+            logDiv.appendChild(typeLabel);
+            logDiv.appendChild(messageSpan);
+            
+            consoleOutput.appendChild(logDiv);
+            
+            // Auto-scroll si está habilitado
+            if (autoScroll) {
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+            
+            // Actualizar contador
+            logCounter++;
+            document.getElementById('logCount').textContent = logCounter;
+            
+            // Limitar el número de logs mostrados
+            const maxLogs = 1000;
+            while (consoleOutput.children.length > maxLogs) {
+                consoleOutput.removeChild(consoleOutput.firstChild);
+            }
+        }
+        
+        function updateStatus(connected) {
+            const statusEl = document.getElementById('consoleStatus');
+            if (connected) {
+                statusEl.innerHTML = '<i class="fas fa-circle text-success"></i> Conectado';
+            } else {
+                statusEl.innerHTML = '<i class="fas fa-circle text-danger"></i> Desconectado';
+            }
+        }
+        
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            document.getElementById('autoScrollText').textContent = `Auto-scroll: ${autoScroll ? 'ON' : 'OFF'}`;
+        }
+        
+        function clearConsole() {
+            Swal.fire({
+                title: '¿Limpiar consola?',
+                text: 'Se borrarán todos los logs de la consola',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, limpiar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    socket.emit('console:clear');
+                }
+            });
+        }
+        
+        // Inicializar consola cuando se hace clic en el tab
+        document.getElementById('consola-tab').addEventListener('shown.bs.tab', function() {
+            if (!socket.hasListeners('console:log')) {
+                initConsole();
+            }
+        });
+        
+        // Desuscribirse cuando se cambia de tab
+        document.getElementById('consola-tab').addEventListener('hidden.bs.tab', function() {
+            socket.emit('console:unsubscribe');
+        });
+        // ========== SISTEMA DE PERSONALIZACIÓN DE COLORES ==========
+        
+        // Sincronizar color picker con input de texto
+        document.querySelectorAll('input[type="color"]').forEach(colorInput => {
+            const hexInput = document.getElementById(colorInput.id + 'Hex');
+            
+            colorInput.addEventListener('input', (e) => {
+                hexInput.value = e.target.value;
+                updatePreview();
+            });
+            
+            hexInput.addEventListener('input', (e) => {
+                if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                    colorInput.value = e.target.value;
+                    updatePreview();
+                }
+            });
+        });
+        
+        // Temas predefinidos
+        const themes = {
+            neutral: {
+                colorPrimary: '#2c3e50',
+                colorSecondary: '#7f8c8d',
+                colorAccent: '#3498db',
+                colorSuccess: '#27ae60',
+                colorDanger: '#e74c3c',
+                colorWarning: '#f39c12',
+                bgPrimary: '#f8f9fa',
+                bgCard: '#ffffff'
+            },
+            professional: {
+                colorPrimary: '#1e3a5f',
+                colorSecondary: '#4a6fa5',
+                colorAccent: '#166fe5',
+                colorSuccess: '#00b74a',
+                colorDanger: '#f93154',
+                colorWarning: '#ffa900',
+                bgPrimary: '#f5f7fa',
+                bgCard: '#ffffff'
+            },
+            dark: {
+                colorPrimary: '#1a1d23',
+                colorSecondary: '#2c3139',
+                colorAccent: '#4a9eff',
+                colorSuccess: '#00d25b',
+                colorDanger: '#fc424a',
+                colorWarning: '#ffab00',
+                bgPrimary: '#0d0f14',
+                bgCard: '#1a1d23'
+            },
+            congress: {
+                colorPrimary: '#8b4513',
+                colorSecondary: '#cd853f',
+                colorAccent: '#daa520',
+                colorSuccess: '#228b22',
+                colorDanger: '#b22222',
+                colorWarning: '#ff8c00',
+                bgPrimary: '#faf0e6',
+                bgCard: '#ffffff'
+            }
+        };
+        
+        // Aplicar tema predefinido
+        function applyTheme(themeName) {
+            const theme = themes[themeName];
+            if (!theme) return;
+            
+            Object.keys(theme).forEach(key => {
+                const colorInput = document.getElementById(key);
+                const hexInput = document.getElementById(key + 'Hex');
+                if (colorInput && hexInput) {
+                    colorInput.value = theme[key];
+                    hexInput.value = theme[key];
+                }
+            });
+            
+            updatePreview();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Tema aplicado',
+                text: `Se ha aplicado el tema ${themeName}`,
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+        
+        // Actualizar vista previa
+        function updatePreview() {
+            const preview = document.getElementById('themePreview');
+            const container = preview.querySelector('.preview-container');
+            
+            const colors = {
+                primary: document.getElementById('colorPrimary').value,
+                secondary: document.getElementById('colorSecondary').value,
+                accent: document.getElementById('colorAccent').value,
+                success: document.getElementById('colorSuccess').value,
+                danger: document.getElementById('colorDanger').value,
+                warning: document.getElementById('colorWarning').value,
+                bgPrimary: document.getElementById('bgPrimary').value,
+                bgCard: document.getElementById('bgCard').value
+            };
+            
+            // Aplicar colores a la vista previa
+            container.style.backgroundColor = colors.bgPrimary;
+            
+            const primaryElement = container.querySelector('.preview-primary');
+            if (primaryElement) primaryElement.style.color = colors.primary;
+            
+            const cardElement = container.querySelector('.preview-card');
+            if (cardElement) {
+                cardElement.style.backgroundColor = colors.bgCard;
+                cardElement.style.border = `1px solid ${colors.secondary}40`;
+            }
+            
+            // Actualizar botones
+            const btnPrimary = container.querySelector('.preview-btn-primary');
+            if (btnPrimary) {
+                btnPrimary.style.backgroundColor = colors.primary;
+                btnPrimary.style.borderColor = colors.primary;
+            }
+            
+            const btnSecondary = container.querySelector('.preview-btn-secondary');
+            if (btnSecondary) {
+                btnSecondary.style.backgroundColor = colors.secondary;
+                btnSecondary.style.borderColor = colors.secondary;
+            }
+            
+            // Actualizar badges
+            const badges = {
+                '.preview-badge-success': colors.success,
+                '.preview-badge-danger': colors.danger,
+                '.preview-badge-warning': colors.warning
+            };
+            
+            Object.keys(badges).forEach(selector => {
+                const badge = container.querySelector(selector);
+                if (badge) {
+                    badge.style.backgroundColor = badges[selector];
+                }
+            });
+        }
+        
+        // Vista previa en tiempo real
+        function previewColors() {
+            // Aplicar temporalmente los colores al documento
+            const root = document.documentElement;
+            
+            root.style.setProperty('--primary-color', document.getElementById('colorPrimary').value);
+            root.style.setProperty('--secondary-color', document.getElementById('colorSecondary').value);
+            root.style.setProperty('--accent-color', document.getElementById('colorAccent').value);
+            root.style.setProperty('--success-color', document.getElementById('colorSuccess').value);
+            root.style.setProperty('--danger-color', document.getElementById('colorDanger').value);
+            root.style.setProperty('--warning-color', document.getElementById('colorWarning').value);
+            root.style.setProperty('--bg-primary', document.getElementById('bgPrimary').value);
+            root.style.setProperty('--bg-card', document.getElementById('bgCard').value);
+            
+            Swal.fire({
+                icon: 'info',
+                title: 'Vista previa activa',
+                text: 'Los colores se han aplicado temporalmente',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+        
+        // Guardar colores en la base de datos
+        async function saveColors() {
+            const colors = {
+                primary: document.getElementById('colorPrimary').value,
+                secondary: document.getElementById('colorSecondary').value,
+                accent: document.getElementById('colorAccent').value,
+                success: document.getElementById('colorSuccess').value,
+                danger: document.getElementById('colorDanger').value,
+                warning: document.getElementById('colorWarning').value,
+                bg_primary: document.getElementById('bgPrimary').value,
+                bg_card: document.getElementById('bgCard').value
+            };
+            
+            try {
+                const response = await fetch('/api/superadmin/theme-colors', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(colors)
+                });
+                
+                if (response.ok) {
+                    // Aplicar colores permanentemente
+                    Object.keys(colors).forEach(key => {
+                        const cssVar = '--' + key.replace('_', '-') + '-color';
+                        document.documentElement.style.setProperty(cssVar, colors[key]);
+                    });
+                    
+                    // Guardar en localStorage para persistencia
+                    localStorage.setItem('customThemeColors', JSON.stringify(colors));
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Colores guardados',
+                        text: 'Los colores se han guardado correctamente',
+                        confirmButtonText: 'Excelente'
+                    });
+                } else {
+                    throw new Error('Error al guardar colores');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudieron guardar los colores'
+                });
+            }
+        }
+        
+        // Restablecer colores por defecto
+        function resetColors() {
+            applyTheme('neutral');
+            
+            // Remover colores personalizados del localStorage
+            localStorage.removeItem('customThemeColors');
+            
+            // Restablecer variables CSS
+            const root = document.documentElement;
+            root.style.removeProperty('--primary-color');
+            root.style.removeProperty('--secondary-color');
+            root.style.removeProperty('--accent-color');
+            root.style.removeProperty('--success-color');
+            root.style.removeProperty('--danger-color');
+            root.style.removeProperty('--warning-color');
+            root.style.removeProperty('--bg-primary');
+            root.style.removeProperty('--bg-card');
+        }
+        
+        // Cargar colores guardados al iniciar
+        function loadSavedColors() {
+            const savedColors = localStorage.getItem('customThemeColors');
+            if (savedColors) {
+                const colors = JSON.parse(savedColors);
+                Object.keys(colors).forEach(key => {
+                    const inputId = key.replace('_', '').replace('bg', 'bg');
+                    const colorInput = document.getElementById(inputId === 'bgprimary' ? 'bgPrimary' : 
+                                                              inputId === 'bgcard' ? 'bgCard' : 
+                                                              'color' + inputId.charAt(0).toUpperCase() + inputId.slice(1));
+                    const hexInput = document.getElementById(colorInput ? colorInput.id + 'Hex' : null);
+                    
+                    if (colorInput && hexInput) {
+                        colorInput.value = colors[key];
+                        hexInput.value = colors[key];
+                    }
+                    
+                    // Aplicar al documento
+                    const cssVar = '--' + key.replace('_', '-') + '-color';
+                    document.documentElement.style.setProperty(cssVar, colors[key]);
+                });
+                updatePreview();
+            }
+        }
+        
+        // Cargar colores al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                loadSavedColors();
+                updatePreview();
+                initThemePanel();
+            }, 100);
+            
+            // Configurar evento para el input de foto
+            document.getElementById('fotoUsuario').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.type.startsWith('image/')) {
+                        // Mostrar modal de recorte
+                        mostrarModalRecorte(file);
+                    } else {
+                        Swal.fire('Error', 'Por favor selecciona un archivo de imagen válido', 'error');
+                        e.target.value = '';
+                    }
+                }
+            });
+        });
+        
+        // ========== NUEVO PANEL DE TEMAS ==========
+        
+        // Inicializar panel de temas
+        function initThemePanel() {
+            // Sincronizar inputs de color con inputs de texto
+            const colorInputs = document.querySelectorAll('input[type="color"]');
+            colorInputs.forEach(input => {
+                const textInput = document.getElementById(input.id + 'Text') || 
+                                 document.getElementById(input.id + 'Input');
+                if (textInput) {
+                    // Sincronizar color -> texto
+                    input.addEventListener('input', (e) => {
+                        textInput.value = e.target.value;
+                        updatePreview();
+                    });
+                    
+                    // Sincronizar texto -> color
+                    textInput.addEventListener('input', (e) => {
+                        if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                            input.value = e.target.value;
+                            updatePreview();
+                        }
+                    });
+                }
+            });
+            
+            loadCurrentTheme();
+        }
+        
+        // Cargar tema actual
+        function loadCurrentTheme() {
+            const root = getComputedStyle(document.documentElement);
+            
+            // Cargar colores actuales
+            document.getElementById('navbarBg').value = rgbToHex(root.getPropertyValue('--navbar-bg')) || '#212529';
+            document.getElementById('navbarBgText').value = document.getElementById('navbarBg').value;
+            
+            document.getElementById('navbarText').value = rgbToHex(root.getPropertyValue('--navbar-text')) || '#ffffff';
+            document.getElementById('navbarTextInput').value = document.getElementById('navbarText').value;
+            
+            document.getElementById('bgPrimary').value = rgbToHex(root.getPropertyValue('--bg-primary')) || '#f8f9fa';
+            document.getElementById('bgPrimaryText').value = document.getElementById('bgPrimary').value;
+            
+            document.getElementById('bgCard').value = rgbToHex(root.getPropertyValue('--bg-card')) || '#ffffff';
+            document.getElementById('bgCardText').value = document.getElementById('bgCard').value;
+            
+            document.getElementById('colorPrimary').value = rgbToHex(root.getPropertyValue('--color-primary')) || '#007bff';
+            document.getElementById('colorPrimaryText').value = document.getElementById('colorPrimary').value;
+            
+            document.getElementById('colorSuccess').value = rgbToHex(root.getPropertyValue('--color-success')) || '#28a745';
+            document.getElementById('colorSuccessText').value = document.getElementById('colorSuccess').value;
+            
+            document.getElementById('colorDanger').value = rgbToHex(root.getPropertyValue('--color-danger')) || '#dc3545';
+            document.getElementById('colorDangerText').value = document.getElementById('colorDanger').value;
+            
+            document.getElementById('colorWarning').value = rgbToHex(root.getPropertyValue('--color-warning')) || '#ffc107';
+            document.getElementById('colorWarningText').value = document.getElementById('colorWarning').value;
+            
+            document.getElementById('cardHeaderBg').value = rgbToHex(root.getPropertyValue('--card-header-bg')) || '#e9ecef';
+            document.getElementById('cardHeaderBgText').value = document.getElementById('cardHeaderBg').value;
+            
+            document.getElementById('cardHeaderText').value = rgbToHex(root.getPropertyValue('--card-header-text')) || '#495057';
+            document.getElementById('cardHeaderTextInput').value = document.getElementById('cardHeaderText').value;
+            
+            document.getElementById('textPrimary').value = rgbToHex(root.getPropertyValue('--text-primary')) || '#212529';
+            document.getElementById('textPrimaryInput').value = document.getElementById('textPrimary').value;
+            
+            document.getElementById('textSecondary').value = rgbToHex(root.getPropertyValue('--text-secondary')) || '#6c757d';
+            document.getElementById('textSecondaryInput').value = document.getElementById('textSecondary').value;
+            
+            updatePreview();
+        }
+        
+        // Convertir RGB a Hex
+        function rgbToHex(rgb) {
+            if (!rgb || rgb.trim() === '') return null;
+            if (rgb.startsWith('#')) return rgb;
+            
+            const result = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(rgb.trim());
+            if (!result) return null;
+            
+            return "#" + ((1 << 24) + (parseInt(result[1]) << 16) + (parseInt(result[2]) << 8) + parseInt(result[3])).toString(16).slice(1);
+        }
+        
+        // Actualizar vista previa
+        function updatePreview() {
+            const preview = {
+                navbar: document.getElementById('previewNavbar'),
+                card: document.getElementById('previewCard'),
+                cardHeader: document.getElementById('previewCardHeader'),
+                text: document.getElementById('previewText'),
+                btnPrimary: document.getElementById('previewBtnPrimary'),
+                btnSuccess: document.getElementById('previewBtnSuccess'),
+                btnDanger: document.getElementById('previewBtnDanger')
+            };
+            
+            if (preview.navbar) {
+                preview.navbar.style.backgroundColor = document.getElementById('navbarBg').value;
+                preview.navbar.style.color = document.getElementById('navbarText').value;
+            }
+            
+            if (preview.card) {
+                preview.card.style.backgroundColor = document.getElementById('bgCard').value;
+            }
+            
+            if (preview.cardHeader) {
+                preview.cardHeader.style.backgroundColor = document.getElementById('cardHeaderBg').value;
+                preview.cardHeader.style.color = document.getElementById('cardHeaderText').value;
+            }
+            
+            if (preview.text) {
+                preview.text.style.color = document.getElementById('textPrimary').value;
+            }
+            
+            if (preview.btnPrimary) {
+                preview.btnPrimary.style.backgroundColor = document.getElementById('colorPrimary').value;
+            }
+            
+            if (preview.btnSuccess) {
+                preview.btnSuccess.style.backgroundColor = document.getElementById('colorSuccess').value;
+            }
+            
+            if (preview.btnDanger) {
+                preview.btnDanger.style.backgroundColor = document.getElementById('colorDanger').value;
+            }
+        }
+        
+        // Aplicar tema predefinido
+        async function applyPresetTheme(themeName) {
+            // Guardar el tema seleccionado en la base de datos
+            try {
+                const response = await fetch('/api/superadmin/save-theme-preset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ theme_preset: themeName })
+                });
+                
+                if (response.ok) {
+                    console.log('Tema guardado en la base de datos:', themeName);
+                    // Notificar a otras pestañas que recarguen el tema
+                    localStorage.setItem('system-theme-reload', Date.now().toString());
+                }
+            } catch (error) {
+                console.error('Error guardando tema:', error);
+            }
+            
+            const themes = {
+                'standard': {
+                    navbarBg: '#212529',     // Navbar oscuro actual
+                    navbarText: '#ffffff',    // Texto blanco
+                    bgPrimary: '#f8f9fa',    // Fondo gris muy claro
+                    bgCard: '#ffffff',       // Cards blancas
+                    colorPrimary: '#007bff', // Azul estándar Bootstrap
+                    colorSuccess: '#28a745', // Verde estándar
+                    colorDanger: '#dc3545',  // Rojo estándar
+                    colorWarning: '#ffc107', // Amarillo estándar
+                    cardHeaderBg: '#e9ecef', // Headers gris claro
+                    cardHeaderText: '#495057', // Texto gris oscuro
+                    textPrimary: '#212529',   // Texto negro
+                    textSecondary: '#6c757d'  // Texto gris
+                },
+                'default': {
+                    navbarBg: '#495057',      // Navbar gris medio (tema anterior)
+                    navbarText: '#ffffff',
+                    bgPrimary: '#f8f9fa',
+                    bgCard: '#ffffff',
+                    colorPrimary: '#007bff',
+                    colorSuccess: '#28a745',
+                    colorDanger: '#dc3545',
+                    colorWarning: '#ffc107',
+                    cardHeaderBg: '#e9ecef',
+                    cardHeaderText: '#495057',
+                    textPrimary: '#212529',
+                    textSecondary: '#6c757d'
+                },
+                'dark': {
+                    navbarBg: '#1a1a1a',
+                    navbarText: '#ffffff',
+                    bgPrimary: '#121212',
+                    bgCard: '#2a2a2a',
+                    colorPrimary: '#4a9eff',
+                    colorSuccess: '#4caf50',
+                    colorDanger: '#f44336',
+                    colorWarning: '#ffb300',
+                    cardHeaderBg: '#2a2a2a',
+                    cardHeaderText: '#e4e4e4',
+                    textPrimary: '#e4e4e4',
+                    textSecondary: '#b0b0b0'
+                },
+                'apple': {
+                    navbarBg: '#f5f5f7',  // Gris claro característico de Apple
+                    navbarText: '#1d1d1f',  // Texto oscuro en navbar claro
+                    bgPrimary: '#ffffff',   // Fondo blanco puro
+                    bgCard: '#f5f5f7',      // Cards en gris muy claro
+                    colorPrimary: '#0071e3', // Azul característico de Apple
+                    colorSuccess: '#34c759', // Verde de iOS
+                    colorDanger: '#ff3b30',  // Rojo de iOS
+                    colorWarning: '#ff9500', // Naranja de iOS
+                    cardHeaderBg: '#ffffff', // Headers blancos
+                    cardHeaderText: '#1d1d1f', // Texto negro suave
+                    textPrimary: '#1d1d1f',   // Negro suave de Apple
+                    textSecondary: '#86868b'  // Gris texto secundario de Apple
+                },
+                'windows11': {
+                    navbarBg: '#f3f3f3',    // Gris claro de Windows 11
+                    navbarText: '#242424',   // Texto oscuro
+                    bgPrimary: '#fafafa',    // Fondo muy claro
+                    bgCard: '#ffffff',       // Cards blancas con sombras suaves
+                    colorPrimary: '#0078d4', // Azul de Windows 11
+                    colorSuccess: '#107c10', // Verde de Windows
+                    colorDanger: '#d13438',  // Rojo de Windows
+                    colorWarning: '#ffb900', // Amarillo de Windows
+                    cardHeaderBg: '#f3f3f3', // Headers en gris claro
+                    cardHeaderText: '#242424', // Texto oscuro
+                    textPrimary: '#242424',   // Texto principal oscuro
+                    textSecondary: '#5c5c5c' // Texto secundario gris
+                },
+                'blue': {
+                    navbarBg: '#004085',
+                    navbarText: '#ffffff',
+                    bgPrimary: '#e7f3ff',
+                    bgCard: '#ffffff',
+                    colorPrimary: '#004085',
+                    colorSuccess: '#155724',
+                    colorDanger: '#721c24',
+                    colorWarning: '#856404',
+                    cardHeaderBg: '#cce5ff',
+                    cardHeaderText: '#004085',
+                    textPrimary: '#004085',
+                    textSecondary: '#5a6c7d'
+                },
+                'green': {
+                    navbarBg: '#155724',
+                    navbarText: '#ffffff',
+                    bgPrimary: '#e8f5e9',
+                    bgCard: '#ffffff',
+                    colorPrimary: '#2e7d32',
+                    colorSuccess: '#155724',
+                    colorDanger: '#c62828',
+                    colorWarning: '#f57c00',
+                    cardHeaderBg: '#c3e6cb',
+                    cardHeaderText: '#155724',
+                    textPrimary: '#1b5e20',
+                    textSecondary: '#558b2f'
+                },
+                'red': {
+                    navbarBg: '#721c24',
+                    navbarText: '#ffffff',
+                    bgPrimary: '#fff5f5',
+                    bgCard: '#ffffff',
+                    colorPrimary: '#dc3545',
+                    colorSuccess: '#28a745',
+                    colorDanger: '#721c24',
+                    colorWarning: '#ff9800',
+                    cardHeaderBg: '#f8d7da',
+                    cardHeaderText: '#721c24',
+                    textPrimary: '#721c24',
+                    textSecondary: '#c62828'
+                }
+            };
+            
+            const theme = themes[themeName];
+            if (theme) {
+                Object.keys(theme).forEach(key => {
+                    const input = document.getElementById(key);
+                    const textInput = document.getElementById(key + 'Text') || 
+                                     document.getElementById(key + 'Input');
+                    if (input) {
+                        input.value = theme[key];
+                        if (textInput) textInput.value = theme[key];
+                    }
+                });
+                updatePreview();
+                applyTheme();
+                
+                // Aplicar estilos adicionales según el tema
+                applyThemeStyles(themeName);
+            }
+        }
+        
+        // Aplicar estilos específicos del tema
+        function applyThemeStyles(themeName) {
+            // Remover clases de tema anteriores
+            document.body.classList.remove('theme-standard', 'theme-apple', 'theme-windows11');
+            
+            if (themeName === 'standard') {
+                document.body.classList.add('theme-standard');
+                // Agregar estilos estándar del sistema
+                addStandardStyles();
+            } else if (themeName === 'apple') {
+                document.body.classList.add('theme-apple');
+                // Agregar estilos de Apple dinámicamente
+                addAppleStyles();
+            } else if (themeName === 'windows11') {
+                document.body.classList.add('theme-windows11');
+                // Agregar estilos de Windows 11 dinámicamente
+                addWindows11Styles();
+            } else {
+                // Para otros temas, limpiar estilos dinámicos
+                removeDynamicStyles();
+            }
+        }
+        
+        // Agregar estilos del tema Standard (actual)
+        function addStandardStyles() {
+            let styleTag = document.getElementById('dynamic-theme-styles');
+            if (!styleTag) {
+                styleTag = document.createElement('style');
+                styleTag.id = 'dynamic-theme-styles';
+                document.head.appendChild(styleTag);
+            }
+            
+            styleTag.innerHTML = `
+                /* Tema Standard - Estilo base del sistema */
+                .theme-standard .btn {
+                    border-radius: 6px;
+                    font-weight: 500;
+                    padding: 0.625rem 1.25rem;
+                    transition: all 0.3s ease;
+                    border: none;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                }
+                
+                .theme-standard .btn:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+                }
+                
+                .theme-standard .btn-primary {
+                    background-color: #007bff;
+                }
+                
+                .theme-standard .btn-primary:hover {
+                    background-color: #0056b3;
+                }
+                
+                .theme-standard .card {
+                    border-radius: 8px;
+                    border: 1px solid #dee2e6;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                    transition: all 0.3s ease;
+                }
+                
+                .theme-standard .card:hover {
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+                }
+                
+                .theme-standard .form-control {
+                    border-radius: 6px;
+                    border: 1px solid #dee2e6;
+                    padding: 0.625rem 0.875rem;
+                    font-size: 0.875rem;
+                    transition: all 0.15s ease;
+                }
+                
+                .theme-standard .form-control:focus {
+                    border-color: #007bff;
+                    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+                }
+                
+                .theme-standard .navbar {
+                    background-color: #212529 !important;
+                    border-bottom: 2px solid #343a40;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+                }
+                
+                .theme-standard .badge {
+                    border-radius: 4px;
+                    padding: 0.25rem 0.625rem;
+                    font-weight: 600;
+                }
+                
+                .theme-standard .nav-tabs {
+                    border-bottom: 2px solid #dee2e6;
+                }
+                
+                .theme-standard .nav-tabs .nav-link {
+                    border: 1px solid transparent;
+                    border-radius: 6px 6px 0 0;
+                    color: #6c757d;
+                    font-weight: 500;
+                    padding: 0.5rem 1rem;
+                }
+                
+                .theme-standard .nav-tabs .nav-link:hover {
+                    border-color: #e9ecef #e9ecef #dee2e6;
+                    background-color: #f8f9fa;
+                }
+                
+                .theme-standard .nav-tabs .nav-link.active {
+                    background-color: #ffffff;
+                    border-color: #dee2e6 #dee2e6 #ffffff;
+                    color: #495057;
+                }
+                
+                .theme-standard .table {
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                }
+                
+                .theme-standard .table thead {
+                    background-color: #f3f4f6;
+                }
+                
+                .theme-standard .dropdown-menu {
+                    border-radius: 6px;
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+                    border: 1px solid #dee2e6;
+                }
+                
+                .theme-standard select {
+                    appearance: none;
+                    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+                    background-repeat: no-repeat;
+                    background-position: right 8px center;
+                    background-size: 18px;
+                    padding-right: 35px;
+                }
+            `;
+        }
+        
+        // Remover estilos dinámicos
+        function removeDynamicStyles() {
+            const styleTag = document.getElementById('dynamic-theme-styles');
+            if (styleTag) {
+                styleTag.innerHTML = '';
+            }
+        }
+        
+        // Agregar estilos característicos de Apple
+        function addAppleStyles() {
+            let styleTag = document.getElementById('dynamic-theme-styles');
+            if (!styleTag) {
+                styleTag = document.createElement('style');
+                styleTag.id = 'dynamic-theme-styles';
+                document.head.appendChild(styleTag);
+            }
+            
+            styleTag.innerHTML = `
+                .theme-apple .btn {
+                    border-radius: 20px !important;
+                    font-weight: 500;
+                    padding: 8px 20px;
+                    transition: all 0.2s ease;
+                    border: none;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+                }
+                
+                .theme-apple .btn:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                }
+                
+                .theme-apple .btn-primary {
+                    background: linear-gradient(180deg, #0071e3 0%, #0066d6 100%);
+                }
+                
+                .theme-apple .card {
+                    border-radius: 12px !important;
+                    border: none;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+                    backdrop-filter: blur(20px);
+                }
+                
+                .theme-apple .form-control {
+                    border-radius: 8px !important;
+                    border: 1px solid #d1d1d6;
+                    padding: 10px 12px;
+                    font-size: 16px;
+                    transition: all 0.2s;
+                }
+                
+                .theme-apple .form-control:focus {
+                    border-color: #0071e3;
+                    box-shadow: 0 0 0 3px rgba(0,113,227,0.1);
+                }
+                
+                .theme-apple .navbar {
+                    backdrop-filter: blur(20px);
+                    background: rgba(245,245,247,0.8) !important;
+                    border-bottom: 1px solid rgba(0,0,0,0.1);
+                }
+                
+                .theme-apple .badge {
+                    border-radius: 10px;
+                    padding: 4px 10px;
+                    font-weight: 500;
+                }
+                
+                .theme-apple select {
+                    appearance: none;
+                    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+                    background-repeat: no-repeat;
+                    background-position: right 10px center;
+                    background-size: 20px;
+                    padding-right: 40px;
+                }
+                
+                .theme-apple .nav-tabs .nav-link {
+                    border-radius: 8px 8px 0 0;
+                    border: none;
+                    color: #86868b;
+                    font-weight: 500;
+                }
+                
+                .theme-apple .nav-tabs .nav-link.active {
+                    background: #ffffff;
+                    color: #1d1d1f;
+                    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+                }
+            `;
+        }
+        
+        // Agregar estilos característicos de Windows 11
+        function addWindows11Styles() {
+            let styleTag = document.getElementById('dynamic-theme-styles');
+            if (!styleTag) {
+                styleTag = document.createElement('style');
+                styleTag.id = 'dynamic-theme-styles';
+                document.head.appendChild(styleTag);
+            }
+            
+            styleTag.innerHTML = `
+                .theme-windows11 .btn {
+                    border-radius: 4px !important;
+                    font-weight: 400;
+                    padding: 6px 16px;
+                    transition: all 0.1s ease;
+                    border: 1px solid transparent;
+                }
+                
+                .theme-windows11 .btn:hover {
+                    background-color: rgba(0,0,0,0.05);
+                }
+                
+                .theme-windows11 .btn:active {
+                    background-color: rgba(0,0,0,0.08);
+                }
+                
+                .theme-windows11 .btn-primary {
+                    background: #0078d4;
+                    border-color: #0078d4;
+                }
+                
+                .theme-windows11 .btn-primary:hover {
+                    background: #106ebe;
+                    border-color: #106ebe;
+                }
+                
+                .theme-windows11 .card {
+                    border-radius: 8px !important;
+                    border: 1px solid #e5e5e5;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+                }
+                
+                .theme-windows11 .card:hover {
+                    box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+                }
+                
+                .theme-windows11 .form-control {
+                    border-radius: 4px !important;
+                    border: 1px solid #e5e5e5;
+                    border-bottom: 2px solid #0078d4;
+                    padding: 8px 12px;
+                    transition: all 0.1s;
+                }
+                
+                .theme-windows11 .form-control:focus {
+                    border-color: #0078d4;
+                    border-bottom-width: 2px;
+                    box-shadow: none;
+                }
+                
+                .theme-windows11 .navbar {
+                    background: #f3f3f3 !important;
+                    border-bottom: none;
+                    box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+                }
+                
+                .theme-windows11 .badge {
+                    border-radius: 2px;
+                    padding: 2px 8px;
+                    font-weight: 400;
+                    text-transform: uppercase;
+                    font-size: 11px;
+                }
+                
+                .theme-windows11 select {
+                    appearance: none;
+                    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23242424' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+                    background-repeat: no-repeat;
+                    background-position: right 8px center;
+                    background-size: 16px;
+                    padding-right: 32px;
+                }
+                
+                .theme-windows11 .nav-tabs {
+                    border-bottom: none;
+                }
+                
+                .theme-windows11 .nav-tabs .nav-link {
+                    border: none;
+                    border-bottom: 2px solid transparent;
+                    border-radius: 0;
+                    color: #5c5c5c;
+                    padding: 8px 16px;
+                    margin-right: 8px;
+                }
+                
+                .theme-windows11 .nav-tabs .nav-link:hover {
+                    border-bottom-color: #e5e5e5;
+                    background: rgba(0,0,0,0.02);
+                }
+                
+                .theme-windows11 .nav-tabs .nav-link.active {
+                    background: transparent;
+                    color: #242424;
+                    border-bottom-color: #0078d4;
+                }
+                
+                .theme-windows11 .table {
+                    border: 1px solid #e5e5e5;
+                }
+                
+                .theme-windows11 .table thead {
+                    background: #fafafa;
+                    border-bottom: 2px solid #e5e5e5;
+                }
+                
+                .theme-windows11 .dropdown-menu {
+                    border-radius: 4px;
+                    box-shadow: 0 8px 16px rgba(0,0,0,0.14);
+                    border: 1px solid #e5e5e5;
+                }
+            `;
+        }
+        
+        // Aplicar tema al sistema
+        function applyTheme() {
+            const theme = {
+                '--navbar-bg': document.getElementById('navbarBg').value,
+                '--navbar-text': document.getElementById('navbarText').value,
+                '--bg-primary': document.getElementById('bgPrimary').value,
+                '--bg-card': document.getElementById('bgCard').value,
+                '--color-primary': document.getElementById('colorPrimary').value,
+                '--color-success': document.getElementById('colorSuccess').value,
+                '--color-danger': document.getElementById('colorDanger').value,
+                '--color-warning': document.getElementById('colorWarning').value,
+                '--card-header-bg': document.getElementById('cardHeaderBg').value,
+                '--card-header-text': document.getElementById('cardHeaderText').value,
+                '--text-primary': document.getElementById('textPrimary').value,
+                '--text-secondary': document.getElementById('textSecondary').value
+            };
+            
+            // Aplicar al documento actual
+            Object.keys(theme).forEach(property => {
+                document.documentElement.style.setProperty(property, theme[property]);
+            });
+            
+            // Guardar en localStorage temporalmente
+            localStorage.setItem('tempTheme', JSON.stringify(theme));
+            
+            // Notificar a otras pestañas que recarguen el tema
+            localStorage.setItem('system-theme-reload', Date.now().toString());
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Tema aplicado',
+                text: 'Los cambios se han aplicado temporalmente',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+        
+        // Guardar tema permanentemente
+        async function saveTheme() {
+            const theme = {
+                navbar_bg: document.getElementById('navbarBg').value,
+                navbar_text: document.getElementById('navbarText').value,
+                bg_primary: document.getElementById('bgPrimary').value,
+                bg_card: document.getElementById('bgCard').value,
+                color_primary: document.getElementById('colorPrimary').value,
+                color_success: document.getElementById('colorSuccess').value,
+                color_danger: document.getElementById('colorDanger').value,
+                color_warning: document.getElementById('colorWarning').value,
+                card_header_bg: document.getElementById('cardHeaderBg').value,
+                card_header_text: document.getElementById('cardHeaderText').value,
+                text_primary: document.getElementById('textPrimary').value,
+                text_secondary: document.getElementById('textSecondary').value
+            };
+            
+            try {
+                const response = await fetch('/api/superadmin/save-theme', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(theme)
+                });
+                
+                if (response.ok) {
+                    localStorage.setItem('customTheme', JSON.stringify(theme));
+                    applyTheme();
+                    
+                    // Notificar a otras pestañas que recarguen el tema
+                    localStorage.setItem('system-theme-reload', Date.now().toString());
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Tema guardado',
+                        text: 'El tema se ha guardado permanentemente y se aplicará a todos los paneles'
+                    });
+                } else {
+                    throw new Error('Error al guardar tema');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // Guardar localmente aunque falle el servidor
+                localStorage.setItem('customTheme', JSON.stringify(theme));
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Guardado local',
+                    text: 'El tema se ha guardado localmente'
+                });
+            }
+        }
+        
+        // Exportar tema
+        function exportTheme() {
+            const theme = {
+                navbar_bg: document.getElementById('navbarBg').value,
+                navbar_text: document.getElementById('navbarText').value,
+                bg_primary: document.getElementById('bgPrimary').value,
+                bg_card: document.getElementById('bgCard').value,
+                color_primary: document.getElementById('colorPrimary').value,
+                color_success: document.getElementById('colorSuccess').value,
+                color_danger: document.getElementById('colorDanger').value,
+                color_warning: document.getElementById('colorWarning').value,
+                card_header_bg: document.getElementById('cardHeaderBg').value,
+                card_header_text: document.getElementById('cardHeaderText').value,
+                text_primary: document.getElementById('textPrimary').value,
+                text_secondary: document.getElementById('textSecondary').value
+            };
+            
+            const dataStr = JSON.stringify(theme, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = 'tema-congreso.json';
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+        
+        // Importar tema
+        function importTheme() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = event => {
+                    try {
+                        const theme = JSON.parse(event.target.result);
+                        
+                        // Aplicar tema importado
+                        Object.keys(theme).forEach(key => {
+                            const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+                            const input = document.getElementById(camelKey);
+                            const textInput = document.getElementById(camelKey + 'Text') || 
+                                            document.getElementById(camelKey + 'Input');
+                            if (input) {
+                                input.value = theme[key];
+                                if (textInput) textInput.value = theme[key];
+                            }
+                        });
+                        
+                        updatePreview();
+                        applyTheme();
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Tema importado',
+                            text: 'El tema se ha importado correctamente'
+                        });
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'El archivo no es un tema válido'
+                        });
+                    }
+                };
+                
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+        
+        // Restablecer color individual
+        function resetColor(colorId) {
+            const defaults = {
+                navbarBg: '#212529',
+                navbarText: '#ffffff',
+                bgPrimary: '#f8f9fa',
+                bgCard: '#ffffff',
+                colorPrimary: '#007bff',
+                colorSuccess: '#28a745',
+                colorDanger: '#dc3545',
+                colorWarning: '#ffc107',
+                cardHeaderBg: '#e9ecef',
+                cardHeaderText: '#495057',
+                textPrimary: '#212529',
+                textSecondary: '#6c757d'
+            };
+            
+            const input = document.getElementById(colorId);
+            const textInput = document.getElementById(colorId + 'Text') || 
+                             document.getElementById(colorId + 'Input');
+            
+            if (input && defaults[colorId]) {
+                input.value = defaults[colorId];
+                if (textInput) textInput.value = defaults[colorId];
+                updatePreview();
+            }
+        }
+        
+        // Restablecer todos los colores
+        function resetAllColors() {
+            Swal.fire({
+                title: '¿Restablecer todos los colores?',
+                text: 'Esto restaurará todos los colores a sus valores predeterminados',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, restablecer',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    applyPresetTheme('default');
+                    localStorage.removeItem('customTheme');
+                    localStorage.removeItem('tempTheme');
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Colores restablecidos',
+                        text: 'Se han restaurado los colores predeterminados'
+                    });
+                }
+            });
+        }
+        
+        // Función para copiar al portapapeles
+        function copyToClipboard(text) {
+            if (!text) {
+                Swal.fire('Error', 'No hay contraseña para copiar', 'error');
+                return;
+            }
+            
+            navigator.clipboard.writeText(text).then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Copiado',
+                    text: 'Contraseña copiada al portapapeles',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }).catch(err => {
+                console.error('Error copiando:', err);
+                Swal.fire('Error', 'No se pudo copiar la contraseña', 'error');
+            });
+        }
+        
+    </script>
+    <script src="/js/theme-switcher.js"></script>
+</body>
+</html>

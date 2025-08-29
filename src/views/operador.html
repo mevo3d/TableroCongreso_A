@@ -1028,8 +1028,8 @@
             alertDiv.style.minWidth = '400px';
             alertDiv.innerHTML = `
                 <h5 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> ¡Atención!</h5>
-                <p><strong>${data.mensaje}</strong></p>
-                ${data.aviso_operador ? '<p class="mb-0">Por favor, cargue las iniciativas lo antes posible.</p>' : ''}
+                <p><strong>${data.mensaje || 'El Presidente de la Mesa Directiva acaba de iniciar la sesión'}</strong></p>
+                <p class="mb-0">Atento con las iniciativas y dictámenes.</p>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             document.body.appendChild(alertDiv);

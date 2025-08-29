@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Sesiones - Sistema de Votación</title>
+    <link rel="stylesheet" href="/css/global-theme.css">
+    <style>
+        .historial-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .logos {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .logo {
+            height: 80px;
+            object-fit: contain;
+        }
+
+        .titulo {
+            flex: 1;
+            text-align: center;
+        }
+
+        .titulo h1 {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 2em;
+        }
+
+        .titulo p {
+            color: #666;
+            margin: 5px 0 0 0;
+        }
+
+        .filtros-section {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 20px;
+        }
+
+        .filtros-grid {
+            display: grid;
+            grid-template-columns: 1fr 200px 200px 150px;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 14px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-buscar {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn-buscar:hover {
+            background: var(--primary-hover);
+        }
+
+        .estadisticas-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+        }
+
+        .stat-card .numero {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stat-card .label {
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .tabla-section {
+            background: var(--bg-card);
+            border-radius: 10px;
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .tabla-header {
+            padding: 15px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tabla-titulo {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .btn-exportar {
+            padding: 8px 15px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-exportar:hover {
+            background: #218838;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--bg-tertiary);
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        tbody tr:hover {
+            background: var(--bg-hover);
+        }
+
+        .codigo-sesion {
+            font-family: monospace;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .estado-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .estado-preparada {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .estado-activa {
+            background: #cff4fc;
+            color: #055160;
+        }
+
+        .estado-clausurada {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .estado-cancelada {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .tipo-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .acciones {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-accion {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .btn-ver {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-ver:hover {
+            background: #138496;
+        }
+
+        .btn-reporte {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-reporte:hover {
+            background: #5a6268;
+        }
+
+        .paginacion {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            background: var(--bg-tertiary);
+        }
+
+        .paginacion button {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+            color: var(--text-primary);
+        }
+
+        .paginacion button:hover:not(:disabled) {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .paginacion button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .paginacion .info {
+            color: var(--text-secondary);
+        }
+
+        .sin-resultados {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .filtros-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-section {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .logos {
+                order: -1;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+
+            .acciones {
+                flex-direction: column;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/css/global-background.css">
+</head>
+<body>
+    <div class="historial-container">
+        <!-- Header con logos -->
+        <div class="header-section">
+            <div class="logos">
+                <img src="/uploads/logo-congreso.png" alt="Logo Congreso" class="logo" id="logoCongreso">
+            </div>
+            <div class="titulo">
+                <h1>Historial de Sesiones Legislativas</h1>
+                <p id="userInfo"></p>
+            </div>
+            <div class="logos">
+                <img src="/uploads/logo-legislatura.png" alt="Logo Legislatura" class="logo" id="logoLegislatura">
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filtros-section">
+            <div class="filtros-grid">
+                <div class="form-group">
+                    <label for="busqueda">Buscar por código o nombre:</label>
+                    <input type="text" id="busqueda" placeholder="Ej: SES-2025-01 o Sesión Ordinaria">
+                </div>
+                <div class="form-group">
+                    <label for="filtroEstado">Estado:</label>
+                    <select id="filtroEstado">
+                        <option value="">Todos</option>
+                        <option value="preparada">Preparada</option>
+                        <option value="activa">Activa</option>
+                        <option value="clausurada">Clausurada</option>
+                        <option value="cancelada">Cancelada</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filtroTipo">Tipo:</label>
+                    <select id="filtroTipo">
+                        <option value="">Todos</option>
+                        <option value="ordinaria">Ordinaria</option>
+                        <option value="extraordinaria">Extraordinaria</option>
+                        <option value="solemne">Solemne</option>
+                    </select>
+                </div>
+                <button class="btn-buscar" onclick="buscarSesiones()">
+                    🔍 Buscar
+                </button>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="estadisticas-section">
+            <div class="stat-card">
+                <div class="numero" id="totalSesiones">0</div>
+                <div class="label">Total Sesiones</div>
+            </div>
+            <div class="stat-card">
+                <div class="numero" id="sesionesActivas">0</div>
+                <div class="label">Sesiones Activas</div>
+            </div>
+            <div class="stat-card">
+                <div class="numero" id="sesionesClausuradas">0</div>
+                <div class="label">Clausuradas</div>
+            </div>
+            <div class="stat-card">
+                <div class="numero" id="sesionesProgramadas">0</div>
+                <div class="label">Programadas</div>
+            </div>
+            <div class="stat-card">
+                <div class="numero" id="iniciativasTotales">0</div>
+                <div class="label">Total Iniciativas</div>
+            </div>
+        </div>
+
+        <!-- Tabla de sesiones -->
+        <div class="tabla-section">
+            <div class="tabla-header">
+                <div class="tabla-titulo">Listado de Sesiones</div>
+                <button class="btn-exportar" onclick="exportarExcel()">
+                    📊 Exportar Excel
+                </button>
+            </div>
+            <div id="tablaContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Cargando sesiones...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sesionesData = [];
+        let paginaActual = 0;
+        const limite = 20;
+        let totalRegistros = 0;
+        let user = null;
+
+        // Verificar autenticación
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                user = await response.json();
+                
+                // Verificar permisos (solo operador, secretario y superadmin)
+                if (!['operador', 'secretario', 'superadmin'].includes(user.role)) {
+                    alert('No tienes permisos para ver esta página');
+                    window.history.back();
+                    return;
+                }
+                
+                document.getElementById('userInfo').textContent = `${user.nombre_completo} - ${user.role === 'secretario' ? 'Secretario Legislativo' : user.role === 'operador' ? 'Operador' : 'Administrador'}`;
+                
+                // Cargar logos
+                cargarLogos();
+                
+                // Cargar sesiones iniciales
+                cargarSesiones();
+                
+                // Cargar estadísticas
+                cargarEstadisticas();
+                
+            } catch (error) {
+                console.error('Error verificando autenticación:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        // Cargar logos
+        async function cargarLogos() {
+            try {
+                const response = await fetch('/api/superadmin/configuracion', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const config = await response.json();
+                    if (config.logo_congreso) {
+                        document.getElementById('logoCongreso').src = config.logo_congreso;
+                    }
+                    if (config.logo_secundario) {
+                        document.getElementById('logoLegislatura').src = config.logo_secundario;
+                    }
+                }
+            } catch (error) {
+                console.error('Error cargando logos:', error);
+            }
+        }
+
+        // Cargar estadísticas generales
+        async function cargarEstadisticas() {
+            try {
+                const endpoint = user.role === 'secretario' ? '/api/secretario/historial-sesiones' : '/api/operador/historial-sesiones';
+                
+                const response = await fetch(`${endpoint}?limite=1000`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const sesiones = data.sesiones;
+                    
+                    // Calcular estadísticas
+                    document.getElementById('totalSesiones').textContent = sesiones.length;
+                    document.getElementById('sesionesActivas').textContent = sesiones.filter(s => s.estado === 'activa' || s.activa).length;
+                    document.getElementById('sesionesClausuradas').textContent = sesiones.filter(s => s.estado === 'clausurada' || s.fecha_clausura).length;
+                    document.getElementById('sesionesProgramadas').textContent = sesiones.filter(s => s.fecha_programada && new Date(s.fecha_programada) > new Date()).length;
+                    
+                    const totalIniciativas = sesiones.reduce((sum, s) => sum + (s.total_iniciativas || 0), 0);
+                    document.getElementById('iniciativasTotales').textContent = totalIniciativas;
+                }
+            } catch (error) {
+                console.error('Error cargando estadísticas:', error);
+            }
+        }
+
+        // Cargar sesiones con filtros
+        async function cargarSesiones() {
+            const busqueda = document.getElementById('busqueda').value;
+            const estado = document.getElementById('filtroEstado').value;
+            const offset = paginaActual * limite;
+            
+            const params = new URLSearchParams({
+                limite: limite,
+                offset: offset
+            });
+            
+            if (busqueda) params.append('busqueda', busqueda);
+            if (estado) params.append('estado', estado);
+            
+            try {
+                const endpoint = user.role === 'secretario' ? '/api/secretario/historial-sesiones' : '/api/operador/historial-sesiones';
+                
+                const response = await fetch(`${endpoint}?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    sesionesData = data.sesiones;
+                    totalRegistros = data.total;
+                    
+                    renderizarTabla();
+                }
+            } catch (error) {
+                console.error('Error cargando sesiones:', error);
+                document.getElementById('tablaContainer').innerHTML = '<div class="sin-resultados">Error al cargar las sesiones</div>';
+            }
+        }
+
+        // Renderizar tabla
+        function renderizarTabla() {
+            if (sesionesData.length === 0) {
+                document.getElementById('tablaContainer').innerHTML = '<div class="sin-resultados">No se encontraron sesiones</div>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Fecha Inicio</th>
+                            <th>Fecha Clausura</th>
+                            <th>Iniciativas</th>
+                            <th>Iniciado por</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            sesionesData.forEach(sesion => {
+                const fechaInicio = new Date(sesion.fecha).toLocaleString('es-MX');
+                const fechaClausura = sesion.fecha_clausura ? new Date(sesion.fecha_clausura).toLocaleString('es-MX') : '-';
+                const estado = sesion.activa ? 'activa' : (sesion.estado || 'preparada');
+                
+                html += `
+                    <tr>
+                        <td><span class="codigo-sesion">${sesion.codigo_sesion || `SES-${sesion.id}`}</span></td>
+                        <td>${sesion.nombre}</td>
+                        <td><span class="tipo-badge">${sesion.tipo_sesion || 'ordinaria'}</span></td>
+                        <td><span class="estado-badge estado-${estado}">${estado.toUpperCase()}</span></td>
+                        <td>${fechaInicio}</td>
+                        <td>${fechaClausura}</td>
+                        <td>
+                            <span title="Aprobadas: ${sesion.iniciativas_aprobadas || 0}, Rechazadas: ${sesion.iniciativas_rechazadas || 0}">
+                                ${sesion.total_iniciativas || 0}
+                            </span>
+                        </td>
+                        <td>${sesion.iniciada_por_nombre || '-'}</td>
+                        <td>
+                            <div class="acciones">
+                                <button class="btn-accion btn-ver" onclick="verDetalle(${sesion.id})">Ver</button>
+                                ${sesion.fecha_clausura ? `<button class="btn-accion btn-reporte" onclick="generarReporte(${sesion.id})">PDF</button>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+                <div class="paginacion">
+                    <button onclick="cambiarPagina(-1)" ${paginaActual === 0 ? 'disabled' : ''}>← Anterior</button>
+                    <span class="info">
+                        Página ${paginaActual + 1} de ${Math.ceil(totalRegistros / limite)} 
+                        (${totalRegistros} registros)
+                    </span>
+                    <button onclick="cambiarPagina(1)" ${(paginaActual + 1) * limite >= totalRegistros ? 'disabled' : ''}>Siguiente →</button>
+                </div>
+            `;
+            
+            document.getElementById('tablaContainer').innerHTML = html;
+        }
+
+        // Buscar sesiones
+        function buscarSesiones() {
+            paginaActual = 0;
+            cargarSesiones();
+        }
+
+        // Cambiar página
+        function cambiarPagina(direccion) {
+            paginaActual += direccion;
+            cargarSesiones();
+        }
+
+        // Ver detalle de sesión
+        function verDetalle(sesionId) {
+            // Abrir modal o página de detalle
+            window.open(`/sesion/${sesionId}`, '_blank');
+        }
+
+        // Generar reporte PDF
+        async function generarReporte(sesionId) {
+            try {
+                const response = await fetch(`/api/operador/reporte-sesion/${sesionId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `reporte_sesion_${sesionId}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert('Error al generar el reporte');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al generar el reporte');
+            }
+        }
+
+        // Exportar a Excel
+        async function exportarExcel() {
+            try {
+                // Obtener todos los registros sin paginación
+                const endpoint = user.role === 'secretario' ? '/api/secretario/historial-sesiones' : '/api/operador/historial-sesiones';
+                const response = await fetch(`${endpoint}?limite=10000`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Crear CSV
+                    let csv = 'Código,Nombre,Tipo,Estado,Fecha Inicio,Fecha Clausura,Total Iniciativas,Aprobadas,Rechazadas,Iniciado Por,Clausurado Por\n';
+                    
+                    data.sesiones.forEach(sesion => {
+                        const fechaInicio = new Date(sesion.fecha).toLocaleString('es-MX');
+                        const fechaClausura = sesion.fecha_clausura ? new Date(sesion.fecha_clausura).toLocaleString('es-MX') : '';
+                        const estado = sesion.activa ? 'activa' : (sesion.estado || 'preparada');
+                        
+                        csv += `"${sesion.codigo_sesion || `SES-${sesion.id}`}","${sesion.nombre}","${sesion.tipo_sesion || 'ordinaria'}","${estado}","${fechaInicio}","${fechaClausura}",`;
+                        csv += `${sesion.total_iniciativas || 0},${sesion.iniciativas_aprobadas || 0},${sesion.iniciativas_rechazadas || 0},`;
+                        csv += `"${sesion.iniciada_por_nombre || ''}","${sesion.clausurada_por_nombre || ''}"\n`;
+                    });
+                    
+                    // Descargar CSV
+                    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `historial_sesiones_${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert('Error al exportar los datos');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al exportar los datos');
+            }
+        }
+
+        // Filtro por tipo (adicional)
+        document.getElementById('filtroTipo').addEventListener('change', function() {
+            // Por ahora solo filtramos por estado, pero se puede extender
+            buscarSesiones();
+        });
+
+        // Enter en búsqueda
+        document.getElementById('busqueda').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                buscarSesiones();
+            }
+        });
+
+        // Inicializar
+        checkAuth();
+    </script>
+</body>
+</html>

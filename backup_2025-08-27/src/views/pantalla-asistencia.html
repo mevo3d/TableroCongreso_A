@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Asistencia - Congreso del Estado de Morelos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Verdana&display=swap');
+        
+        body {
+            background: #2c2c2c;
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .main-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Contenedor principal */
+        .content-wrapper-full {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #2c2c2c;
+        }
+        
+        /* Lista de diputados - estilo similar a voting-table-container-full */
+        .attendance-table-container-full {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px 20px;
+        }
+        
+        .attendance-columns-wrapper {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            min-height: 100%;
+        }
+        
+        /* Columnas de votación */
+        .voting-column {
+            width: 480px;
+        }
+        
+        .voting-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .voting-table tr {
+            border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
+        }
+        
+        .voting-table tr:nth-child(even) {
+            background-color: #333;
+        }
+        
+        .voting-table tr:nth-child(odd) {
+            background-color: #2a2a2a;
+        }
+        
+        .voting-table td {
+            padding: 3px 8px; /* Reducido padding vertical de 8px a 6px */
+        }
+        
+        /* Columna de partido con icono */
+        .party-logo {
+            width: 45px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .party-icon {
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0 auto;
+            color: white;
+        }
+        
+        /* Colores de partidos según pantalla de votación */
+        .party-morena .party-icon { 
+            background-color: #8B1B1B;
+            font-size: 16px;
+        }
+        .party-pan .party-icon { 
+            background-color: #1B4788;
+        }
+        .party-mc .party-icon { 
+            background-color: #FF6B00;
+        }
+        .party-pt .party-icon { 
+            background-color: #E31E24;
+            font-size: 24px;
+        }
+        .party-pvem .party-icon { 
+            background-color: #00A550;
+        }
+        .party-pri .party-icon { 
+            background-color: #CD1C22;
+        }
+        .party-nueva-alianza .party-icon { 
+            background-color: #00B8B2;
+        }
+        
+        /* Nombre del diputado */
+        .deputy-name {
+            color: white;
+            font-family: 'Verdana', sans-serif;
+            font-size: 0.80em; /* 30% más pequeño */
+            padding-left: 5px;
+            padding-right: 20px; /* Aumentado de 15px a 30px */
+            font-weight: bold;
+            line-height: 1.3;
+            max-height: 2.6em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 300px; /* Aumentado de 260px a 280px */
+            max-width: 310px; /* Aumentado de 260px a 280px */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            flex: 1;
+        }
+        
+        /* Columnas de estado de asistencia */
+        .attendance-status {
+            width: 100px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0 10px;
+            flex-shrink: 0;
+        }
+        
+        /* Botón de asistencia */
+        .attendance-btn {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.75em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: white;
+            min-width: 80px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        /* Estado por defecto - sin marcar */
+        .attendance-default {
+            background-color: #4a4a4a;
+            border: 1px solid #666;
+            opacity: 0.5;
+        }
+        
+        /* Presente */
+        .attendance-present {
+            background-color: #28A745 !important;
+            border: 1px solid #1e7e34 !important;
+            box-shadow: 0 2px 6px rgba(40, 167, 69, 0.4) !important;
+            opacity: 1 !important;
+        }
+        
+        /* Ausente */
+        .attendance-absent {
+            background-color: #DC3545 !important;
+            border: 1px solid #bd2130 !important;
+            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.4) !important;
+            opacity: 1 !important;
+        }
+        
+        /* Estadísticas en la parte inferior */
+        .results-bottom {
+            background: #1a1a1a;
+            padding: 10px;
+            border-top: 2px solid #444;
+            min-height: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .results-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .logo-left, .logo-right {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100px;
+        }
+        
+        .logo-left img, .logo-right img {
+            max-height: 40px;
+            max-width: 90px;
+            object-fit: contain;
+        }
+        
+        .results-container {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .result-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .result-label {
+            font-family: 'Montserrat', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .result-circle {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .result-circle-present {
+            background-color: #28A745;
+        }
+        
+        .result-circle-absent {
+            background-color: #DC3545;
+        }
+        
+        .result-circle-pending {
+            background-color: #FFC107;
+        }
+        
+        .result-number {
+            font-size: 1em;
+            min-width: 30px;
+            text-align: right;
+        }
+        
+        /* Indicador de quórum */
+        .quorum-indicator {
+            margin-top: 5px;
+            text-align: center;
+            padding: 6px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1em;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .quorum-yes {
+            background: linear-gradient(135deg, #28A745, #20c947);
+            color: white;
+            box-shadow: 0 2px 10px rgba(40, 167, 69, 0.4);
+        }
+        
+        .quorum-no {
+            background: linear-gradient(135deg, #DC3545, #ff4757);
+            color: white;
+            box-shadow: 0 2px 10px rgba(220, 53, 69, 0.4);
+        }
+        
+        .quorum-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .quorum-text i {
+            font-size: 1.2em;
+        }
+        
+        /* Animación para nuevas asistencias */
+        @keyframes attendanceAnimation {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .attendance-animated {
+            animation: attendanceAnimation 0.4s ease-out;
+        }
+        
+        /* Scrollbar personalizada */
+        .attendance-table-container-full::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .attendance-table-container-full::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        .attendance-table-container-full::-webkit-scrollbar-thumb {
+            background: #666;
+            border-radius: 4px;
+        }
+        
+        .attendance-table-container-full::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+        
+        /* Pantalla de sin actividad */
+        .no-attendance {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            background: #2c2c2c;
+        }
+        
+        .no-attendance i {
+            font-size: 5em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+            color: #888;
+        }
+        
+        .no-attendance h2 {
+            opacity: 0.7;
+            color: #aaa;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/global-background.css">
+</head>
+<body>
+    <div class="main-container">
+        <div class="content-wrapper-full">
+            <!-- Lista de diputados -->
+            <div class="attendance-table-container-full" id="attendanceContainer">
+                <div id="deputiesContent">
+                    <div class="no-attendance">
+                        <i class="fas fa-clock"></i>
+                        <h2>Esperando activación del pase de lista</h2>
+                        <p>El pase de lista será iniciado por el Secretario Legislativo</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estadísticas en la parte inferior con logos -->
+            <div class="results-bottom" id="statsContainer" style="display: none;">
+                <div class="results-wrapper">
+                    <div class="logo-left" id="logoLeft">
+                        <img src="/uploads/logo-congreso.png" alt="Logo Congreso" onerror="this.style.display='none'">
+                    </div>
+                    <div class="results-container">
+                        <div class="result-item">
+                            <span class="result-label">PRESENTES</span>
+                            <span class="result-circle result-circle-present"></span>
+                            <span class="result-number" id="presentCount">00</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">AUSENTES</span>
+                            <span class="result-circle result-circle-absent"></span>
+                            <span class="result-number" id="absentCount">00</span>
+                        </div>
+                    </div>
+                    <div class="logo-right" id="logoRight">
+                        <img src="/uploads/logo-secundario.png" alt="Logo Secundario" onerror="this.style.display='none'">
+                    </div>
+                </div>
+                <!-- Indicador de Quórum -->
+                <div class="quorum-indicator" id="quorumIndicator" style="display: none;">
+                    <span class="quorum-text">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="quorumText">VERIFICANDO QUÓRUM...</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let paseListaActivo = false;
+        let diputadosData = [];
+        let asistenciaData = {};
+        let previousAttendance = {};
+        let configuracionSistema = {};
+        let partidosData = {};
+        
+        // Lista predefinida de los 20 diputados - Con IDs REALES de la base de datos
+        const DIPUTADOS_DEFAULT = [
+            { id: 18, nombre_completo: 'Abarca Peña Gerardo', partido: 'PAN', orden: 1 },
+            { id: 12, nombre_completo: 'Domínguez Mandujano Alfredo', partido: 'MORENA', orden: 2 },
+            { id: 17, nombre_completo: 'Espinoza López Brenda', partido: 'MORENA', orden: 3 },
+            { id: 6, nombre_completo: 'Gordillo Vega Andrea Valentina Guadalupe', partido: 'PAN', orden: 4 },
+            { id: 7, nombre_completo: 'Livera Chavarría Sergio Omar', partido: 'MORENA', orden: 5 },
+            { id: 22, nombre_completo: 'Martínez Gómez Eleonor', partido: 'PRI', orden: 6 },
+            { id: 5, nombre_completo: 'Martínez Terrazas Óscar Daniel', partido: 'PAN', orden: 7 },
+            { id: 8, nombre_completo: 'Maya Rendón Guillermina', partido: 'MORENA', orden: 8 },
+            { id: 15, nombre_completo: 'Montes de Oca Montoya Martha Melissa', partido: 'MORENA', orden: 9 },
+            { id: 21, nombre_completo: 'Pedrero González Luis Eduardo', partido: 'PVEM', orden: 10 },
+            { id: 16, nombre_completo: 'Pimentel Mejía Isaac', partido: 'MORENA', orden: 11 },
+            { id: 19, nombre_completo: 'Quevedo Maldonado Luz Dary', partido: 'MC', orden: 12 },
+            { id: 10, nombre_completo: 'Reyes Reyes Rafael', partido: 'MORENA', orden: 13 },
+            { id: 23, nombre_completo: 'Rodríguez López Ruth Cleotilde', partido: 'NUEVA ALIANZA', orden: 14 },
+            { id: 20, nombre_completo: 'Rodríguez Ruiz Tania Valentina', partido: 'PT', orden: 15 },
+            { id: 11, nombre_completo: 'Ruíz Rodríguez Nayla Carolina', partido: 'MORENA', orden: 16 },
+            { id: 24, nombre_completo: 'Sánchez Ortega Alberto', partido: 'PT', orden: 17 },
+            { id: 13, nombre_completo: 'Sánchez Zavala Francisco Erik', partido: 'PAN', orden: 18 },
+            { id: 9, nombre_completo: 'Solano López Jazmín Juana', partido: 'MORENA', orden: 19 },
+            { id: 14, nombre_completo: 'Sotelo Martínez Alfonso de Jesús', partido: 'MORENA', orden: 20 }
+        ];
+        
+        // Cargar configuración del sistema
+        async function loadConfiguracion() {
+            try {
+                const response = await fetch('/api/configuracion/public');
+                if (response.ok) {
+                    configuracionSistema = await response.json();
+                    console.log('Configuración cargada:', configuracionSistema);
+                    updateLogos();
+                }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
+            }
+        }
+        
+        // Actualizar logos
+        function updateLogos() {
+            const logoLeft = document.getElementById('logoLeft');
+            const logoRight = document.getElementById('logoRight');
+            
+            if (logoLeft) {
+                logoLeft.innerHTML = configuracionSistema.logo_congreso ? 
+                    `<img src="${configuracionSistema.logo_congreso}" alt="Logo Congreso" 
+                         style="height: 70px; max-width: 100px; object-fit: contain;">` :
+                    `<img src="/uploads/logo-1754407608820.png" alt="Logo Congreso" 
+                         style="height: 70px; max-width: 100px; object-fit: contain;">`;
+            }
+            
+            if (logoRight) {
+                logoRight.innerHTML = configuracionSistema.logo_secundario ? 
+                    `<img src="${configuracionSistema.logo_secundario}" alt="Logo Secundario" 
+                         style="height: 70px; max-width: 100px; object-fit: contain;">` :
+                    '';
+            }
+        }
+        
+        // Cargar información de partidos
+        async function loadPartidos() {
+            try {
+                const response = await fetch('/api/pantalla/partidos');
+                if (response.ok) {
+                    const partidos = await response.json();
+                    partidos.forEach(partido => {
+                        partidosData[partido.siglas] = partido;
+                    });
+                    console.log('Mapa de partidos:', partidosData);
+                }
+            } catch (error) {
+                console.error('Error cargando partidos:', error);
+            }
+        }
+        
+        // Conectar al servidor
+        socket.on('connect', () => {
+            console.log('Conectado al servidor');
+            // Cargar configuración y partidos primero
+            Promise.all([cargarConfiguracion(), cargarPartidos()]).then(() => {
+                verificarEstado();
+            });
+            
+            // Verificar periódicamente si no está activo
+            const checkInterval = setInterval(() => {
+                if (!paseListaActivo) {
+                    verificarEstado();
+                } else {
+                    clearInterval(checkInterval);
+                }
+            }, 3000);
+        });
+        
+        // Escuchar activación del pase de lista
+        socket.on('pase-lista-activado', (data) => {
+            console.log('Pase de lista activado:', data);
+            if (data.activo) {
+                paseListaActivo = true;
+                cargarDiputados();
+                document.getElementById('statsContainer').style.display = 'flex';
+            }
+        });
+        
+        // Escuchar actualizaciones de asistencia
+        socket.on('asistencia-marcada', (data) => {
+            console.log('Asistencia marcada:', data);
+            if (paseListaActivo && data.diputado_id) {
+                actualizarAsistencia(data.diputado_id, data.asistencia || data.estado);
+            }
+        });
+        
+        socket.on('asistencia-actualizada', (data) => {
+            console.log('Asistencia actualizada:', data);
+            if (paseListaActivo) {
+                actualizarAsistencia(data.diputado_id, data.asistencia);
+            }
+        });
+        
+        // Escuchar cuando se confirma el pase de lista
+        socket.on('pase-lista-confirmado', (data) => {
+            console.log('Pase de lista confirmado:', data);
+            mostrarResumenFinal(data);
+        });
+        
+        // Escuchar cuando se reinicia el pase de lista
+        socket.on('pase-lista-reiniciado', async (data) => {
+            console.log('Pase de lista reiniciado:', data);
+            
+            // Limpiar todos los datos de asistencia
+            asistenciaData = {};
+            previousAttendance = {};
+            
+            // Limpiar visualmente todas las asistencias
+            if (diputadosData && diputadosData.length > 0) {
+                diputadosData.forEach(diputado => {
+                    delete asistenciaData[diputado.id];
+                });
+            }
+            
+            // Recargar datos desde el servidor para asegurar sincronización
+            try {
+                const response = await fetch('/api/pase-lista/pantalla');
+                const serverData = await response.json();
+                
+                if (serverData.diputados) {
+                    // Actualizar con datos frescos del servidor
+                    asistenciaData = {};
+                    serverData.diputados.forEach(dip => {
+                        if (dip.asistencia && dip.asistencia !== 'sin_marcar') {
+                            asistenciaData[dip.id] = dip.asistencia;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error recargando datos:', error);
+            }
+            
+            // Recargar los diputados y actualizar la vista
+            renderizarDiputados();
+            actualizarEstadisticas();
+            
+            // Mostrar notificación visual
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            notification.style.zIndex = '9999';
+            notification.innerHTML = `
+                <strong>⚠️ Pase de lista reiniciado</strong>
+                <br>Se han borrado todas las asistencias marcadas.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(notification);
+            
+            // Auto-ocultar después de 5 segundos
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        });
+        
+        // Escuchar fin de sesión
+        socket.on('sesion-clausurada', () => {
+            paseListaActivo = false;
+            document.getElementById('deputiesContent').innerHTML = `
+                <div class="no-attendance">
+                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                    <h2>Sesión Finalizada</h2>
+                    <p>La sesión ha sido clausurada</p>
+                </div>
+            `;
+            document.getElementById('statsContainer').style.display = 'none';
+        });
+        
+        // Verificar estado inicial
+        async function verificarEstado() {
+            try {
+                const response = await fetch('/api/pase-lista/pantalla');
+                const data = await response.json();
+                
+                console.log('Estado del pase de lista:', data);
+                
+                if (data.activo !== false || (data.diputados && data.diputados.length > 0)) {
+                    paseListaActivo = true;
+                    
+                    // SIEMPRE usar el mapeo fijo con IDs correctos
+                    diputadosData = DIPUTADOS_DEFAULT;
+                    console.log('Usando mapeo fijo de diputados con IDs correctos');
+                    
+                    asistenciaData = {};
+                    if (data.diputados) {
+                        data.diputados.forEach(diputado => {
+                            if (diputado.asistencia && diputado.asistencia !== 'sin_marcar') {
+                                asistenciaData[diputado.id] = diputado.asistencia;
+                            }
+                        });
+                    }
+                    
+                    document.getElementById('statsContainer').style.display = 'flex';
+                    renderizarDiputados();
+                    actualizarEstadisticas();
+                } else {
+                    paseListaActivo = false;
+                    document.getElementById('deputiesContent').innerHTML = `
+                        <div class="no-attendance">
+                            <i class="fas fa-clock"></i>
+                            <h2>Esperando inicio del pase de lista</h2>
+                            <p>El pase de lista será activado por el secretario</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error verificando estado:', error);
+                // En caso de error, usar el mapeo fijo
+                diputadosData = DIPUTADOS_DEFAULT;
+            }
+        }
+        
+        // Cargar diputados reales desde la API
+        async function cargarDiputadosReales() {
+            try {
+                const response = await fetch('/api/pase-lista/diputados');
+                if (response.ok) {
+                    const diputados = await response.json();
+                    diputadosData = diputados.map((dip, index) => ({
+                        id: dip.id, // ID REAL de la base de datos
+                        nombre_completo: dip.nombre_completo,
+                        partido: dip.partido,
+                        orden: index + 1
+                    }));
+                    console.log('Diputados reales cargados:', diputadosData);
+                } else {
+                    // Fallback a lista por defecto si falla
+                    diputadosData = DIPUTADOS_DEFAULT;
+                }
+            } catch (error) {
+                console.error('Error cargando diputados reales:', error);
+                diputadosData = DIPUTADOS_DEFAULT;
+            }
+        }
+        
+        // Cargar configuración del sistema
+        async function cargarConfiguracion() {
+            try {
+                const response = await fetch('/api/configuracion/public');
+                if (response.ok) {
+                    configuracionSistema = await response.json();
+                    console.log('Configuración cargada:', configuracionSistema);
+                }
+            } catch (error) {
+                console.error('Error cargando configuración:', error);
+            }
+        }
+        
+        // Cargar información de partidos
+        async function cargarPartidos() {
+            try {
+                const response = await fetch('/api/pantalla/partidos');
+                if (response.ok) {
+                    const partidos = await response.json();
+                    console.log('Partidos cargados:', partidos);
+                    // Crear mapa de partidos por siglas
+                    partidos.forEach(partido => {
+                        partidosData[partido.siglas] = partido;
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando partidos:', error);
+            }
+        }
+        
+        // Cargar lista de diputados
+        async function cargarDiputados() {
+            try {
+                const response = await fetch('/api/pase-lista/pantalla');
+                const data = await response.json();
+                
+                // SIEMPRE usar el mapeo fijo con IDs correctos
+                diputadosData = DIPUTADOS_DEFAULT;
+                console.log('Usando mapeo fijo de diputados en cargarDiputados');
+                
+                asistenciaData = data.asistencias || {};
+                renderizarDiputados();
+                actualizarEstadisticas();
+            } catch (error) {
+                console.error('Error cargando diputados:', error);
+                // En caso de error, usar el mapeo fijo
+                diputadosData = DIPUTADOS_DEFAULT;
+                renderizarDiputados();
+                actualizarEstadisticas();
+            }
+        }
+        
+        // Renderizar columnas de asistencia
+        function renderAttendanceColumns(diputados) {
+            const column1 = diputados.slice(0, 10);
+            const column2 = diputados.slice(10, 20);
+            
+            const renderTable = (diputadosColumn) => {
+                return `
+                    <div class="voting-column">
+                        <table class="voting-table">
+                            ${diputadosColumn.map(d => {
+                                const partyClass = d.partido ? `party-${d.partido.toLowerCase().replace(/\s+/g, '-')}` : '';
+                                const asistencia = asistenciaData[d.id] || 'sin_marcar';
+                                const isNewAttendance = previousAttendance[d.id] !== asistencia && asistencia !== 'sin_marcar';
+                                
+                                // Obtener datos del partido desde la configuración
+                                let partyLogo = null;
+                                let partyColor = '#666';
+                                
+                                // Buscar en los datos de partidos cargados
+                                const partidoData = partidosData[d.partido];
+                                if (partidoData) {
+                                    partyLogo = partidoData.logo_url;
+                                    partyColor = partidoData.color || '#666';
+                                } else {
+                                    // Fallback a logos predefinidos si no hay datos del partido
+                                    const partyLogosDefault = {
+                                        'Morena': '/images/partidos/morena.svg',
+                                        'PAN': '/images/partidos/pan.svg',
+                                        'MC': '/images/partidos/mc.svg',
+                                        'PT': '/images/partidos/pt.svg',
+                                        'PVEM': '/images/partidos/pvem.svg',
+                                        'PRI': '/images/partidos/pri.svg',
+                                        'Nueva Alianza Morelos': '/images/partidos/nueva-alianza.svg'
+                                    };
+                                    
+                                    const partyColorsDefault = {
+                                        'Morena': '#8B1B1B',
+                                        'PAN': '#1B4788',
+                                        'MC': '#FF6B00',
+                                        'PT': '#E31E24',
+                                        'PVEM': '#00A550',
+                                        'PRI': '#CD1C22',
+                                        'Nueva Alianza Morelos': '#00B8B2'
+                                    };
+                                    
+                                    partyLogo = partyLogosDefault[d.partido] || null;
+                                    partyColor = partyColorsDefault[d.partido] || '#666';
+                                }
+                                
+                                // Actualizar registro de asistencias previas
+                                if (asistencia !== 'sin_marcar') {
+                                    previousAttendance[d.id] = asistencia;
+                                }
+                                
+                                return `
+                                    <tr>
+                                        <td class="party-logo ${partyClass}">
+                                            ${partyLogo ? 
+                                                `<img src="${partyLogo}" alt="${d.partido}" 
+                                                     style="height: 35px; max-width: 40px; object-fit: contain;" 
+                                                     onerror="this.outerHTML='<div class=\\'party-icon\\' style=\\'background-color: ${partyColor}\\'>${d.partido ? (d.partido === 'Morena' ? 'M' : d.partido.charAt(0)) : '?'}</div>'">` :
+                                                `<div class="party-icon" style="background-color: ${partyColor}">
+                                                    ${d.partido ? (d.partido === 'Morena' ? 'M' : d.partido.charAt(0)) : '?'}
+                                                </div>`
+                                            }
+                                        </td>
+                                        <td class="deputy-name" title="${d.nombre_completo}">${d.nombre_completo}</td>
+                                        <td class="attendance-status">
+                                            ${asistencia === 'presente' ? 
+                                                `<span class="attendance-btn attendance-present ${isNewAttendance ? 'attendance-animated' : ''}">Presente</span>` :
+                                              asistencia === 'ausente' ?
+                                                `<span class="attendance-btn attendance-absent ${isNewAttendance ? 'attendance-animated' : ''}">Ausente</span>` :
+                                                `<span class="attendance-btn attendance-default">---</span>`
+                                            }
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </table>
+                    </div>
+                `;
+            };
+            
+            let html = '<div class="attendance-columns-wrapper">';
+            if (column1.length > 0) html += renderTable(column1);
+            if (column2.length > 0) html += renderTable(column2);
+            html += '</div>';
+            
+            return html;
+        }
+        
+        // Renderizar lista de diputados
+        function renderizarDiputados() {
+            const container = document.getElementById('deputiesContent');
+            
+            // SIEMPRE usar el mapeo fijo si no hay datos
+            if (!diputadosData || diputadosData.length === 0) {
+                diputadosData = DIPUTADOS_DEFAULT;
+                console.log('Usando mapeo fijo por defecto en renderizarDiputados');
+            }
+            
+            // Usar los diputados con el mapeo correcto
+            container.innerHTML = renderAttendanceColumns(diputadosData);
+        }
+        
+        // Actualizar asistencia de un diputado
+        function actualizarAsistencia(diputadoId, asistencia) {
+            console.log(`Actualizando asistencia - ID: ${diputadoId}, Asistencia: ${asistencia}`);
+            
+            // Buscar el diputado en nuestra lista para verificar
+            const diputado = diputadosData.find(d => d.id === parseInt(diputadoId));
+            if (diputado) {
+                console.log(`Diputado encontrado: ${diputado.nombre_completo}`);
+            } else {
+                console.warn(`No se encontró diputado con ID ${diputadoId} en la lista local`);
+            }
+            
+            asistenciaData[diputadoId] = asistencia;
+            renderizarDiputados();
+            actualizarEstadisticas();
+        }
+        
+        // Actualizar estadísticas
+        function actualizarEstadisticas() {
+            let presentes = 0;
+            let ausentes = 0;
+            let sinMarcar = 0;
+            
+            // Usar los diputados reales cargados
+            const diputadosParaContar = diputadosData && diputadosData.length > 0 ? diputadosData : DIPUTADOS_DEFAULT;
+            
+            diputadosParaContar.forEach(diputado => {
+                const asistencia = asistenciaData[diputado.id];
+                if (asistencia === 'presente') {
+                    presentes++;
+                } else if (asistencia === 'ausente') {
+                    ausentes++;
+                } else {
+                    sinMarcar++;
+                }
+            });
+            
+            document.getElementById('presentCount').textContent = String(presentes).padStart(2, '0');
+            document.getElementById('absentCount').textContent = String(ausentes).padStart(2, '0');
+            document.getElementById('pendingCount').textContent = String(sinMarcar).padStart(2, '0');
+            
+            // Calcular y mostrar quórum (necesita 11 de 20 diputados = mayoría simple)
+            const quorumMinimo = 11;
+            const hayQuorum = presentes >= quorumMinimo;
+            
+            const quorumIndicator = document.getElementById('quorumIndicator');
+            const quorumText = document.getElementById('quorumText');
+            
+            if (quorumIndicator && quorumText) {
+                quorumIndicator.style.display = 'block';
+                
+                if (hayQuorum) {
+                    quorumIndicator.className = 'quorum-indicator quorum-yes';
+                    quorumText.innerHTML = `<i class="fas fa-check-circle"></i> HAY QUÓRUM (${presentes}/20)`;
+                } else {
+                    quorumIndicator.className = 'quorum-indicator quorum-no';
+                    quorumText.innerHTML = `<i class="fas fa-times-circle"></i> SIN QUÓRUM (${presentes}/20 - Mínimo: ${quorumMinimo})`;
+                }
+            }
+        }
+        
+        // Mostrar resumen final
+        function mostrarResumenFinal(data) {
+            const container = document.getElementById('deputiesContent');
+            const presentes = data.presentes || 0;
+            const ausentes = data.ausentes || 0;
+            const total = presentes + ausentes;
+            const quorumMinimo = 11;
+            const hayQuorum = presentes >= quorumMinimo;
+            
+            container.innerHTML = `
+                <div class="no-attendance">
+                    <i class="fas fa-check-circle" style="color: #28a745; font-size: 5em;"></i>
+                    <h2>Pase de Lista Confirmado</h2>
+                    <div style="margin-top: 30px; font-size: 20px;">
+                        <p><strong>Presentes:</strong> ${presentes}</p>
+                        <p><strong>Ausentes:</strong> ${ausentes}</p>
+                        <p><strong>Total:</strong> ${total}</p>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <div class="quorum-indicator ${hayQuorum ? 'quorum-yes' : 'quorum-no'}" style="display: inline-block;">
+                            <span class="quorum-text">
+                                ${hayQuorum ? 
+                                    `<i class="fas fa-check-circle"></i> HAY QUÓRUM (${presentes}/20)` : 
+                                    `<i class="fas fa-times-circle"></i> SIN QUÓRUM (${presentes}/20 - Mínimo: ${quorumMinimo})`
+                                }
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Mantener el indicador de quórum en la parte inferior actualizado
+            actualizarEstadisticas();
+        }
+    </script>
+</body>
+</html>

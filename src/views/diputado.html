@@ -1010,20 +1010,6 @@
                         <small class="text-muted">Realizar toma de asistencia</small>
                     </div>
                 </a>
-                <a href="#" class="menu-item" onclick="verEstadoAsistencia()">
-                    <i class="fas fa-chart-pie"></i>
-                    <div>
-                        <div>Ver Estado del Sistema</div>
-                        <small class="text-muted">Estado actual de asistencia y sesión</small>
-                    </div>
-                </a>
-                <a href="#" class="menu-item" onclick="backToVoting()">
-                    <i class="fas fa-vote-yea"></i>
-                    <div>
-                        <div>Regresar a Votación</div>
-                        <small class="text-muted">Volver al panel de votación</small>
-                    </div>
-                </a>
                 <div class="menu-divider"></div>
             </div>
             
@@ -1233,7 +1219,7 @@
                         </button>
                     </div>
                     <div id="initiativeDescriptionContainer">
-                        <p id="initiativeDescription" class="card-text text-muted" style="max-height: 150px; overflow: hidden; position: relative;"></p>
+                        <p id="initiativeDescription" class="card-text" style="max-height: 200px; overflow: hidden; position: relative; font-size: 1.3em; font-weight: bold; color: #2c3e50;"></p>
                         <button id="btnVerMasTexto" class="btn btn-link btn-sm" style="display: none;" onclick="toggleTextoCompleto()">
                             <i class="fas fa-chevron-down"></i> Ver más
                         </button>
@@ -1869,19 +1855,23 @@
                 `${initiative.numero}/${initiative.numero_orden_dia}` : 
                 initiative.numero;
             document.getElementById('initiativeNumber').textContent = numeroFormato;
-            document.getElementById('initiativeTitle').textContent = initiative.titulo;
+            
+            // Solo mostrar el texto una vez - usar descripción o título
+            const textoIniciativa = initiative.descripcion || initiative.titulo || 'Sin descripción';
+            
+            // Ocultar el título grande ya que el texto viene en la descripción
+            document.getElementById('initiativeTitle').style.display = 'none';
             
             // Manejar texto largo con botón "Ver más"
-            const descripcion = initiative.descripcion || 'Sin descripción';
             const descElement = document.getElementById('initiativeDescription');
             const btnVerMas = document.getElementById('btnVerMasTexto');
             
-            descElement.textContent = descripcion;
-            descElement.setAttribute('data-texto-completo', descripcion);
+            descElement.textContent = textoIniciativa;
+            descElement.setAttribute('data-texto-completo', textoIniciativa);
             
             // Si el texto es muy largo, mostrar botón "Ver más"
-            if (descripcion.length > 300) {
-                descElement.style.maxHeight = '150px';
+            if (textoIniciativa.length > 300) {
+                descElement.style.maxHeight = '200px';
                 descElement.style.overflow = 'hidden';
                 btnVerMas.style.display = 'inline-block';
                 btnVerMas.innerHTML = '<i class="fas fa-chevron-down"></i> Ver más';
@@ -2076,7 +2066,7 @@
             
             if (expandido) {
                 // Contraer
-                descElement.style.maxHeight = '150px';
+                descElement.style.maxHeight = '200px';
                 descElement.style.overflow = 'hidden';
                 btnVerMas.innerHTML = '<i class="fas fa-chevron-down"></i> Ver más';
                 descElement.setAttribute('data-expandido', 'false');
