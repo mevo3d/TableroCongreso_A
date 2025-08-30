@@ -770,7 +770,7 @@ router.get('/ultima-votacion-resultado', (req, res) => {
             i.numero,
             i.descripcion,
             i.titulo,
-            i.aprobada,
+            i.resultado as aprobada,
             i.conteo_favor,
             i.conteo_contra,
             i.conteo_abstencion,
@@ -1501,6 +1501,36 @@ router.post('/actualizar-perfil', upload.single('fotografia'), async (req, res) 
 // Endpoint para verificar autorización del vicepresidente
 router.get('/vicepresidente-autorizado', (req, res) => {
     res.json({ autorizado: sessionState.getVicepresidenteAutorizado() });
+});
+
+// Endpoint para obtener estado de auto-asistencia (movido a /sesion/)
+router.get('/sesion/estado-auto-asistencia', (req, res) => {
+    const db = req.db;
+    
+    db.get(`
+        SELECT 
+            auto_asistencia_habilitada,
+            auto_asistencia_iniciada_por,
+            auto_asistencia_tipo_usuario
+        FROM sesiones
+        WHERE activa = 1
+    `, (err, sesion) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error obteniendo estado de auto-asistencia' });
+        }
+        
+        if (!sesion) {
+            return res.json({ 
+                auto_asistencia_habilitada: false 
+            });
+        }
+        
+        res.json({
+            auto_asistencia_habilitada: sesion.auto_asistencia_habilitada === 1,
+            auto_asistencia_iniciada_por: sesion.auto_asistencia_iniciada_por,
+            auto_asistencia_tipo_usuario: sesion.auto_asistencia_tipo_usuario
+        });
+    });
 });
 
 module.exports = router;

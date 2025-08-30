@@ -1013,6 +1013,16 @@
                 <div class="menu-divider"></div>
             </div>
             
+            <!-- Botón de Auto-registro de Asistencia (oculto inicialmente) -->
+            <button id="btnRegistrarAsistencia" class="menu-item" onclick="registrarMiAsistencia()" style="background: linear-gradient(135deg, #28a745, #20c997); color: white; border: none; display: none;">
+                <i class="fas fa-user-check" style="color: white;"></i>
+                <div>
+                    <div style="font-weight: bold;">PRESENTE</div>
+                    <small style="color: rgba(255,255,255,0.8);">Registrar mi asistencia</small>
+                </div>
+            </button>
+            <div id="dividerAsistencia" class="menu-divider" style="display: none;"></div>
+            
             <a href="#" class="menu-item" onclick="verTableroSimplificado()">
                 <i class="fas fa-th"></i>
                 <div>
@@ -1205,9 +1215,7 @@
         <div class="vote-card" id="votingPanel" style="display: none;">
             <div class="text-center mb-4">
                 <h2 class="text-primary">INICIATIVA EN VOTACIÓN</h2>
-                <div class="badge bg-info fs-6 mb-3">
-                    Iniciativa <span id="initiativeNumber"></span>
-                </div>
+                <span class="badge bg-info" id="initiativeNumber" style="font-size: 1.1em;"></span>
             </div>
             
             <div class="card mb-4">
@@ -1224,9 +1232,11 @@
                             <i class="fas fa-chevron-down"></i> Ver más
                         </button>
                     </div>
-                    <div class="mt-2">
-                        <span class="badge bg-secondary" id="majorityType"></span>
-                        <span class="badge bg-info ms-2" id="presentadorBadge" style="display: none;"></span>
+                    <div class="mt-3">
+                        <small class="text-muted d-block">
+                            Tipo de Mayoría: <span class="badge bg-primary" id="majorityType"></span>
+                        </small>
+                        <div id="initiativeDetails"></div>
                     </div>
                 </div>
             </div>
@@ -1806,6 +1816,31 @@
             }
         });
         
+        // Función para obtener las iniciales del nombre
+        function getInitials(name) {
+            if (!name) return '';
+            const parts = name.split(' ');
+            if (parts.length >= 2) {
+                return parts[0][0] + parts[parts.length - 1][0];
+            }
+            return name[0];
+        }
+        
+        // Función para obtener el color del partido
+        function getPartyColor(party) {
+            const colors = {
+                'MORENA': '#8B1B1B',
+                'PAN': '#1B4788',
+                'PRI': '#CD1C22',
+                'PT': '#E31E24',
+                'PVEM': '#00A550',
+                'MC': '#FF6B00',
+                'NUEVA ALIANZA': '#00B8B2',
+                'INDEPENDIENTE': '#6c757d'
+            };
+            return colors[party] || '#6c757d';
+        }
+        
         // Cargar información de partidos
         async function loadPartidos() {
             try {
@@ -1884,14 +1919,10 @@
             
             document.getElementById('majorityType').textContent = getMajorityLabel(initiative.tipo_mayoria);
             
-            // Mostrar presentador si existe
-            const presentadorBadge = document.getElementById('presentadorBadge');
-            if (initiative.presentador) {
-                presentadorBadge.textContent = `Por: ${initiative.presentador}`;
-                presentadorBadge.style.display = 'inline-block';
-            } else {
-                presentadorBadge.style.display = 'none';
-            }
+            // Mostrar detalles de la iniciativa de forma simple
+            document.getElementById('initiativeDetails').innerHTML = `
+                ${initiative.presentador ? `<small class="text-muted d-block mt-1">Propuesta por: ${initiative.presentador}</small>` : ''}
+            `;
             
             if (alreadyVoted) {
                 document.getElementById('votingButtons').style.display = 'none';
@@ -2172,8 +2203,14 @@
             }
         }
         
-        // Cargar historial
-        async function loadHistory() {
+        // Variables de paginación
+        let currentHistoryPage = 1;
+        const itemsPerPage = 5;
+        let totalHistoryItems = 0;
+        let allHistoryData = [];
+
+        // Cargar historial con paginación
+        async function loadHistory(page = 1) {
             try {
                 const response = await fetch('/api/diputado/mi-historial', {
                     headers: {
@@ -2190,6 +2227,16 @@
                     return;
                 }
                 
+                // Guardar todos los datos y calcular paginación
+                allHistoryData = data.votos;
+                totalHistoryItems = allHistoryData.length;
+                currentHistoryPage = page;
+                
+                const totalPages = Math.ceil(totalHistoryItems / itemsPerPage);
+                const startIndex = (currentHistoryPage - 1) * itemsPerPage;
+                const endIndex = Math.min(startIndex + itemsPerPage, totalHistoryItems);
+                const currentPageData = allHistoryData.slice(startIndex, endIndex);
+                
                 container.innerHTML = `
                     <div class="table-responsive">
                         <table class="table table-sm">
@@ -2203,7 +2250,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${data.votos.map(v => `
+                                ${currentPageData.map(v => `
                                     <tr>
                                         <td>${v.numero}</td>
                                         <td>${v.titulo}</td>
@@ -2225,6 +2272,36 @@
                             </tbody>
                         </table>
                     </div>
+                    
+                    ${totalPages > 1 ? `
+                        <nav aria-label="Paginación del historial">
+                            <ul class="pagination pagination-sm justify-content-center">
+                                <li class="page-item ${currentHistoryPage === 1 ? 'disabled' : ''}">
+                                    <a class="page-link" href="#" onclick="loadHistory(${currentHistoryPage - 1}); return false;">
+                                        <i class="fas fa-chevron-left"></i> Anterior
+                                    </a>
+                                </li>
+                                
+                                ${Array.from({length: totalPages}, (_, i) => i + 1).map(pageNum => `
+                                    <li class="page-item ${pageNum === currentHistoryPage ? 'active' : ''}">
+                                        <a class="page-link" href="#" onclick="loadHistory(${pageNum}); return false;">
+                                            ${pageNum}
+                                        </a>
+                                    </li>
+                                `).join('')}
+                                
+                                <li class="page-item ${currentHistoryPage === totalPages ? 'disabled' : ''}">
+                                    <a class="page-link" href="#" onclick="loadHistory(${currentHistoryPage + 1}); return false;">
+                                        Siguiente <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                        
+                        <div class="text-center text-muted small">
+                            Mostrando ${startIndex + 1}-${endIndex} de ${totalHistoryItems} votos
+                        </div>
+                    ` : ''}
                 `;
             } catch (error) {
                 console.error('Error:', error);
@@ -5286,6 +5363,311 @@
             // Actualizar estado de la sesión
             checkSessionStatus();
         });
+        
+        // ============= FUNCIONES DE AUTO-REGISTRO DE ASISTENCIA =============
+        let paseListaConfirmado = false;
+        
+        async function registrarMiAsistencia() {
+            try {
+                // Cerrar el menú
+                toggleMenu();
+                
+                // Determinar si es llegada tardía
+                const esLlegadaTardia = paseListaConfirmado;
+                
+                // Verificar si hay una sesión activa
+                const response = await fetch('/api/pase-lista/auto-registro', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        diputado_id: user.id,
+                        asistencia: 'presente',
+                        llegada_tardia: esLlegadaTardia
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Mostrar mensaje de éxito
+                    showNotification('success', 'Asistencia Registrada', 'Tu asistencia ha sido marcada como PRESENTE');
+                    
+                    // Actualizar el botón para mostrar que ya está registrado
+                    const btnRegistrar = document.getElementById('btnRegistrarAsistencia');
+                    if (btnRegistrar) {
+                        btnRegistrar.style.background = 'linear-gradient(135deg, #6c757d, #5a6268)';
+                        btnRegistrar.style.pointerEvents = 'none';
+                        btnRegistrar.innerHTML = `
+                            <i class="fas fa-check-circle" style="color: white;"></i>
+                            <div>
+                                <div style="font-weight: bold;">REGISTRADO</div>
+                                <small style="color: rgba(255,255,255,0.8);">Asistencia confirmada</small>
+                            </div>
+                        `;
+                    }
+                    
+                    // Emitir evento por socket para actualizar pantallas
+                    socket.emit('auto-registro-asistencia', {
+                        diputado_id: user.id,
+                        nombre: user.nombre_completo,
+                        asistencia: 'presente'
+                    });
+                    
+                } else {
+                    showNotification('error', 'Error', data.message || 'No se pudo registrar la asistencia');
+                }
+            } catch (error) {
+                console.error('Error registrando asistencia:', error);
+                showNotification('error', 'Error', 'Error al conectar con el servidor');
+            }
+        }
+        
+        // Función auxiliar para mostrar notificaciones
+        function showNotification(type, title, message) {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            
+            const notification = document.createElement('div');
+            notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 10000; min-width: 300px;';
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas ${icon} me-2"></i>
+                    <div>
+                        <strong>${title}</strong><br>
+                        <small>${message}</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+        
+        // Escuchar cuando se reinicia el pase de lista
+        socket.on('pase-lista-reiniciado', (data) => {
+            console.log('Pase de lista reiniciado:', data);
+            
+            if (data.tipo_reinicio === 'duro') {
+                // Reinicio DURO: ocultar botón y mostrar advertencia
+                const btnRegistrar = document.getElementById('btnRegistrarAsistencia');
+                const divider = document.getElementById('dividerAsistencia');
+                if (btnRegistrar) {
+                    btnRegistrar.style.display = 'none';
+                    // Restaurar estado original del botón
+                    btnRegistrar.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                    btnRegistrar.style.pointerEvents = 'auto';
+                    btnRegistrar.disabled = false;
+                    btnRegistrar.innerHTML = `
+                        <i class="fas fa-user-check" style="color: white;"></i>
+                        <div>
+                            <div style="font-weight: bold;">PRESENTE</div>
+                            <small style="color: rgba(255,255,255,0.8);">Registrar mi asistencia</small>
+                        </div>
+                    `;
+                }
+                if (divider) {
+                    divider.style.display = 'none';
+                }
+                
+                // Mostrar notificación de pérdida de votación
+                if (data.votacion_deshabilitada) {
+                    showNotification('warning', 'Reinicio Total', 'Se ha deshabilitado su derecho a votar. Requiere validación manual.');
+                }
+            } else if (data.tipo_reinicio === 'suave') {
+                // Reinicio SUAVE: solo notificar si era ausente
+                showNotification('info', 'Reinicio Parcial', 'Se ha reiniciado el pase de lista para ausentes');
+            }
+        });
+        
+        // Escuchar cuando se habilita la auto-asistencia
+        socket.on('auto-asistencia-habilitada', (data) => {
+            console.log('Auto-asistencia habilitada:', data);
+            
+            // Determinar si mostrar el botón según las reglas
+            let mostrarBoton = false;
+            
+            if (data.tipo_usuario === 'secretario_legislativo') {
+                // Si lo habilitó el secretario legislativo, mostrar a todos los diputados
+                mostrarBoton = true;
+            } else if (data.tipo_usuario === 'secretario1' || data.tipo_usuario === 'secretario2') {
+                // Si lo habilitó un diputado secretario
+                if (user.cargo_mesa_directiva === 'secretario1' || user.cargo_mesa_directiva === 'secretario2') {
+                    // Mostrar solo al otro secretario (no al que lo habilitó)
+                    if (data.iniciado_por !== user.id) {
+                        mostrarBoton = true;
+                    }
+                } else {
+                    // Mostrar a todos los demás diputados
+                    mostrarBoton = true;
+                }
+            }
+            
+            if (mostrarBoton) {
+                // Mostrar el botón de auto-registro
+                const btnRegistrar = document.getElementById('btnRegistrarAsistencia');
+                const divider = document.getElementById('dividerAsistencia');
+                if (btnRegistrar) {
+                    btnRegistrar.style.display = 'flex';
+                }
+                if (divider) {
+                    divider.style.display = 'block';
+                }
+                
+                // Mostrar notificación
+                showNotification('info', 'Auto-Asistencia Habilitada', 'Ya puedes registrar tu asistencia desde el menú');
+            }
+        });
+        
+        // Escuchar cuando se confirma el pase de lista
+        socket.on('pase-lista-confirmado', async (data) => {
+            console.log('Pase de lista confirmado:', data);
+            paseListaConfirmado = true;
+            
+            // Verificar si el usuario actual ya marcó asistencia
+            try {
+                const response = await fetch('/api/pase-lista/mi-asistencia', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const miAsistencia = await response.json();
+                    
+                    // Si no ha marcado asistencia, mostrar el botón para llegada tardía
+                    if (!miAsistencia.asistencia || miAsistencia.asistencia === 'ausente') {
+                        const btnRegistrar = document.getElementById('btnRegistrarAsistencia');
+                        const divider = document.getElementById('dividerAsistencia');
+                        
+                        if (btnRegistrar) {
+                            btnRegistrar.style.display = 'flex';
+                            btnRegistrar.style.background = 'linear-gradient(135deg, #ffc107, #ff9800)'; // Color naranja para tardío
+                            btnRegistrar.innerHTML = `
+                                <i class="fas fa-clock" style="color: white;"></i>
+                                <div>
+                                    <div style="font-weight: bold;">LLEGADA TARDÍA</div>
+                                    <small style="color: rgba(255,255,255,0.8);">Registrar mi asistencia</small>
+                                </div>
+                            `;
+                        }
+                        if (divider) {
+                            divider.style.display = 'block';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error verificando mi asistencia:', error);
+            }
+        });
+        
+        // Escuchar notificaciones de llegadas tardías
+        socket.on('notificar-llegada-tardia', (data) => {
+            console.log('Notificación de llegada tardía:', data);
+            
+            // Determinar si mostrar notificación según quién inició
+            let mostrarNotificacion = false;
+            
+            if (data.tipo_iniciador === 'secretario_legislativo') {
+                // Si inició el secretario legislativo, solo él recibe notificación
+                if (user.role === 'secretario') {
+                    mostrarNotificacion = true;
+                }
+            } else if (data.tipo_iniciador === 'secretario1' || data.tipo_iniciador === 'secretario2') {
+                // Si inició un secretario diputado, solo ese secretario recibe notificación
+                if (user.id === data.iniciador_id) {
+                    mostrarNotificacion = true;
+                }
+            }
+            
+            if (mostrarNotificacion) {
+                // Crear notificación especial para llegada tardía
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-warning alert-dismissible fade show position-fixed';
+                notification.style.cssText = 'top: 80px; right: 20px; z-index: 10000; min-width: 350px; border-left: 5px solid #ff9800;';
+                notification.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-clock fa-2x me-3" style="color: #ff9800;"></i>
+                        <div>
+                            <strong>Llegada Tardía</strong><br>
+                            <small>${data.diputado} ha marcado asistencia con retardo</small><br>
+                            <small class="text-muted">Hora: ${data.hora}</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(notification);
+                
+                // Auto-ocultar después de 8 segundos
+                setTimeout(() => notification.remove(), 8000);
+            }
+        });
+        
+        // Escuchar notificaciones finales cuando se confirma el pase de lista
+        socket.on('notificar-secretarios-asistencia-final', (data) => {
+            // Solo mostrar a secretarios de mesa directiva
+            if (user.cargo_mesa_directiva === 'secretario1' || user.cargo_mesa_directiva === 'secretario2') {
+                mostrarPopupAsistenciaSecretarios(data);
+            }
+        });
+        
+        // Función para mostrar popup a los secretarios
+        function mostrarPopupAsistenciaSecretarios(data) {
+            // Crear el modal si no existe
+            let modal = document.getElementById('modalAsistenciaSecretarios');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.className = 'modal fade';
+                modal.id = 'modalAsistenciaSecretarios';
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-user-check"></i> Registro de Asistencia
+                                </h5>
+                            </div>
+                            <div class="modal-body text-center">
+                                <p class="mb-3">Diputado presidente, le informo que hay una asistencia de:</p>
+                                <div class="display-1 text-success fw-bold" id="numeroAsistentes">0</div>
+                                <p class="fs-4 text-muted">Diputados</p>
+                            </div>
+                            <div class="modal-footer justify-content-center">
+                                <button type="button" class="btn btn-primary btn-lg" onclick="volverPanelVotacion()">
+                                    <i class="fas fa-arrow-left"></i> Regresar al Panel de Votación
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            
+            // Actualizar el número
+            document.getElementById('numeroAsistentes').textContent = data.totalPresentes || 0;
+            
+            // Mostrar el modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
+        
+        // Función para volver al panel de votación
+        function volverPanelVotacion() {
+            const modal = document.getElementById('modalAsistenciaSecretarios');
+            if (modal) {
+                const bsModal = bootstrap.Modal.getInstance(modal);
+                if (bsModal) {
+                    bsModal.hide();
+                }
+            }
+        }
     </script>
 
     <!-- Modal Servicios Legislativos -->
