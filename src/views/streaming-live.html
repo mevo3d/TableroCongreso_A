@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA Meta Tags para iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Congreso EN VIVO">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
+    <meta name="format-detection" content="telephone=no">
+    
+    <title>EN VIVO - Congreso del Estado</title>
+    
+    <!-- Favicon y iconos para PWA -->
+    <link rel="icon" type="image/png" href="/icon-live-192.png">
+    <link rel="shortcut icon" href="/icon-live-192.png">
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="/icon-live-180.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-live-180.png">
+    <link rel="apple-touch-startup-image" href="/icon-live-512.png">
+    
+    <!-- Android/Chrome Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-live-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-live-512.png">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest-streaming.json">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* Contenedor Parallax con las mismas capas del login */
+        .parallax-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .parallax-layer {
+            position: absolute;
+            top: -15%;
+            left: -15%;
+            width: 130%;
+            height: 130%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            will-change: transform;
+            transition: transform 0.1s ease-out;
+        }
+        
+        /* Layer 1 - Nubes (más lento, más lejano) */
+        .layer-1 {
+            background-image: url('/images/parallax/layer-1-nubes.png');
+            animation: float-clouds 40s ease-in-out infinite;
+            z-index: 1;
+            width: 135%;
+            height: 135%;
+            top: -17.5%;
+            left: -17.5%;
+        }
+        
+        /* Layer 2 - Volcán (velocidad media) */
+        .layer-2 {
+            background-image: url('/images/parallax/layer-2-volcan.png');
+            z-index: 2;
+            animation: subtle-shift 30s ease-in-out infinite;
+        }
+        
+        /* Layer 3 - Congreso (más rápido, más cercano) */
+        .layer-3 {
+            background-image: url('/images/parallax/layer-3-congreso.png');
+            z-index: 3;
+            transform: translateX(25%);
+            background-position: right center;
+        }
+        
+        /* Animaciones sutiles */
+        @keyframes float-clouds {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            33% { transform: translateX(-2%) translateY(-1%); }
+            66% { transform: translateX(2%) translateY(1%); }
+        }
+        
+        @keyframes subtle-shift {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        /* Overlay gradient para mejor contraste */
+        .gradient-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 0, 0, 0.6) 0%,
+                rgba(0, 0, 0, 0.4) 40%,
+                rgba(0, 0, 0, 0.3) 60%,
+                rgba(0, 0, 0, 0.5) 100%
+            );
+            z-index: 4;
+        }
+        
+        /* Contenedor del streaming */
+        .streaming-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 1280px;
+            aspect-ratio: 16/9;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Indicador EN VIVO minimalista */
+        .live-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 20;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+            animation: pulse-live 2s infinite;
+        }
+        
+        @keyframes pulse-live {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 1; }
+        }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.3; }
+        }
+        
+        /* Iframe del streaming */
+        .streaming-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #000;
+        }
+        
+        /* Loading inicial */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: #ff0000;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 20px;
+            color: white;
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        
+        /* Responsive para iPad y móviles */
+        @media (max-width: 768px) {
+            .streaming-wrapper {
+                width: 100%;
+                height: 100%;
+                border-radius: 0;
+                max-width: none;
+            }
+            
+            .live-indicator {
+                top: env(safe-area-inset-top, 20px);
+                left: env(safe-area-inset-left, 20px);
+            }
+        }
+        
+        /* Landscape mode */
+        @media (orientation: landscape) and (max-height: 768px) {
+            .streaming-wrapper {
+                width: 100%;
+                height: 100%;
+                border-radius: 0;
+            }
+        }
+        
+        /* Ocultar controles del navegador en fullscreen */
+        ::-webkit-media-controls {
+            display: none !important;
+        }
+        
+        /* Prevenir zoom en iOS */
+        input, select, textarea {
+            font-size: 16px !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Contenedor Parallax -->
+    <div class="parallax-container" id="parallaxContainer">
+        <div class="parallax-layer layer-1" data-speed="0.2"></div>
+        <div class="parallax-layer layer-2" data-speed="0.5"></div>
+        <div class="parallax-layer layer-3" data-speed="0.8"></div>
+        <div class="gradient-overlay"></div>
+    </div>
+    
+    <!-- Contenedor del Streaming -->
+    <div class="streaming-wrapper">
+        <!-- Indicador EN VIVO -->
+        <div class="live-indicator">
+            <div class="live-dot"></div>
+            <span>EN VIVO</span>
+        </div>
+        
+        <!-- Loading -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Conectando...</div>
+        </div>
+        
+        <!-- Iframe del streaming -->
+        <iframe 
+            id="streamingFrame"
+            class="streaming-iframe"
+            src="http://192.168.150.71:8088/livelan"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowfullscreen
+            frameborder="0">
+        </iframe>
+    </div>
+    
+    <script>
+        // Configuración de streaming
+        const VMIX_LIVELAN_URL = 'http://192.168.150.71:8088/livelan';
+        
+        // Elementos
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const streamingFrame = document.getElementById('streamingFrame');
+        const parallaxContainer = document.getElementById('parallaxContainer');
+        const layers = document.querySelectorAll('.parallax-layer');
+        
+        // Ocultar loading cuando cargue el iframe
+        streamingFrame.addEventListener('load', () => {
+            setTimeout(() => {
+                loadingOverlay.classList.add('hidden');
+            }, 1000);
+            
+            // Intentar autoplay
+            try {
+                streamingFrame.contentWindow.postMessage('play', '*');
+            } catch(e) {
+                console.log('Streaming iniciado');
+            }
+        });
+        
+        // Reintentar si hay error
+        streamingFrame.addEventListener('error', () => {
+            console.log('Reintentando conexión...');
+            setTimeout(() => {
+                streamingFrame.src = VMIX_LIVELAN_URL + '?t=' + Date.now();
+            }, 3000);
+        });
+        
+        // Efecto parallax con el movimiento del mouse (desktop)
+        let isAnimating = false;
+        
+        function applyParallax(e) {
+            if (isAnimating) return;
+            
+            const x = e.clientX;
+            const y = e.clientY;
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            
+            const moveX = (x - centerX) / centerX;
+            const moveY = (y - centerY) / centerY;
+            
+            layers.forEach(layer => {
+                const speed = parseFloat(layer.dataset.speed) || 0.5;
+                const translateX = moveX * 20 * speed;
+                const translateY = moveY * 10 * speed;
+                
+                layer.style.transform = `
+                    translate(${-translateX}px, ${-translateY}px) 
+                    scale(1.1)
+                `;
+            });
+        }
+        
+        // Efecto de respiración cuando no hay interacción
+        function breathingEffect() {
+            if (!isAnimating) return;
+            
+            layers.forEach((layer, index) => {
+                const speed = parseFloat(layer.dataset.speed) || 0.5;
+                const time = Date.now() * 0.0005;
+                const translateY = Math.sin(time + index) * 5 * speed;
+                
+                layer.style.transform = `
+                    translateY(${translateY}px) 
+                    scale(1.1)
+                `;
+            });
+            
+            if (isAnimating) {
+                requestAnimationFrame(breathingEffect);
+            }
+        }
+        
+        // Eventos del mouse para parallax
+        let mouseTimeout;
+        document.addEventListener('mousemove', (e) => {
+            isAnimating = false;
+            clearTimeout(mouseTimeout);
+            applyParallax(e);
+            
+            mouseTimeout = setTimeout(() => {
+                isAnimating = true;
+                breathingEffect();
+            }, 3000);
+        });
+        
+        // Efecto para dispositivos móviles con giroscopio
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', (e) => {
+                if (isAnimating) return;
+                
+                const tiltX = e.gamma;
+                const tiltY = e.beta;
+                
+                if (tiltX !== null && tiltY !== null) {
+                    layers.forEach(layer => {
+                        const speed = parseFloat(layer.dataset.speed) || 0.5;
+                        const translateX = (tiltX / 90) * 30 * speed;
+                        const translateY = (tiltY / 180) * 20 * speed;
+                        
+                        layer.style.transform = `
+                            translate(${translateX}px, ${translateY}px) 
+                            scale(1.1)
+                        `;
+                    });
+                }
+            });
+        }
+        
+        // Iniciar efecto de respiración
+        setTimeout(() => {
+            isAnimating = true;
+            breathingEffect();
+        }, 2000);
+        
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw-streaming.js')
+                .then(registration => console.log('SW registrado'))
+                .catch(error => console.log('Error registrando SW:', error));
+        }
+        
+        // Prevenir que la pantalla se apague
+        if ('wakeLock' in navigator) {
+            navigator.wakeLock.request('screen')
+                .then(wakeLock => console.log('Wake Lock activo'))
+                .catch(err => console.log('Wake Lock error:', err));
+        }
+        
+        // Detectar si se está ejecutando como PWA
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                     window.navigator.standalone || 
+                     document.referrer.includes('android-app://');
+        
+        if (isPWA) {
+            console.log('Ejecutando como PWA');
+        }
+        
+        // Prevenir el pull-to-refresh en iOS
+        let lastY = 0;
+        document.addEventListener('touchstart', (e) => {
+            lastY = e.touches[0].clientY;
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            const y = e.touches[0].clientY;
+            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+            
+            if (scrollTop === 0 && y > lastY) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html>

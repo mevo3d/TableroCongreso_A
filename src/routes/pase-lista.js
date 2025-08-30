@@ -180,13 +180,31 @@ router.post('/marcar', (req, res) => {
                     return res.status(500).json({ error: 'Error guardando asistencia' });
                 }
                 
-                // Emitir evento
-                io.emit('asistencia-marcada', {
-                    diputado_id,
-                    asistencia
-                });
+                // Si se marca como presente, habilitar votación
+                // Si se marca como ausente, deshabilitar votación
+                const puedeVotar = asistencia === 'presente' ? 1 : 0;
                 
-                res.json({ message: 'Asistencia marcada correctamente' });
+                db.run(`
+                    UPDATE usuarios 
+                    SET puede_votar = ? 
+                    WHERE id = ? AND role = 'diputado'
+                `, [puedeVotar, diputado_id], (err) => {
+                    if (err) {
+                        console.error('Error actualizando puede_votar:', err);
+                    }
+                    
+                    // Emitir evento
+                    io.emit('asistencia-marcada', {
+                        diputado_id,
+                        asistencia,
+                        puede_votar: puedeVotar
+                    });
+                    
+                    res.json({ 
+                        message: 'Asistencia marcada correctamente',
+                        puede_votar: puedeVotar
+                    });
+                });
             });
         }
     });
@@ -262,6 +280,13 @@ router.post('/confirmar', (req, res) => {
                         presentes: conteo.presentes,
                         ausentes: conteo.ausentes,
                         total: conteo.total
+                    });
+                    
+                    // Notificar a los secretarios (popup especial)
+                    io.emit('notificar-secretarios-asistencia-final', {
+                        totalPresentes: conteo.presentes,
+                        confirmadoPor: req.user.nombre_completo,
+                        cargo: userData.cargo_mesa_directiva || userData.role
                     });
                     
                     // Mostrar automáticamente en pantalla
@@ -392,11 +417,12 @@ router.post('/rectificar', (req, res) => {
     });
 });
 
-// Reiniciar pase de lista (borrar todas las asistencias)
+// Reiniciar pase de lista (con opciones de reinicio suave o duro)
 router.post('/reiniciar', (req, res) => {
     const db = req.db;
     const io = req.io;
     const userId = req.user.id;
+    const { tipo_reinicio = 'duro' } = req.body; // Por defecto reinicio duro
     
     // Verificar permisos (secretario legislativo o diputado-secretario)
     db.get('SELECT cargo_mesa_directiva, role FROM usuarios WHERE id = ?', [userId], (err, userData) => {
@@ -443,11 +469,22 @@ router.post('/reiniciar', (req, res) => {
                         });
                     }
                     
-                    // Eliminar todas las asistencias del pase de lista actual
-                    console.log(`Intentando eliminar asistencias para pase_lista_id: ${paseLista.id}`);
+                    // Eliminar asistencias según el tipo de reinicio
+                    console.log(`Reinicio tipo: ${tipo_reinicio} para pase_lista_id: ${paseLista.id}`);
+                    
+                    let deleteQuery;
+                    if (tipo_reinicio === 'suave') {
+                        // Reinicio suave: solo eliminar ausentes y sin marcar (mantener presentes)
+                        deleteQuery = `DELETE FROM asistencias 
+                                      WHERE pase_lista_id = ? 
+                                      AND (asistencia = 'ausente' OR asistencia IS NULL)`;
+                    } else {
+                        // Reinicio duro: eliminar TODAS las asistencias
+                        deleteQuery = 'DELETE FROM asistencias WHERE pase_lista_id = ?';
+                    }
                     
                     db.run(
-                        'DELETE FROM asistencias WHERE pase_lista_id = ?',
+                        deleteQuery,
                         [paseLista.id],
                 function(err) {
                     if (err) {
@@ -457,18 +494,72 @@ router.post('/reiniciar', (req, res) => {
                     
                     console.log(`Pase de lista reiniciado. ${this.changes} asistencias eliminadas.`);
                     
-                    // Emitir evento a todos los clientes
-                    io.emit('pase-lista-reiniciado', {
-                        sesion_id: sesion.id,
-                        reiniciado_por: userData.cargo_mesa_directiva || userData.role,
-                        mensaje: 'El pase de lista ha sido reiniciado'
-                    });
+                    const asistenciasEliminadas = this.changes;
                     
-                    res.json({
-                        success: true,
-                        mensaje: 'Pase de lista reiniciado correctamente',
-                        asistencias_eliminadas: this.changes
-                    });
+                    if (tipo_reinicio === 'duro') {
+                        // Solo en reinicio duro: deshabilitar auto-asistencia y votación
+                        db.run(
+                            `UPDATE sesiones 
+                             SET auto_asistencia_habilitada = 0,
+                                 auto_asistencia_iniciada_por = NULL,
+                                 auto_asistencia_tipo_usuario = NULL
+                             WHERE id = ?`,
+                            [sesion.id],
+                            (err) => {
+                                if (err) {
+                                    console.error('Error deshabilitando auto-asistencia:', err);
+                                }
+                                
+                                // También deshabilitar votación para TODOS los diputados
+                                db.run(
+                                    `UPDATE usuarios 
+                                     SET puede_votar = 0 
+                                     WHERE role = 'diputado'`,
+                                    (err) => {
+                                        if (err) {
+                                            console.error('Error deshabilitando votación:', err);
+                                        }
+                                        
+                                        // Emitir evento a todos los clientes
+                                        io.emit('pase-lista-reiniciado', {
+                                            sesion_id: sesion.id,
+                                            reiniciado_por: userData.cargo_mesa_directiva || userData.role,
+                                            mensaje: 'Reinicio TOTAL - Todos deben ser validados manualmente',
+                                            tipo_reinicio: 'duro',
+                                            auto_asistencia_deshabilitada: true,
+                                            votacion_deshabilitada: true
+                                        });
+                                        
+                                        res.json({
+                                            success: true,
+                                            mensaje: 'Reinicio TOTAL completado - Se requiere validación manual',
+                                            tipo_reinicio: 'duro',
+                                            asistencias_eliminadas: asistenciasEliminadas,
+                                            auto_asistencia_deshabilitada: true,
+                                            votacion_deshabilitada: true
+                                        });
+                                    }
+                                );
+                            }
+                        );
+                    } else {
+                        // Reinicio suave: mantener auto-asistencia y derechos de votación para presentes
+                        io.emit('pase-lista-reiniciado', {
+                            sesion_id: sesion.id,
+                            reiniciado_por: userData.cargo_mesa_directiva || userData.role,
+                            mensaje: 'Reinicio PARCIAL - Los presentes mantienen sus derechos',
+                            tipo_reinicio: 'suave',
+                            auto_asistencia_deshabilitada: false
+                        });
+                        
+                        res.json({
+                            success: true,
+                            mensaje: 'Reinicio PARCIAL completado - Presentes mantienen asistencia',
+                            tipo_reinicio: 'suave',
+                            asistencias_eliminadas: asistenciasEliminadas,
+                            auto_asistencia_deshabilitada: false
+                        });
+                    }
                 }
             );
                 });
@@ -780,6 +871,258 @@ router.post('/guardar', (req, res) => {
                     res.status(500).json({ error: 'Error guardando detalles de asistencia' });
                 });
         });
+    });
+});
+
+// Endpoint para habilitar auto-asistencia
+router.post('/habilitar-auto-asistencia', (req, res) => {
+    const db = req.db;
+    const io = req.io;
+    const { iniciado_por, tipo_usuario } = req.body;
+    
+    // Verificar permisos
+    if (req.user.role !== 'secretario' && 
+        req.user.cargo_mesa_directiva !== 'secretario1' && 
+        req.user.cargo_mesa_directiva !== 'secretario2') {
+        return res.status(403).json({ 
+            error: 'No autorizado',
+            message: 'Solo secretarios pueden habilitar auto-asistencia' 
+        });
+    }
+    
+    // Verificar si hay una sesión activa
+    db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando sesión' });
+        }
+        
+        if (!sesion) {
+            return res.status(400).json({ 
+                error: 'Sin sesión activa',
+                message: 'Debe haber una sesión activa para habilitar auto-asistencia' 
+            });
+        }
+        
+        // Guardar en la base de datos quién habilitó la auto-asistencia
+        db.get(
+            'SELECT * FROM pase_lista WHERE sesion_id = ? AND finalizado = 0',
+            [sesion.id],
+            (err, paseLista) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error verificando pase de lista' });
+                }
+                
+                const paseListaId = paseLista ? paseLista.id : null;
+                
+                // Actualizar o crear registro de auto-asistencia habilitada
+                db.run(
+                    `UPDATE sesiones 
+                     SET auto_asistencia_habilitada = 1,
+                         auto_asistencia_iniciada_por = ?,
+                         auto_asistencia_tipo_usuario = ?
+                     WHERE id = ?`,
+                    [iniciado_por, tipo_usuario, sesion.id],
+                    (err) => {
+                        if (err) {
+                            return res.status(500).json({ error: 'Error habilitando auto-asistencia' });
+                        }
+                        
+                        // Emitir evento a todos los clientes
+                        io.emit('auto-asistencia-habilitada', {
+                            iniciado_por: iniciado_por,
+                            nombre_iniciador: req.user.nombre_completo,
+                            tipo_usuario: tipo_usuario,
+                            pase_lista_id: paseListaId
+                        });
+                        
+                        res.json({
+                            success: true,
+                            message: 'Auto-asistencia habilitada correctamente'
+                        });
+                    }
+                );
+            }
+        );
+    });
+});
+
+// Endpoint para obtener mi asistencia actual
+router.get('/mi-asistencia', (req, res) => {
+    const db = req.db;
+    const userId = req.user.id;
+    
+    db.get(`
+        SELECT a.*, pl.pase_lista_confirmado
+        FROM pase_lista pl
+        LEFT JOIN asistencias a ON a.pase_lista_id = pl.id AND a.diputado_id = ?
+        JOIN sesiones s ON pl.sesion_id = s.id
+        WHERE s.activa = 1 AND pl.finalizado = 0
+        ORDER BY pl.fecha DESC
+        LIMIT 1
+    `, [userId], (err, asistencia) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error obteniendo asistencia' });
+        }
+        
+        res.json({
+            asistencia: asistencia ? asistencia.asistencia : null,
+            llegada_tardia: asistencia ? asistencia.llegada_tardia : false,
+            pase_lista_confirmado: asistencia ? asistencia.pase_lista_confirmado : false
+        });
+    });
+});
+
+// Endpoint para auto-registro de asistencia por parte del diputado
+router.post('/auto-registro', (req, res) => {
+    const db = req.db;
+    const io = req.io;
+    const { diputado_id, asistencia, llegada_tardia } = req.body;
+    
+    // Verificar que el diputado solo pueda registrar su propia asistencia
+    if (parseInt(diputado_id) !== req.user.id) {
+        return res.status(403).json({ 
+            error: 'No autorizado',
+            message: 'Solo puedes registrar tu propia asistencia' 
+        });
+    }
+    
+    // Verificar si hay una sesión activa
+    db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error verificando sesión' });
+        }
+        
+        if (!sesion) {
+            return res.status(400).json({ 
+                error: 'Sin sesión activa',
+                message: 'No hay una sesión activa para registrar asistencia' 
+            });
+        }
+        
+        // Verificar si hay un pase de lista activo
+        db.get(
+            'SELECT * FROM pase_lista WHERE sesion_id = ? AND finalizado = 0',
+            [sesion.id],
+            (err, paseLista) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error verificando pase de lista' });
+                }
+                
+                if (!paseLista) {
+                    // Si no hay pase de lista activo, crear uno automático
+                    db.run(
+                        `INSERT INTO pase_lista (sesion_id, fecha, realizado_por, visible_pantalla) 
+                         VALUES (?, CURRENT_TIMESTAMP, ?, 1)`,
+                        [sesion.id, diputado_id],
+                        function(err) {
+                            if (err) {
+                                console.error('Error creando pase de lista automático:', err);
+                                return res.status(500).json({ error: 'Error creando pase de lista' });
+                            }
+                            
+                            const paseId = this.lastID;
+                            registrarAsistencia(paseId);
+                        }
+                    );
+                } else {
+                    registrarAsistencia(paseLista.id);
+                }
+                
+                function registrarAsistencia(paseListaId) {
+                    // Verificar si ya existe un registro
+                    db.get(
+                        'SELECT * FROM asistencias WHERE pase_lista_id = ? AND diputado_id = ?',
+                        [paseListaId, diputado_id],
+                        (err, asistenciaExistente) => {
+                            if (err) {
+                                return res.status(500).json({ error: 'Error verificando asistencia' });
+                            }
+                            
+                            if (asistenciaExistente) {
+                                // Actualizar asistencia existente
+                                db.run(
+                                    `UPDATE asistencias 
+                                     SET asistencia = ?, 
+                                         hora = CURRENT_TIMESTAMP, 
+                                         auto_registro = 1,
+                                         llegada_tardia = ?,
+                                         hora_llegada_tardia = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE hora_llegada_tardia END
+                                     WHERE pase_lista_id = ? AND diputado_id = ?`,
+                                    [asistencia, llegada_tardia ? 1 : 0, llegada_tardia ? 1 : 0, paseListaId, diputado_id],
+                                    (err) => {
+                                        if (err) {
+                                            return res.status(500).json({ error: 'Error actualizando asistencia' });
+                                        }
+                                        
+                                        emitirActualizacion();
+                                    }
+                                );
+                            } else {
+                                // Insertar nueva asistencia
+                                db.run(
+                                    `INSERT INTO asistencias (pase_lista_id, diputado_id, asistencia, hora, auto_registro, llegada_tardia, hora_llegada_tardia) 
+                                     VALUES (?, ?, ?, CURRENT_TIMESTAMP, 1, ?, ?)`,
+                                    [paseListaId, diputado_id, asistencia, llegada_tardia ? 1 : 0, llegada_tardia ? 'CURRENT_TIMESTAMP' : null],
+                                    (err) => {
+                                        if (err) {
+                                            return res.status(500).json({ error: 'Error registrando asistencia' });
+                                        }
+                                        
+                                        emitirActualizacion();
+                                    }
+                                );
+                            }
+                            
+                            function emitirActualizacion() {
+                                // Contar total de presentes
+                                db.get(
+                                    `SELECT COUNT(*) as total 
+                                     FROM asistencias 
+                                     WHERE pase_lista_id = ? AND asistencia = 'presente'`,
+                                    [paseListaId],
+                                    (err, resultado) => {
+                                        const totalPresentes = resultado ? resultado.total : 0;
+                                        
+                                        // Emitir actualización a pantalla de asistencia
+                                        io.emit('asistencia-marcada', {
+                                            diputado_id: diputado_id,
+                                            asistencia: asistencia,
+                                            auto_registro: true,
+                                            llegada_tardia: llegada_tardia
+                                        });
+                                        
+                                        // Si es llegada tardía, notificar especialmente
+                                        if (llegada_tardia) {
+                                            // Obtener información de quién inició el pase de lista
+                                            db.get(`
+                                                SELECT s.auto_asistencia_iniciada_por, s.auto_asistencia_tipo_usuario
+                                                FROM sesiones s
+                                                WHERE s.activa = 1
+                                            `, (err, sesion) => {
+                                                io.emit('notificar-llegada-tardia', {
+                                                    diputado: req.user.nombre_completo,
+                                                    diputado_id: diputado_id,
+                                                    hora: new Date().toLocaleTimeString('es-MX'),
+                                                    iniciador_id: sesion ? sesion.auto_asistencia_iniciada_por : null,
+                                                    tipo_iniciador: sesion ? sesion.auto_asistencia_tipo_usuario : null
+                                                });
+                                            });
+                                        }
+                                        
+                                        res.json({
+                                            success: true,
+                                            message: llegada_tardia ? 'Asistencia tardía registrada' : 'Asistencia registrada correctamente',
+                                            totalPresentes: totalPresentes,
+                                            llegada_tardia: llegada_tardia
+                                        });
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+        );
     });
 });
 

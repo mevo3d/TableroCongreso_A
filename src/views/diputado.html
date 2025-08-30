@@ -1023,6 +1023,15 @@
             </button>
             <div id="dividerAsistencia" class="menu-divider" style="display: none;"></div>
             
+            <!-- Botón EN VIVO solo para mesa directiva -->
+            <a href="#" class="menu-item" id="btnStreamingLive" onclick="abrirStreamingLive()" style="display: none; background: linear-gradient(135deg, #dc2626, #ef4444); color: white;">
+                <i class="fas fa-video" style="color: white;"></i>
+                <div>
+                    <div style="font-weight: bold;">EN VIVO</div>
+                    <small style="color: rgba(255,255,255,0.9);">Ver transmisión de la sesión</small>
+                </div>
+            </a>
+            
             <a href="#" class="menu-item" onclick="verTableroSimplificado()">
                 <i class="fas fa-th"></i>
                 <div>
@@ -3018,6 +3027,21 @@
             console.log('Verificando cargo mesa directiva:', user.cargo_mesa_directiva);
             console.log('Usuario completo:', user);
             
+            // Verificar si es miembro de mesa directiva para mostrar botón EN VIVO
+            const cargoNormalizado = (user.cargo_mesa_directiva || '').toLowerCase();
+            const esMesaDirectiva = cargoNormalizado.includes('presidente') || 
+                                   cargoNormalizado.includes('vicepresidente') || 
+                                   cargoNormalizado.includes('secretario') || 
+                                   cargoNormalizado.includes('prosecretario');
+            
+            if (esMesaDirectiva) {
+                const btnStreaming = document.getElementById('btnStreamingLive');
+                if (btnStreaming) {
+                    btnStreaming.style.display = 'flex';
+                    console.log('Botón EN VIVO habilitado para mesa directiva');
+                }
+            }
+            
             // Mostrar menú de secretario en el panel lateral
             if (user.cargo_mesa_directiva === 'secretario1' || user.cargo_mesa_directiva === 'secretario2') {
                 console.log('Es secretario, mostrando panel en menú lateral');
@@ -3037,6 +3061,18 @@
                 console.log('Es vicepresidente, verificando autorización');
                 verificarAutorizacionVicepresidente();
             }
+        }
+        
+        // Función para abrir streaming en vivo
+        function abrirStreamingLive() {
+            toggleMenu();
+            
+            // Usar la página personalizada con fondo parallax y PWA
+            const currentHost = window.location.protocol + '//' + window.location.host;
+            window.open(currentHost + '/streaming-live', '_blank');
+            
+            // Opción alternativa: Abrir directamente LiveLAN de vMix (sin interfaz personalizada)
+            // window.open('http://192.168.150.71:8088/livelan', '_blank', 'width=1280,height=720,toolbar=no,menubar=no,location=no');
         }
         
         // Verificar autorización del vicepresidente

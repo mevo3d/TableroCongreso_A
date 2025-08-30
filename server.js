@@ -56,6 +56,7 @@ const superadminRoutes = require('./src/routes/superadmin');
 const paseListaRoutes = require('./src/routes/pase-lista');
 const exportarRoutes = require('./src/routes/exportar-mejorado');
 const validacionPdfRoutes = require('./src/routes/validacion-pdf');
+const streamingRoutes = require('./src/routes/streaming');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/operador', operadorRoutes);
@@ -67,6 +68,7 @@ app.use('/api/pase-lista', paseListaRoutes);
 app.use('/api/servicios-legislativos', require('./src/routes/servicios-legislativos'));
 app.use('/api/exportar', exportarRoutes);
 app.use('/api/validacion', validacionPdfRoutes);
+app.use('/api/streaming', streamingRoutes);
 
 // Rutas de acceso de prueba (solo desarrollo)
 const testAccessRoutes = require('./src/routes/test-access');
@@ -264,6 +266,10 @@ app.get('/tablero-diputado', (req, res) => {
 
 app.get('/estadisticas-diputados', (req, res) => {
     res.sendFile(path.join(__dirname, 'src/views/estadisticas-diputados.html'));
+});
+
+app.get('/streaming-live', (req, res) => {
+    res.sendFile(path.join(__dirname, 'src/views/streaming-live.html'));
 });
 
 app.get('/historial-sesiones', (req, res) => {
