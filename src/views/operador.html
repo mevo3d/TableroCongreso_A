@@ -1373,21 +1373,20 @@
         
         // Función para guardar iniciativas seleccionadas
         async function guardarIniciativasSeleccionadas() {
-            try {
-                console.log('=== INICIANDO GUARDADO DE INICIATIVAS ===');
-                console.log('Iniciativas en validación:', iniciativasValidacion);
-                console.log('Session ID actual:', sessionIdActual);
-                
-                // Validar que tengamos datos
-                if (!iniciativasValidacion || iniciativasValidacion.length === 0) {
-                    alert('No hay iniciativas para importar');
-                    return;
-                }
-                
-                if (!sessionIdActual) {
-                    alert('Error: No hay una sesión activa. Por favor recarga la página.');
-                    return;
-                }
+            console.log('=== INICIANDO GUARDADO DE INICIATIVAS ===');
+            console.log('Iniciativas en validación:', iniciativasValidacion);
+            console.log('Session ID actual:', sessionIdActual);
+            
+            // Validar que tengamos datos
+            if (!iniciativasValidacion || iniciativasValidacion.length === 0) {
+                alert('No hay iniciativas para importar');
+                return;
+            }
+            
+            if (!sessionIdActual) {
+                alert('Error: No hay una sesión activa. Por favor recarga la página.');
+                return;
+            }
             
             // Verificar el modo de importación
             const importarTodas = document.getElementById('importarTodasSwitch')?.checked ?? false;
