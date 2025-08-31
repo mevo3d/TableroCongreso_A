@@ -1100,6 +1100,22 @@
                 totalIniciativasEl.textContent = iniciativasValidacion.length;
             }
             
+            // Actualizar contador total
+            const contadorTotalEl = document.getElementById('contadorTotal');
+            if (contadorTotalEl) {
+                contadorTotalEl.textContent = iniciativasValidacion.length;
+            }
+            
+            // Contar recomendadas para votación
+            const recomendadas = iniciativasValidacion.filter(i => 
+                i.recomendado_para_votacion || i.requiere_votacion).length;
+            const numRecomendadasEl = document.getElementById('numRecomendadas');
+            const contadorRecomendadasEl = document.getElementById('contadorRecomendadas');
+            if (numRecomendadasEl && contadorRecomendadasEl) {
+                numRecomendadasEl.textContent = recomendadas;
+                contadorRecomendadasEl.style.display = recomendadas > 0 ? 'inline-block' : 'none';
+            }
+            
             const requierenVot = iniciativasValidacion.filter(i => i.requiere_votacion).length;
             const requierenVotacionEl = document.getElementById('requierenVotacion');
             if (requierenVotacionEl) {
@@ -1148,12 +1164,24 @@
                 const index = iniciativasValidacion.indexOf(init);
                 const tr = document.createElement('tr');
                 
-                // Determinar si requiere votación
+                // Determinar si requiere votación y si es recomendada
                 const requiereVotacion = init.requiere_votacion || false;
+                const esRecomendada = init.recomendado_para_votacion || false;
                 
-                // Estilo de fila para iniciativas que requieren votación
-                if (requiereVotacion) {
-                    tr.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                // Estilo de fila según el estado
+                if (esRecomendada) {
+                    // Verde claro para recomendadas
+                    tr.style.backgroundColor = 'rgba(40, 167, 69, 0.15)';
+                    tr.style.borderLeft = '3px solid #28a745';
+                } else if (requiereVotacion) {
+                    // Verde muy claro para las que requieren votación
+                    tr.style.backgroundColor = 'rgba(40, 167, 69, 0.08)';
+                } else if (init.categoria === 'iniciativas') {
+                    // Azul claro para iniciativas (turno a comisiones)
+                    tr.style.backgroundColor = 'rgba(0, 123, 255, 0.05)';
+                } else if (init.categoria === 'otras') {
+                    // Gris claro para otras
+                    tr.style.backgroundColor = 'rgba(108, 117, 125, 0.05)';
                 }
                 
                 // Verificar si está seleccionada
@@ -1168,6 +1196,7 @@
                                onchange="toggleIniciativaSeleccion(${index})">
                     </td>
                     <td>
+                        ${esRecomendada ? '<i class="fas fa-robot text-warning me-1" title="Recomendada por el sistema"></i>' : ''}
                         ${requiereVotacion ? '<i class="fas fa-vote-yea text-success me-1" title="Requiere votación"></i>' : ''}
                         <strong>${init.numero_sistema}</strong>
                     </td>
@@ -1315,11 +1344,40 @@
         
         // Función para guardar iniciativas seleccionadas
         async function guardarIniciativasSeleccionadas() {
-            const iniciativasSeleccionadas = iniciativasValidacion.filter(i => i.seleccionada);
+            // Verificar el modo de importación
+            const importarTodas = document.getElementById('importarTodasSwitch')?.checked ?? false;
+            let iniciativasAImportar = [];
+            let iniciativasParaVotacion = [];
             
-            if (iniciativasSeleccionadas.length === 0) {
-                alert('Por favor selecciona al menos una iniciativa para importar');
-                return;
+            if (importarTodas) {
+                // Importar TODAS las iniciativas del documento
+                iniciativasAImportar = [...iniciativasValidacion];
+                // Las seleccionadas se marcan para votación
+                iniciativasParaVotacion = iniciativasValidacion.filter(i => i.seleccionada);
+                
+                // Marcar cuáles van a votación
+                iniciativasAImportar.forEach(init => {
+                    init.marcada_para_votacion = init.seleccionada;
+                    // Si está seleccionada, asegurar que tiene requiere_votacion
+                    if (init.seleccionada) {
+                        init.requiere_votacion = true;
+                    }
+                });
+                
+                console.log(`Importando TODAS las ${iniciativasAImportar.length} iniciativas`);
+                console.log(`${iniciativasParaVotacion.length} marcadas para votación`);
+            } else {
+                // Solo importar las seleccionadas
+                const iniciativasSeleccionadas = iniciativasValidacion.filter(i => i.seleccionada);
+                iniciativasAImportar = iniciativasSeleccionadas;
+                iniciativasParaVotacion = iniciativasSeleccionadas;
+                
+                if (iniciativasAImportar.length === 0) {
+                    alert('Por favor selecciona al menos una iniciativa para importar');
+                    return;
+                }
+                
+                console.log(`Importando solo ${iniciativasAImportar.length} iniciativas seleccionadas`);
             }
             
             // Obtener el tipo de carga seleccionado
@@ -1357,7 +1415,9 @@
                     body: JSON.stringify({
                         tipoCarga: tipoCarga,
                         fechaProgramada: fechaProgramada,
-                        iniciativasSeleccionadas: iniciativasSeleccionadas
+                        iniciativasSeleccionadas: iniciativasAImportar,  // Enviar las iniciativas a importar
+                        modoImportacion: importarTodas ? 'todas' : 'seleccionadas',  // Indicar el modo
+                        iniciativasVotacion: iniciativasParaVotacion.map(i => i.numero)  // IDs de las que van a votación
                     })
                 });
                 
@@ -1382,12 +1442,22 @@
                 const alertDiv = document.createElement('div');
                 alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
                 alertDiv.style.zIndex = '9999';
-                alertDiv.innerHTML = `
-                    <strong>✅ Importación exitosa</strong><br>
-                    Se importaron ${iniciativasSeleccionadas.length} iniciativas correctamente.<br>
-                    <small>Sesión: ${data.sesion?.nombre || 'Nueva sesión'}</small>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
+                let mensajeImportacion = '';
+                if (importarTodas) {
+                    mensajeImportacion = `
+                        <strong>✅ Importación exitosa</strong><br>
+                        Se importaron TODAS las ${iniciativasAImportar.length} iniciativas del documento.<br>
+                        <span class="badge bg-warning text-dark">${iniciativasParaVotacion.length} marcadas para votación</span><br>
+                        <small>Sesión: ${data.sesion?.nombre || 'Nueva sesión'}</small>
+                    `;
+                } else {
+                    mensajeImportacion = `
+                        <strong>✅ Importación exitosa</strong><br>
+                        Se importaron ${iniciativasAImportar.length} iniciativas seleccionadas.<br>
+                        <small>Sesión: ${data.sesion?.nombre || 'Nueva sesión'}</small>
+                    `;
+                }
+                alertDiv.innerHTML = mensajeImportacion + `<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
                 document.body.appendChild(alertDiv);
                 
                 setTimeout(() => alertDiv.remove(), 5000);
@@ -1452,6 +1522,16 @@
                 init.seleccionada = false;
             });
             renderizarTablaValidacion(iniciativasValidacion);
+        }
+        
+        // Nueva función para seleccionar solo las recomendadas por el sistema
+        function seleccionarRecomendadas() {
+            iniciativasValidacion.forEach(init => {
+                // Seleccionar si el sistema lo recomienda para votación
+                init.seleccionada = init.recomendado_para_votacion || init.requiere_votacion || false;
+            });
+            renderizarTablaValidacion(iniciativasValidacion);
+            mostrarNotificacion('Se han seleccionado las iniciativas recomendadas por el sistema', 'info');
         }
         
         // Función para mostrar modal de validación
@@ -4541,22 +4621,45 @@
                         </div>
                     </div>
                     
+                    <!-- Modo de Importación -->
+                    <div class="alert alert-warning mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="importarTodasSwitch" checked>
+                            <label class="form-check-label fw-bold" for="importarTodasSwitch">
+                                <i class="fas fa-database"></i> Importar TODAS las iniciativas del documento
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            ⚠️ Si está activado: Se importarán TODAS las iniciativas y las seleccionadas se marcarán para votación.<br>
+                            Si está desactivado: Solo se importarán las iniciativas que selecciones.
+                        </small>
+                    </div>
+                    
                     <!-- Controles de selección -->
                     <div class="mb-2 d-flex justify-content-between align-items-center">
                         <div>
+                            <button class="btn btn-sm btn-success" onclick="seleccionarRecomendadas()" title="Seleccionar las que el sistema recomienda para votación">
+                                <i class="fas fa-robot"></i> Usar Recomendaciones
+                            </button>
                             <button class="btn btn-sm btn-outline-success" onclick="seleccionarTodasVotables()">
-                                <i class="fas fa-check-square"></i> Seleccionar Votables
+                                <i class="fas fa-check-square"></i> Votables
                             </button>
                             <button class="btn btn-sm btn-outline-secondary" onclick="seleccionarTodas()">
-                                <i class="fas fa-check-double"></i> Seleccionar Todas
+                                <i class="fas fa-check-double"></i> Todas
                             </button>
                             <button class="btn btn-sm btn-outline-warning" onclick="deseleccionarTodas()">
-                                <i class="fas fa-times"></i> Quitar Selección
+                                <i class="fas fa-times"></i> Ninguna
                             </button>
                         </div>
                         <div>
                             <span class="badge bg-primary">
                                 <span id="contadorSeleccionadas">0</span> seleccionadas
+                            </span>
+                            <span class="badge bg-secondary ms-1">
+                                <span id="contadorTotal">0</span> total
+                            </span>
+                            <span class="badge bg-success ms-1" id="contadorRecomendadas" style="display:none;">
+                                <span id="numRecomendadas">0</span> recomendadas
                             </span>
                         </div>
                     </div>

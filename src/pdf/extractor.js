@@ -494,7 +494,8 @@ function extraerElementos(texto, tipoSesion) {
     let procesandoElemento = false;
     let incisos = [];
     let incisoPrincipalActual = null;  // Para rastrear el inciso principal (A, B, C, etc.)
-    let categoriaActual = 'procedimiento';  // Categoría actual basada en el inciso
+    let categoriaActual = 'otras';  // Categoría por defecto para elementos no identificados
+    let capturarTodo = true;  // NUEVO: Capturar TODO el contenido, no solo patrones específicos
     
     for (let i = 0; i < lineas.length; i++) {
         const linea = lineas[i];
@@ -563,7 +564,7 @@ function extraerElementos(texto, tipoSesion) {
             continue;
         }
         
-        // Detectar elementos: pueden ser numerados o empezar con palabras clave
+        // MODIFICADO: Capturar TODO el contenido, no solo patrones específicos
         const matchNumero = linea.match(/^(\d+)\.\s+(.+)/);
         const esDictamen = linea.match(/^(\d+\.\s+)?Dict[aá]m/i);
         const esIniciativa = linea.match(/^(\d+\.\s+)?Iniciativa/i);
@@ -573,12 +574,18 @@ function extraerElementos(texto, tipoSesion) {
         const matchNumeroRomano = linea.match(/^[IVXLCDM]+\.\s+(.+)/);
         const matchLetra = linea.match(/^[a-z]\.\s+(.+)/i);
         
-        // Detectar si es un elemento válido basado en la sección actual y el contenido
+        // NUEVO: Detectar cualquier contenido que parezca un elemento
+        const esContenidoRelevante = linea.length > 20 && // Líneas con contenido sustancial
+                                     !linea.match(/^Página/i) && // No incluir números de página
+                                     !linea.match(/^\d+$/) && // No incluir solo números
+                                     !linea.match(/^ORDEN DEL DÍA/i) && // No incluir títulos generales
+                                     !linea.match(/^CONGRESO DEL ESTADO/i); // No incluir encabezados
+        
+        // Capturar elementos específicos O cualquier contenido relevante si capturarTodo está activo
         const esElementoValido = (matchNumero || esDictamen || esIniciativa || esProposicion || 
-                                  (tipoSeccionActual && (matchNumeroRomano || matchLetra))) && 
-                                  tipoSeccionActual && 
-                                  // Asegurar que no es un título de sección
-                                  !linea.match(/^[A-Z]\)\s+/);
+                                  matchNumeroRomano || matchLetra || 
+                                  (capturarTodo && esContenidoRelevante && tipoSeccionActual)) && 
+                                  !linea.match(/^[A-Z]\)\s+/); // No es un título de sección principal
         
         if (esElementoValido) {
             // Procesar elemento anterior si existe
@@ -609,40 +616,63 @@ function extraerElementos(texto, tipoSesion) {
             textoAcumulado = linea;
             incisos = []; // Reiniciar incisos para el nuevo elemento
             
-            // Determinar si requiere votación basándose en el contenido
-            let requiereVotacionElemento = tipoSeccionActual?.requiereVotacion || false;
-            let tipoVotacionElemento = tipoSeccionActual?.tipoVotacion || '';
-            let categoriaElemento = tipoSeccionActual?.categoria || 'procedimiento';
+            // MODIFICADO: Determinar categoría y RECOMENDAR votación (no filtrar)
+            let requiereVotacionElemento = false; // Por defecto no requiere votación
+            let recomendadoParaVotacion = false; // NUEVO: Campo para recomendación
+            let tipoVotacionElemento = '';
+            let categoriaElemento = categoriaActual; // Usar categoría actual o 'otras' por defecto
             
-            // Analizar el contenido para determinar la categoría correcta
-            if (esDictamen) {
-                // Buscar si es primera o segunda lectura en el texto
-                if (linea.match(/primera\s+lectura/i) || linea.match(/1[ae]?r?a?\.\s*lectura/i)) {
+            // Analizar el contenido para determinar la categoría y recomendación
+            const textoAnalizar = linea.toLowerCase();
+            
+            if (esDictamen || textoAnalizar.includes('dictamen') || textoAnalizar.includes('dictámen')) {
+                // Buscar si es primera o segunda lectura
+                if (textoAnalizar.match(/primera\s+lectura/) || textoAnalizar.match(/1[ae]?r?a?\.\s*lectura/)) {
                     categoriaElemento = 'primera_lectura';
-                    requiereVotacionElemento = false;
+                    recomendadoParaVotacion = false; // Primera lectura normalmente no se vota
                     tipoVotacionElemento = 'primera_lectura';
-                } else if (linea.match(/segunda\s+lectura/i) || linea.match(/2[ad]?a?\.\s*lectura/i)) {
+                } else if (textoAnalizar.match(/segunda\s+lectura/) || textoAnalizar.match(/2[ad]?a?\.\s*lectura/)) {
                     categoriaElemento = 'segunda_lectura';
+                    recomendadoParaVotacion = true; // Segunda lectura SÍ se recomienda votar
                     requiereVotacionElemento = true;
                     tipoVotacionElemento = 'votacion_dictamen';
                 } else {
-                    // Si es dictamen sin especificar, asumir segunda lectura
-                    categoriaElemento = 'segunda_lectura';
-                    requiereVotacionElemento = true;
+                    // Dictamen genérico - categorizar como dictámenes
+                    categoriaElemento = 'dictamenes';
+                    recomendadoParaVotacion = true; // Dictámenes generalmente se votan
                     tipoVotacionElemento = 'votacion_dictamen';
                 }
             }
-            // Las iniciativas NO se votan (solo se turnan)
-            else if (esIniciativa) {
+            // Iniciativas - se turnan pero no se votan normalmente
+            else if (esIniciativa || textoAnalizar.includes('iniciativa')) {
                 categoriaElemento = 'iniciativas';
-                requiereVotacionElemento = false;
+                recomendadoParaVotacion = false;
                 tipoVotacionElemento = 'turno_comision';
             }
-            // Las proposiciones con punto de acuerdo SÍ se votan
-            else if (esProposicion) {
+            // Puntos de acuerdo - generalmente se votan
+            else if (esProposicion || textoAnalizar.includes('punto') && textoAnalizar.includes('acuerdo')) {
                 categoriaElemento = 'puntos_acuerdo';
+                recomendadoParaVotacion = true;
                 requiereVotacionElemento = true;
                 tipoVotacionElemento = 'punto_acuerdo';
+            }
+            // Urgente y obvia resolución - SIEMPRE se vota
+            else if (textoAnalizar.includes('urgente') && textoAnalizar.includes('obvia')) {
+                categoriaElemento = 'urgente';
+                recomendadoParaVotacion = true;
+                requiereVotacionElemento = true;
+                tipoVotacionElemento = 'urgente_obvia';
+            }
+            // Si tiene el inciso principal, usar su categoría
+            else if (incisoPrincipalActual && tipoSeccionActual) {
+                categoriaElemento = tipoSeccionActual.categoria || categoriaActual;
+                recomendadoParaVotacion = tipoSeccionActual.requiereVotacion || false;
+                tipoVotacionElemento = tipoSeccionActual.tipoVotacion || '';
+            }
+            // Si no se puede categorizar, dejar como 'otras'
+            else {
+                categoriaElemento = 'otras';
+                recomendadoParaVotacion = false;
             }
             
             elementoActual = {
@@ -656,11 +686,13 @@ function extraerElementos(texto, tipoSesion) {
                 es_procedimiento: tipoSeccionActual?.esProcedimiento || false,  // Si es procedimiento
                 tipo_documento: determinarTipoDocumento(linea),
                 requiere_votacion: requiereVotacionElemento,
+                recomendado_para_votacion: recomendadoParaVotacion,  // NUEVO: Recomendación del sistema
                 tipo_votacion: tipoVotacionElemento,
                 momento_votacion: requiereVotacionElemento ? 'inmediato' : 'no_aplica',
                 tipo_mayoria: 'simple',
                 prioridad: 'normal',
-                caracteristicas_especiales: []
+                caracteristicas_especiales: [],
+                capturado_automaticamente: true  // NUEVO: Marcar que fue capturado automáticamente
             };
             
             // En sesiones solemnes o ceremoniales, nada se vota pero mantener categorías
