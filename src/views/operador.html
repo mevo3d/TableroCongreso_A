@@ -1373,9 +1373,21 @@
         
         // Función para guardar iniciativas seleccionadas
         async function guardarIniciativasSeleccionadas() {
-            console.log('=== INICIANDO GUARDADO DE INICIATIVAS ===');
-            console.log('Iniciativas en validación:', iniciativasValidacion);
-            console.log('Session ID actual:', sessionIdActual);
+            try {
+                console.log('=== INICIANDO GUARDADO DE INICIATIVAS ===');
+                console.log('Iniciativas en validación:', iniciativasValidacion);
+                console.log('Session ID actual:', sessionIdActual);
+                
+                // Validar que tengamos datos
+                if (!iniciativasValidacion || iniciativasValidacion.length === 0) {
+                    alert('No hay iniciativas para importar');
+                    return;
+                }
+                
+                if (!sessionIdActual) {
+                    alert('Error: No hay una sesión activa. Por favor recarga la página.');
+                    return;
+                }
             
             // Verificar el modo de importación
             const importarTodas = document.getElementById('importarTodasSwitch')?.checked ?? false;
@@ -3952,6 +3964,21 @@
             
             // Actualizar cada 30 segundos
             setInterval(cargarEstadoSesion, 30000);
+            
+            // Agregar listener al botón de guardar validación
+            const btnGuardar = document.getElementById('btnGuardarValidacion');
+            if (btnGuardar) {
+                console.log('Botón de guardar encontrado, agregando listener...');
+                btnGuardar.removeEventListener('click', guardarIniciativasSeleccionadas); // Remover cualquier listener anterior
+                btnGuardar.addEventListener('click', function(e) {
+                    console.log('Click detectado en botón guardar');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    guardarIniciativasSeleccionadas();
+                });
+            } else {
+                console.error('Botón btnGuardarValidacion no encontrado');
+            }
             const resolutionSelect = document.getElementById('obsResolution');
             if (resolutionSelect) {
                 resolutionSelect.addEventListener('change', (e) => {
@@ -4589,7 +4616,7 @@
     </script>
     
     <!-- Modal de Validación de PDF -->
-    <div class="modal fade" id="modalValidacion" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal fade" id="modalValidacion" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
@@ -4771,7 +4798,7 @@
                     <button type="button" class="btn btn-warning" onclick="mostrarVistaPrevia()">
                         <i class="fas fa-eye"></i> Vista Previa
                     </button>
-                    <button type="button" class="btn btn-primary" id="btnGuardarValidacion" onclick="guardarIniciativasSeleccionadas()">
+                    <button type="button" class="btn btn-primary" id="btnGuardarValidacion">
                         <i class="fas fa-save"></i> Confirmar y Cargar Iniciativas
                     </button>
                 </div>
