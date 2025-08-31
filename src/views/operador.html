@@ -1703,6 +1703,45 @@
                             });
                             modal.show();
                             console.log('Modal mostrado exitosamente');
+                            
+                            // Configurar el botón de guardar cuando el modal se muestre
+                            setTimeout(() => {
+                                const btnGuardarModal = document.getElementById('btnGuardarValidacion');
+                                if (btnGuardarModal) {
+                                    console.log('Configurando botón guardar del modal...');
+                                    
+                                    // Remover cualquier onclick existente
+                                    btnGuardarModal.onclick = null;
+                                    
+                                    // Agregar nuevo evento
+                                    btnGuardarModal.onclick = function(event) {
+                                        console.log('>>> CLICK DIRECTO EN BOTÓN (onclick) <<<');
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        
+                                        // Deshabilitar botón
+                                        this.disabled = true;
+                                        const originalHTML = this.innerHTML;
+                                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+                                        
+                                        // Llamar a la función
+                                        try {
+                                            guardarIniciativasSeleccionadas();
+                                        } catch (error) {
+                                            console.error('Error:', error);
+                                            this.disabled = false;
+                                            this.innerHTML = originalHTML;
+                                        }
+                                        
+                                        return false;
+                                    };
+                                    
+                                    console.log('Botón configurado con onclick directo');
+                                } else {
+                                    console.error('Botón guardar no encontrado en el modal');
+                                }
+                            }, 500);
+                            
                         } catch (modalError) {
                             console.error('Error al crear/mostrar el modal:', modalError);
                             alert('Error al mostrar el modal de validación');
@@ -3996,31 +4035,43 @@
             setInterval(cargarEstadoSesion, 30000);
             
             // Agregar listener al botón de guardar validación
-            const btnGuardar = document.getElementById('btnGuardarValidacion');
-            if (btnGuardar) {
-                console.log('Botón de guardar encontrado, agregando listener...');
-                btnGuardar.removeEventListener('click', guardarIniciativasSeleccionadas); // Remover cualquier listener anterior
-                btnGuardar.addEventListener('click', async function(e) {
-                    console.log('Click detectado en botón guardar');
-                    e.preventDefault();
-                    e.stopPropagation();
+            // Usar setTimeout para asegurar que el DOM esté completamente cargado
+            setTimeout(() => {
+                const btnGuardar = document.getElementById('btnGuardarValidacion');
+                if (btnGuardar) {
+                    console.log('Botón de guardar encontrado, agregando listener...');
                     
-                    // Deshabilitar el botón para evitar múltiples clicks
-                    this.disabled = true;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+                    // Clonar el botón para remover TODOS los event listeners
+                    const newBtn = btnGuardar.cloneNode(true);
+                    btnGuardar.parentNode.replaceChild(newBtn, btnGuardar);
                     
-                    try {
-                        await guardarIniciativasSeleccionadas();
-                    } catch (error) {
-                        console.error('Error al guardar:', error);
-                        // Re-habilitar el botón si hay error
-                        this.disabled = false;
-                        this.innerHTML = '<i class="fas fa-save"></i> Confirmar y Cargar Iniciativas';
-                    }
-                });
-            } else {
-                console.error('Botón btnGuardarValidacion no encontrado');
-            }
+                    // Agregar nuestro listener al botón clonado
+                    newBtn.onclick = null; // Limpiar onclick si existe
+                    newBtn.addEventListener('click', function(e) {
+                        console.log('=== CLICK EN BOTÓN GUARDAR ===');
+                        console.log('Event:', e);
+                        console.log('Target:', e.target);
+                        console.log('CurrentTarget:', e.currentTarget);
+                        
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Llamar directamente a la función
+                        console.log('Llamando a guardarIniciativasSeleccionadas...');
+                        
+                        // Verificar que la función existe
+                        if (typeof guardarIniciativasSeleccionadas === 'function') {
+                            guardarIniciativasSeleccionadas();
+                        } else {
+                            console.error('La función guardarIniciativasSeleccionadas no está definida');
+                        }
+                    });
+                    
+                    console.log('Listener agregado exitosamente');
+                } else {
+                    console.error('Botón btnGuardarValidacion no encontrado');
+                }
+            }, 1000); // Esperar 1 segundo
             const resolutionSelect = document.getElementById('obsResolution');
             if (resolutionSelect) {
                 resolutionSelect.addEventListener('change', (e) => {
