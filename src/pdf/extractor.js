@@ -495,7 +495,6 @@ function extraerElementos(texto, tipoSesion) {
     let incisos = [];
     let incisoPrincipalActual = null;  // Para rastrear el inciso principal (A, B, C, etc.)
     let categoriaActual = 'otras';  // Categoría por defecto para elementos no identificados
-    let capturarTodo = true;  // NUEVO: Capturar TODO el contenido, no solo patrones específicos
     
     for (let i = 0; i < lineas.length; i++) {
         const linea = lineas[i];
@@ -564,8 +563,8 @@ function extraerElementos(texto, tipoSesion) {
             continue;
         }
         
-        // MODIFICADO: Capturar TODO el contenido, no solo patrones específicos
-        const matchNumero = linea.match(/^(\d+)\.\s+(.+)/);
+        // Detectar elementos válidos del orden del día
+        const matchNumero = linea.match(/^(\d+)\.\s+(.+)/); // Elementos numerados: 1. xxx
         const esDictamen = linea.match(/^(\d+\.\s+)?Dict[aá]m/i);
         const esIniciativa = linea.match(/^(\d+\.\s+)?Iniciativa/i);
         const esProposicion = linea.match(/^(\d+\.\s+)?Proposición/i) || linea.match(/^(\d+\.\s+)?Punto de Acuerdo/i);
@@ -574,17 +573,18 @@ function extraerElementos(texto, tipoSesion) {
         const matchNumeroRomano = linea.match(/^[IVXLCDM]+\.\s+(.+)/);
         const matchLetra = linea.match(/^[a-z]\.\s+(.+)/i);
         
-        // NUEVO: Detectar cualquier contenido que parezca un elemento
-        const esContenidoRelevante = linea.length > 20 && // Líneas con contenido sustancial
-                                     !linea.match(/^Página/i) && // No incluir números de página
-                                     !linea.match(/^\d+$/) && // No incluir solo números
-                                     !linea.match(/^ORDEN DEL DÍA/i) && // No incluir títulos generales
-                                     !linea.match(/^CONGRESO DEL ESTADO/i); // No incluir encabezados
+        // Detectar sub-elementos dentro de secciones (cuando ya estamos en una sección válida)
+        const esSubElemento = tipoSeccionActual && procesandoElemento && 
+                             (linea.match(/^\s*-\s+/) || // Elementos con guión
+                              linea.match(/^\s*•\s+/) || // Elementos con bullet
+                              linea.match(/^\s*\*\s+/)); // Elementos con asterisco
         
-        // Capturar elementos específicos O cualquier contenido relevante si capturarTodo está activo
+        // Solo considerar válidos los elementos que:
+        // 1. Tienen numeración explícita (1., 2., etc.)
+        // 2. Son dictámenes, iniciativas o proposiciones
+        // 3. Tienen numeración romana o letra SOLO si estamos en una sección válida
         const esElementoValido = (matchNumero || esDictamen || esIniciativa || esProposicion || 
-                                  matchNumeroRomano || matchLetra || 
-                                  (capturarTodo && esContenidoRelevante && tipoSeccionActual)) && 
+                                  (tipoSeccionActual && (matchNumeroRomano || matchLetra))) && 
                                   !linea.match(/^[A-Z]\)\s+/); // No es un título de sección principal
         
         if (esElementoValido) {
@@ -707,25 +707,45 @@ function extraerElementos(texto, tipoSesion) {
             }
             
         } else if (procesandoElemento && elementoActual) {
-            // Continuar acumulando texto del elemento actual
-            if (linea.match(/^(\d+)\.\s+/)) {
-                // Es el siguiente elemento, retroceder
+            // Verificar si es el inicio de un nuevo elemento
+            const esNuevoElemento = linea.match(/^(\d+)\.\s+/) || // Nuevo elemento numerado
+                                   linea.match(/^[A-Z]\)\s+/) || // Nuevo inciso principal
+                                   linea.match(/^Dict[aá]m/i) || // Nuevo dictamen
+                                   linea.match(/^Iniciativa/i) || // Nueva iniciativa
+                                   linea.match(/^Proposición/i) || // Nueva proposición
+                                   linea.match(/^Punto de Acuerdo/i); // Nuevo punto de acuerdo
+            
+            if (esNuevoElemento) {
+                // Finalizar elemento actual y retroceder para procesar el nuevo
                 if (elementoActual && textoAcumulado) {
+                    if (incisos.length > 0) {
+                        elementoActual.incisos = incisos;
+                    }
                     finalizarElemento(elementoActual, textoAcumulado, elementos);
                 }
                 procesandoElemento = false;
                 elementoActual = null;
                 textoAcumulado = '';
-                i--;
-            } else {
+                incisos = [];
+                i--; // Retroceder para procesar esta línea como nuevo elemento
+            } else if (linea.length > 10) { // Solo acumular líneas con contenido significativo
                 textoAcumulado += ' ' + linea;
                 
                 // Buscar patrones especiales que modifiquen la votación
                 aplicarPatronesEspeciales(elementoActual, linea);
                 
-                // Limitar acumulación
-                if (textoAcumulado.length > 2500) {
+                // Limitar acumulación para evitar elementos demasiado largos
+                if (textoAcumulado.length > 3000) {
+                    if (elementoActual && textoAcumulado) {
+                        if (incisos.length > 0) {
+                            elementoActual.incisos = incisos;
+                        }
+                        finalizarElemento(elementoActual, textoAcumulado, elementos);
+                    }
                     procesandoElemento = false;
+                    elementoActual = null;
+                    textoAcumulado = '';
+                    incisos = [];
                 }
             }
         }
