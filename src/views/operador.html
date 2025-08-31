@@ -1594,12 +1594,19 @@
         
         // Nueva función para seleccionar solo las recomendadas por el sistema
         function seleccionarRecomendadas() {
+            let contadorRecomendadas = 0;
             iniciativasValidacion.forEach(init => {
                 // Seleccionar si el sistema lo recomienda para votación
-                init.seleccionada = init.recomendado_para_votacion || init.requiere_votacion || false;
+                const debeSeleccionar = init.recomendado_para_votacion || init.requiere_votacion || false;
+                if (debeSeleccionar) {
+                    contadorRecomendadas++;
+                    init.seleccionada = true;
+                } else {
+                    init.seleccionada = false;
+                }
             });
             renderizarTablaValidacion(iniciativasValidacion);
-            mostrarNotificacion('Se han seleccionado las iniciativas recomendadas por el sistema', 'info');
+            mostrarNotificacion(`Se han seleccionado ${contadorRecomendadas} iniciativas recomendadas por el sistema`, 'info');
         }
         
         // Función para mostrar modal de validación
@@ -1811,6 +1818,30 @@
                 "'": '&#039;'
             };
             return text.replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        // Función para mostrar notificaciones
+        function mostrarNotificacion(mensaje, tipo = 'info') {
+            const alertDiv = document.createElement('div');
+            const bgColor = {
+                'success': 'alert-success',
+                'error': 'alert-danger',
+                'warning': 'alert-warning',
+                'info': 'alert-info'
+            }[tipo] || 'alert-info';
+            
+            alertDiv.className = `alert ${bgColor} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            // Auto-remover después de 3 segundos
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
         }
         
         // Función para copiar texto original al portapapeles
@@ -3969,11 +4000,23 @@
             if (btnGuardar) {
                 console.log('Botón de guardar encontrado, agregando listener...');
                 btnGuardar.removeEventListener('click', guardarIniciativasSeleccionadas); // Remover cualquier listener anterior
-                btnGuardar.addEventListener('click', function(e) {
+                btnGuardar.addEventListener('click', async function(e) {
                     console.log('Click detectado en botón guardar');
                     e.preventDefault();
                     e.stopPropagation();
-                    guardarIniciativasSeleccionadas();
+                    
+                    // Deshabilitar el botón para evitar múltiples clicks
+                    this.disabled = true;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+                    
+                    try {
+                        await guardarIniciativasSeleccionadas();
+                    } catch (error) {
+                        console.error('Error al guardar:', error);
+                        // Re-habilitar el botón si hay error
+                        this.disabled = false;
+                        this.innerHTML = '<i class="fas fa-save"></i> Confirmar y Cargar Iniciativas';
+                    }
                 });
             } else {
                 console.error('Botón btnGuardarValidacion no encontrado');
