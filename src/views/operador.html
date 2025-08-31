@@ -1458,6 +1458,9 @@
         async function mostrarValidacionPDF(file) {
             console.log('Función mostrarValidacionPDF llamada con archivo:', file.name);
             
+            // Guardar el archivo PDF para el visor
+            pdfActual = file;
+            
             // Verificar que Bootstrap esté cargado
             if (typeof bootstrap === 'undefined') {
                 console.error('Bootstrap no está cargado');
@@ -1659,15 +1662,68 @@
             }
         }
         
+        // Variables para el visor de PDF
+        let pdfActual = null;
+        
+        // Función para alternar el visor de PDF
+        function toggleVisorPDF() {
+            const visorContainer = document.getElementById('visorPDFContainer');
+            const validacionContainer = document.getElementById('validacionContainer');
+            
+            if (visorContainer.style.display === 'none') {
+                // Mostrar visor PDF
+                visorContainer.style.display = 'block';
+                validacionContainer.classList.remove('col-md-12');
+                validacionContainer.classList.add('col-md-6');
+                
+                // Cargar el PDF si tenemos uno
+                if (pdfActual) {
+                    const pdfViewer = document.getElementById('pdfViewer');
+                    // Si es un File object, crear URL del blob
+                    if (pdfActual instanceof File || pdfActual instanceof Blob) {
+                        const url = URL.createObjectURL(pdfActual);
+                        pdfViewer.src = url;
+                    } else {
+                        // Si es un arraybuffer o similar
+                        const blob = new Blob([pdfActual], { type: 'application/pdf' });
+                        const url = URL.createObjectURL(blob);
+                        pdfViewer.src = url;
+                    }
+                }
+            } else {
+                cerrarVisorPDF();
+            }
+        }
+        
+        // Función para cerrar el visor de PDF
+        function cerrarVisorPDF() {
+            const visorContainer = document.getElementById('visorPDFContainer');
+            const validacionContainer = document.getElementById('validacionContainer');
+            
+            visorContainer.style.display = 'none';
+            validacionContainer.classList.remove('col-md-6');
+            validacionContainer.classList.add('col-md-12');
+            
+            // Limpiar el iframe
+            const pdfViewer = document.getElementById('pdfViewer');
+            if (pdfViewer.src && pdfViewer.src.startsWith('blob:')) {
+                URL.revokeObjectURL(pdfViewer.src);
+            }
+            pdfViewer.src = '';
+        }
+        
         // Función para categorizar iniciativas por tipo con estructura jerárquica
         function categorizarIniciativas(initiatives) {
             const categorias = {
                 todas: initiatives,
                 procedimientos: [],
-                iniciativas: [],
+                dictamenes: [],  // Nueva categoría para dictámenes
                 primeraLectura: [],
                 segundaLectura: [],
+                urgente: [],  // Nueva categoría para urgente y obvia resolución
                 puntosAcuerdo: [],
+                incisos: [],  // Nueva categoría para incisos
+                iniciativas: [],  // Iniciativas genéricas
                 otras: [],
                 textoOriginal: null  // Para almacenar el texto original del PDF
             };
@@ -1676,25 +1732,53 @@
             const incisosMap = {};
             
             initiatives.forEach(init => {
-                // Categorizar por tipo
+                const titulo = (init.titulo || '').toLowerCase();
+                const contenido = (init.contenido || '').toLowerCase();
+                const textoCompleto = titulo + ' ' + contenido;
+                
+                // Categorización mejorada por tipo
                 if (init.es_procedimiento || init.categoria === 'procedimiento') {
                     categorias.procedimientos.push(init);
                 }
-                else if (init.categoria === 'iniciativas' || 
-                        (init.titulo && init.titulo.toLowerCase().includes('iniciativa'))) {
-                    categorias.iniciativas.push(init);
+                // Dictámenes (elementos votables)
+                else if (init.requiere_votacion || 
+                        textoCompleto.includes('dictamen') || 
+                        textoCompleto.includes('votación') ||
+                        textoCompleto.includes('dictamina')) {
+                    categorias.dictamenes.push(init);
                 }
+                // Urgente y obvia resolución
+                else if (textoCompleto.includes('urgente') && 
+                        (textoCompleto.includes('obvia') || textoCompleto.includes('resolución'))) {
+                    categorias.urgente.push(init);
+                }
+                // Primera lectura
                 else if (init.categoria === 'primera_lectura' || 
-                        (init.titulo && init.titulo.toLowerCase().includes('primera lectura'))) {
+                        textoCompleto.includes('primera lectura')) {
                     categorias.primeraLectura.push(init);
                 }
+                // Segunda lectura
                 else if (init.categoria === 'segunda_lectura' || 
-                        (init.titulo && init.titulo.toLowerCase().includes('segunda lectura'))) {
+                        textoCompleto.includes('segunda lectura')) {
                     categorias.segundaLectura.push(init);
                 }
-                else if (init.categoria === 'puntos_acuerdo' || init.tipo_votacion === 'punto_acuerdo' || 
-                        (init.titulo && init.titulo.toLowerCase().includes('punto de acuerdo'))) {
+                // Puntos de acuerdo
+                else if (init.categoria === 'puntos_acuerdo' || 
+                        init.tipo_votacion === 'punto_acuerdo' || 
+                        textoCompleto.includes('punto de acuerdo') ||
+                        textoCompleto.includes('puntos de acuerdo')) {
                     categorias.puntosAcuerdo.push(init);
+                }
+                // Detectar incisos (a), b), c), etc.
+                else if (init.inciso || 
+                        /^[a-z]\)|^\([a-z]\)/.test(titulo) ||
+                        init.es_subinciso) {
+                    categorias.incisos.push(init);
+                }
+                // Iniciativas generales
+                else if (init.categoria === 'iniciativas' || 
+                        textoCompleto.includes('iniciativa')) {
+                    categorias.iniciativas.push(init);
                 }
                 else {
                     categorias.otras.push(init);
@@ -1734,6 +1818,84 @@
                 </li>
             `);
             
+            // Dictámenes (votables) - mostrar primero si hay
+            if (categorias.dictamenes.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="dictamenes-tab" data-bs-toggle="tab" 
+                                data-bs-target="#dictamenes" type="button" role="tab">
+                            <i class="fas fa-vote-yea"></i> Dictámenes
+                            <span class="badge bg-success ms-1">${categorias.dictamenes.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // Urgente y Obvia Resolución - con resaltado especial
+            if (categorias.urgente.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link text-danger fw-bold" id="urgente-tab" data-bs-toggle="tab" 
+                                data-bs-target="#urgente" type="button" role="tab">
+                            <i class="fas fa-exclamation-triangle"></i> Urgente
+                            <span class="badge bg-danger ms-1">${categorias.urgente.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // Primera Lectura
+            if (categorias.primeraLectura.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="primeraLectura-tab" data-bs-toggle="tab" 
+                                data-bs-target="#primeraLectura" type="button" role="tab">
+                            <i class="fas fa-book-open"></i> 1ra Lectura
+                            <span class="badge bg-info ms-1">${categorias.primeraLectura.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // Segunda Lectura
+            if (categorias.segundaLectura.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="segundaLectura-tab" data-bs-toggle="tab" 
+                                data-bs-target="#segundaLectura" type="button" role="tab">
+                            <i class="fas fa-book"></i> 2da Lectura
+                            <span class="badge bg-warning ms-1">${categorias.segundaLectura.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // Puntos de Acuerdo
+            if (categorias.puntosAcuerdo.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="puntosAcuerdo-tab" data-bs-toggle="tab" 
+                                data-bs-target="#puntosAcuerdo" type="button" role="tab">
+                            <i class="fas fa-handshake"></i> Puntos Acuerdo
+                            <span class="badge bg-purple ms-1">${categorias.puntosAcuerdo.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // Incisos
+            if (categorias.incisos.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="incisos-tab" data-bs-toggle="tab" 
+                                data-bs-target="#incisos" type="button" role="tab">
+                            <i class="fas fa-list-ol"></i> Incisos
+                            <span class="badge bg-secondary ms-1">${categorias.incisos.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
             // Procedimientos (Incisos procedimentales)
             if (categorias.procedimientos.length > 0) {
                 tabsHtml.push(`
@@ -1747,7 +1909,7 @@
                 `);
             }
             
-            // Iniciativas
+            // Iniciativas (genéricas)
             if (categorias.iniciativas.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
@@ -1892,6 +2054,45 @@
                             <strong>⚡ Los puntos de acuerdo con urgente y obvia resolución requieren votación</strong>
                         </div>
                         ${renderizarIniciativasConInciso(categorias.puntosAcuerdo, 'I')}
+                    </div>
+                `);
+            }
+            
+            // Contenido para Dictámenes
+            if (categorias.dictamenes.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="dictamenes" role="tabpanel">
+                        <div class="alert alert-success mb-3">
+                            <i class="fas fa-vote-yea"></i> 
+                            <strong>⚡ Dictámenes para votación</strong>
+                        </div>
+                        ${renderizarIniciativas(categorias.dictamenes)}
+                    </div>
+                `);
+            }
+            
+            // Contenido para Urgente y Obvia Resolución
+            if (categorias.urgente.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="urgente" role="tabpanel">
+                        <div class="alert alert-danger mb-3">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>🚨 DE URGENTE Y OBVIA RESOLUCIÓN - Requieren votación inmediata</strong>
+                        </div>
+                        ${renderizarIniciativas(categorias.urgente)}
+                    </div>
+                `);
+            }
+            
+            // Contenido para Incisos
+            if (categorias.incisos.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="incisos" role="tabpanel">
+                        <div class="alert alert-secondary mb-3">
+                            <i class="fas fa-list-ol"></i> 
+                            <strong>Estructura de incisos del documento</strong>
+                        </div>
+                        ${renderizarIniciativas(categorias.incisos)}
                     </div>
                 `);
             }
@@ -4241,9 +4442,33 @@
                     <h5 class="modal-title">
                         <i class="fas fa-check-circle"></i> Validación de Iniciativas
                     </h5>
+                    <div class="ms-auto me-2">
+                        <button type="button" class="btn btn-light btn-sm" onclick="toggleVisorPDF()" title="Ver PDF Original">
+                            <i class="fas fa-file-pdf"></i> Ver PDF Original
+                        </button>
+                    </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- Contenedor para vista dividida -->
+                    <div id="vistaValidacion" class="row">
+                        <!-- Visor de PDF (inicialmente oculto) -->
+                        <div id="visorPDFContainer" class="col-md-6" style="display: none;">
+                            <div class="card h-100">
+                                <div class="card-header bg-secondary text-white">
+                                    <i class="fas fa-file-pdf"></i> Documento Original
+                                    <button type="button" class="btn btn-sm btn-light float-end" onclick="cerrarVisorPDF()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="card-body p-0" style="height: 600px; overflow: hidden;">
+                                    <iframe id="pdfViewer" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Contenedor de validación (inicialmente completo) -->
+                        <div id="validacionContainer" class="col-md-12">
                     <!-- Estadísticas -->
                     <div class="row mb-3">
                         <div class="col-md-3">
@@ -4359,6 +4584,9 @@
                         </table>
                     </div>
                 </div>
+                        </div><!-- Cierre de validacionContainer -->
+                    </div><!-- Cierre de vistaValidacion -->
+                </div><!-- Cierre de modal-body -->
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="cancelarValidacion()">
                         <i class="fas fa-times"></i> Cancelar
@@ -4640,6 +4868,8 @@
                 // Limpiar todo y cerrar modal
                 iniciativasValidacion = [];
                 sessionIdActual = null;
+                pdfActual = null;
+                cerrarVisorPDF();
                 bootstrap.Modal.getInstance(document.getElementById('modalValidacion')).hide();
             }
         }
@@ -4820,7 +5050,9 @@
                 const data = await response.json();
                 
                 if (response.ok && data.success) {
-                    // Cerrar modal
+                    // Cerrar modal y limpiar PDF
+                    pdfActual = null;
+                    cerrarVisorPDF();
                     bootstrap.Modal.getInstance(document.getElementById('modalValidacion')).hide();
                     
                     // Mostrar mensaje de éxito
