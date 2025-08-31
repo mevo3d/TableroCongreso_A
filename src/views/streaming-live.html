@@ -292,7 +292,7 @@
             <div class="loading-text">Conectando...</div>
         </div>
         
-        <!-- Iframe del streaming -->
+        <!-- Iframe del streaming LiveLAN -->
         <iframe 
             id="streamingFrame"
             class="streaming-iframe"
@@ -304,8 +304,8 @@
     </div>
     
     <script>
-        // Configuración de streaming
-        const VMIX_LIVELAN_URL = 'http://192.168.150.71:8088/livelan';
+        // Configuración de streaming LiveLAN
+        const LIVELAN_URL = 'http://192.168.150.71:8088/livelan';
         
         // Elementos
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -323,15 +323,15 @@
             try {
                 streamingFrame.contentWindow.postMessage('play', '*');
             } catch(e) {
-                console.log('Streaming iniciado');
+                console.log('Streaming LiveLAN iniciado');
             }
         });
         
         // Reintentar si hay error
         streamingFrame.addEventListener('error', () => {
-            console.log('Reintentando conexión...');
+            console.log('Reintentando conexión LiveLAN...');
             setTimeout(() => {
-                streamingFrame.src = VMIX_LIVELAN_URL + '?t=' + Date.now();
+                streamingFrame.src = LIVELAN_URL + '?t=' + Date.now();
             }, 3000);
         });
         

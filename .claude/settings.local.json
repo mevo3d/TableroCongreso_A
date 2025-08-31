@@ -33,7 +33,9 @@
       "Bash(bash:*)",
       "Bash(xcopy:*)",
       "Bash(git config:*)",
-      "Bash(del \"src\\db\\votacion.sync-conflict-20250827-131921-APPDX7G.db\")"
+      "Bash(del \"src\\db\\votacion.sync-conflict-20250827-131921-APPDX7G.db\")",
+      "Bash(ssh:*)",
+      "Bash(scp:*)"
     ],
     "deny": [],
     "ask": [],
