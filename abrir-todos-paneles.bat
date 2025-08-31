@@ -30,7 +30,7 @@ echo ===================================================
 echo.
 
 echo [1/24] Abriendo SUPERADMIN...
-start "" %CHROME_PATH% --incognito --new-window "%BASE_URL%/autologin/admin"
+start "" %CHROME_PATH% --incognito --new-window "%BASE_URL%/autologin/superadmin"
 timeout /t 2 /nobreak >nul
 
 echo [2/24] Abriendo SERVICIOS LEGISLATIVOS...

@@ -2,12 +2,17 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const pdfExtractor = require('../pdf/extractor');
+const { authenticateToken, authorize } = require('../auth/middleware');
 
 // Configurar multer para manejo de archivos
 const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: { fileSize: 50 * 1024 * 1024 } // 50MB
 });
+
+// Middleware de autenticación
+router.use(authenticateToken);
+router.use(authorize('operador', 'superadmin', 'servicios', 'secretario'));
 
 // Almacenamiento temporal de sesiones pendientes de validación
 const sesionesPendientes = new Map();
@@ -56,6 +61,7 @@ router.post('/preview-pdf', upload.single('file'), async (req, res) => {
         sesionesPendientes.set(sessionId, {
             iniciativas: iniciativasConNumeros,
             estadisticas: estadisticas,
+            textoOriginal: resultado.metadatos?.textoOriginal || null,  // Guardar texto original
             fechaCarga: new Date(),
             nombreArchivo: req.file.originalname
         });
@@ -199,6 +205,33 @@ router.post('/validar-sesion/:sessionId', async (req, res) => {
                 // Si es inmediata, desactivar otras sesiones
                 if (tipoCarga === 'inmediata') {
                     db.run('UPDATE sesiones SET activa = 0 WHERE id != ?', [sesionId]);
+                }
+                
+                // Guardar el texto original del PDF si existe
+                if (sesionPendiente.textoOriginal) {
+                    // Crear tabla si no existe
+                    db.run(`
+                        CREATE TABLE IF NOT EXISTS documentos_originales (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            sesion_id INTEGER NOT NULL,
+                            texto_original TEXT,
+                            fecha_carga DATETIME DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (sesion_id) REFERENCES sesiones(id) ON DELETE CASCADE
+                        )
+                    `, (err) => {
+                        if (!err) {
+                            // Insertar el texto original
+                            db.run(
+                                `INSERT INTO documentos_originales (sesion_id, texto_original) VALUES (?, ?)`,
+                                [sesionId, sesionPendiente.textoOriginal],
+                                (err) => {
+                                    if (err) {
+                                        console.error('Error guardando texto original:', err);
+                                    }
+                                }
+                            );
+                        }
+                    });
                 }
                 
                 // Insertar iniciativas validadas (solo las seleccionadas)

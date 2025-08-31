@@ -261,7 +261,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Tipo de carga:</label>
-                                <div class="form-check">
+                                <div class="form-check" id="tipoCargaGroup">
                                     <input class="form-check-input" type="radio" name="tipoCarga" id="cargaInmediata" value="inmediata" checked>
                                     <label class="form-check-label" for="cargaInmediata">
                                         <i class="fas fa-play-circle text-success"></i> Ejecutar inmediatamente
@@ -601,7 +601,7 @@
                     <h6>Configuración Personalizada:</h6>
                     <div class="row g-2 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Resolución</label>
+                            <label for="obsResolution" class="form-label">Resolución</label>
                             <select class="form-select" id="obsResolution">
                                 <option value="">Automática</option>
                                 <option value="1920x1080">1920x1080 (Full HD)</option>
@@ -611,11 +611,11 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Ancho</label>
+                            <label for="obsWidth" class="form-label">Ancho</label>
                             <input type="number" class="form-control" id="obsWidth" placeholder="1920" disabled>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Alto</label>
+                            <label for="obsHeight" class="form-label">Alto</label>
                             <input type="number" class="form-control" id="obsHeight" placeholder="1080" disabled>
                         </div>
                     </div>
@@ -638,7 +638,7 @@
                     </div>
                     
                     <div class="mt-3">
-                        <label class="form-label">URL Personalizada:</label>
+                        <label for="obsCustomURL" class="form-label">URL Personalizada:</label>
                         <div class="input-group">
                             <input type="text" class="form-control" id="obsCustomURL" readonly>
                             <button class="btn btn-primary" onclick="copiarCustomURL()">Copiar</button>
@@ -676,23 +676,23 @@
                     <form id="editForm">
                         <input type="hidden" id="editId">
                         <div class="mb-3">
-                            <label class="form-label">Número</label>
+                            <label for="editNumero" class="form-label">Número</label>
                             <input type="number" class="form-control" id="editNumero" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Descripción de la Iniciativa</label>
+                            <label for="editDescripcion" class="form-label">Descripción de la Iniciativa</label>
                             <textarea class="form-control" id="editDescripcion" rows="4" required></textarea>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Presentada por</label>
+                            <label for="editPresentador" class="form-label">Presentada por</label>
                             <input type="text" class="form-control" id="editPresentador" placeholder="Nombre del diputado">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Partido</label>
+                            <label for="editPartidoPresentador" class="form-label">Partido</label>
                             <input type="text" class="form-control" id="editPartidoPresentador" placeholder="Siglas del partido">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Tipo de Mayoría</label>
+                            <label for="editTipoMayoria" class="form-label">Tipo de Mayoría</label>
                             <select class="form-select" id="editTipoMayoria" disabled>
                                 <option value="simple">Mayoría Simple</option>
                                 <option value="absoluta">Mayoría Absoluta</option>
@@ -771,20 +771,20 @@
                         <div class="tab-pane fade show active" id="manualTab">
                             <form id="extraordinariaManualForm">
                                 <div class="mb-3">
-                                    <label class="form-label">Número de Iniciativa</label>
+                                    <label for="extNumero" class="form-label">Número de Iniciativa</label>
                                     <select class="form-select" id="extNumero" required>
                                         <option value="">Seleccionar posición...</option>
                                     </select>
                                     <small class="text-muted">La iniciativa extraordinaria se insertará en esta posición y recorrerá las demás</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Descripción de la Iniciativa</label>
+                                    <label for="extDescripcion" class="form-label">Descripción de la Iniciativa</label>
                                     <textarea class="form-control" id="extDescripcion" rows="3" required></textarea>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="form-label">Presentada por</label>
+                                            <label for="extPresentador" class="form-label">Presentada por</label>
                                             <select class="form-select" id="extPresentador" onchange="actualizarPartidoAutomatico()">
                                                 <option value="">Seleccionar diputado...</option>
                                             </select>
@@ -792,7 +792,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label class="form-label">Partido</label>
+                                            <label for="extPartido" class="form-label">Partido</label>
                                             <select class="form-select" id="extPartido">
                                                 <option value="">Seleccionar...</option>
                                                 <option value="MORENA">MORENA</option>
@@ -808,7 +808,7 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Tipo de Mayoría</label>
+                                    <label for="extTipoMayoria" class="form-label">Tipo de Mayoría</label>
                                     <select class="form-select" id="extTipoMayoria" required>
                                         <option value="simple">Mayoría Simple</option>
                                         <option value="absoluta">Mayoría Absoluta</option>
@@ -833,7 +833,7 @@
                         <!-- Tab de PDF -->
                         <div class="tab-pane fade" id="pdfTab">
                             <div class="mb-3">
-                                <label class="form-label">Archivo PDF con Iniciativas Extraordinarias</label>
+                                <label for="pdfExtraordinarias" class="form-label">Archivo PDF con Iniciativas Extraordinarias</label>
                                 <input type="file" class="form-control" id="pdfExtraordinarias" accept=".pdf">
                                 <small class="text-muted">El PDF debe contener las iniciativas extraordinarias en formato estructurado</small>
                             </div>
@@ -979,6 +979,12 @@
         // Variable para almacenar información de la sesión actual
         let sessionData = null;
         
+        // Variables globales para el sistema de validación de PDF
+        let sessionIdActual = null;
+        let iniciativasValidacion = [];
+        let iniciativasOriginales = []; // Copia para restaurar
+        let filtroActual = 'todas';
+        
         if (!token || !user || user.role !== 'operador') {
             window.location.href = '/';
         }
@@ -1057,42 +1063,420 @@
             document.getElementById('fechaSesion').required = false;
         });
         
-        // Manejar carga de PDF
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Manejar carga de PDF - Mostrar modal de validación
+        const uploadForm = document.getElementById('uploadForm');
+        if (uploadForm) {
+            console.log('Formulario de carga encontrado, agregando listener');
+            uploadForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                console.log('Formulario enviado - evento submit capturado');
+                
+                const fileInput = document.getElementById('pdfFile');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    alert('Por favor selecciona un archivo PDF');
+                    return;
+                }
+                
+                console.log('Archivo seleccionado:', file.name, 'Tamaño:', file.size);
+                // Mostrar modal de validación para revisar antes de importar
+                try {
+                    console.log('Llamando a mostrarValidacionPDF...');
+                    await mostrarValidacionPDF(file);
+                } catch (error) {
+                    console.error('Error al mostrar validación:', error);
+                    alert('Error al procesar el archivo: ' + error.message);
+                }
+            });
+        } else {
+            console.error('No se encontró el formulario uploadForm');
+        }
+        
+        // Función para actualizar estadísticas de validación
+        function actualizarEstadisticasValidacion() {
+            const totalIniciativasEl = document.getElementById('totalIniciativas');
+            if (totalIniciativasEl) {
+                totalIniciativasEl.textContent = iniciativasValidacion.length;
+            }
             
-            const fileInput = document.getElementById('pdfFile');
-            const file = fileInput.files[0];
+            const requierenVot = iniciativasValidacion.filter(i => i.requiere_votacion).length;
+            const requierenVotacionEl = document.getElementById('requierenVotacion');
+            if (requierenVotacionEl) {
+                requierenVotacionEl.textContent = requierenVot;
+            }
             
-            if (!file) {
-                alert('Por favor selecciona un archivo PDF');
+            const aComision = iniciativasValidacion.filter(i => 
+                i.tipo_votacion && i.tipo_votacion.toLowerCase().includes('comisión')).length;
+            const aComisionesEl = document.getElementById('aComisiones');
+            if (aComisionesEl) {
+                aComisionesEl.textContent = aComision;
+            }
+            
+            const otrosEl = document.getElementById('otros');
+            if (otrosEl) {
+                otrosEl.textContent = iniciativasValidacion.length - requierenVot - aComision;
+            }
+        }
+        
+        // Función para actualizar contador de seleccionadas
+        function actualizarContadorSeleccionadas() {
+            const seleccionadas = iniciativasValidacion.filter(i => i.seleccionada).length;
+            const contadorEl = document.getElementById('contadorSeleccionadas');
+            if (contadorEl) {
+                contadorEl.textContent = seleccionadas;
+            }
+            
+            // Actualizar estado del checkbox principal
+            const totalCheckboxes = document.querySelectorAll('.iniciativa-checkbox').length;
+            const checkedCheckboxes = document.querySelectorAll('.iniciativa-checkbox:checked').length;
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes;
+                selectAllCheckbox.indeterminate = checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes;
+            }
+        }
+        
+        // Función para renderizar tabla de validación
+        function renderizarTablaValidacion(iniciativas) {
+            const tbody = document.getElementById('tablaValidacion');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            iniciativas.forEach((init) => {
+                const index = iniciativasValidacion.indexOf(init);
+                const tr = document.createElement('tr');
+                
+                // Determinar si requiere votación
+                const requiereVotacion = init.requiere_votacion || false;
+                
+                // Estilo de fila para iniciativas que requieren votación
+                if (requiereVotacion) {
+                    tr.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+                }
+                
+                // Verificar si está seleccionada
+                const isSelected = init.seleccionada || false;
+                
+                tr.innerHTML = `
+                    <td>
+                        <input type="checkbox" 
+                               class="form-check-input iniciativa-checkbox" 
+                               data-index="${index}"
+                               ${isSelected ? 'checked' : ''}
+                               onchange="toggleIniciativaSeleccion(${index})">
+                    </td>
+                    <td>
+                        ${requiereVotacion ? '<i class="fas fa-vote-yea text-success me-1" title="Requiere votación"></i>' : ''}
+                        <strong>${init.numero_sistema}</strong>
+                    </td>
+                    <td>${init.numero_orden_dia || '-'}</td>
+                    <td>${init.titulo || 'Sin título'}</td>
+                    <td>${init.presentador || '-'}</td>
+                    <td>${init.partido || '-'}</td>
+                    <td>
+                        <span class="badge bg-${init.tipo_mayoria === 'calificada' ? 'warning' : 'secondary'}">
+                            ${init.tipo_mayoria || 'simple'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" 
+                                    onclick="editarIniciativaValidacion(${index})"
+                                    title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" 
+                                    onclick="eliminarIniciativaValidacion(${index})"
+                                    title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            if (iniciativas.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">
+                            No hay iniciativas ${filtroActual !== 'todas' ? 'en este filtro' : ''}
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            actualizarContadorSeleccionadas();
+        }
+        
+        // Función para filtrar iniciativas
+        function filtrarIniciativas(tipo) {
+            filtroActual = tipo;
+            const filtroDiv = document.getElementById('filtroActivo');
+            
+            let iniciativasFiltradas = [...iniciativasValidacion];
+            let textoFiltro = 'Todas';
+            
+            switch(tipo) {
+                case 'votacion':
+                    iniciativasFiltradas = iniciativasValidacion.filter(i => i.requiere_votacion);
+                    textoFiltro = 'Requieren Votación';
+                    break;
+                case 'comisiones':
+                    iniciativasFiltradas = iniciativasValidacion.filter(i => 
+                        i.tipo_votacion && i.tipo_votacion.toLowerCase().includes('comisión'));
+                    textoFiltro = 'A Comisiones';
+                    break;
+                case 'otros':
+                    iniciativasFiltradas = iniciativasValidacion.filter(i => 
+                        !i.requiere_votacion && 
+                        (!i.tipo_votacion || !i.tipo_votacion.toLowerCase().includes('comisión')));
+                    textoFiltro = 'Otros';
+                    break;
+                case 'todas':
+                default:
+                    if (filtroDiv) filtroDiv.style.display = 'none';
+                    break;
+            }
+            
+            if (tipo !== 'todas' && filtroDiv) {
+                filtroDiv.style.display = 'block';
+                const textoFiltroEl = document.getElementById('textoFiltro');
+                if (textoFiltroEl) textoFiltroEl.textContent = textoFiltro;
+            }
+            
+            renderizarTablaValidacion(iniciativasFiltradas);
+        }
+        
+        // Función para eliminar iniciativa en validación
+        function eliminarIniciativaValidacion(index) {
+            if (!confirm('¿Eliminar esta iniciativa? No se importará a la sesión.')) return;
+            
+            // Eliminar de la lista
+            iniciativasValidacion.splice(index, 1);
+            
+            // Actualizar estadísticas
+            actualizarEstadisticasValidacion();
+            
+            // Re-renderizar tabla con filtro actual
+            if (filtroActual !== 'todas') {
+                filtrarIniciativas(filtroActual);
+            } else {
+                renderizarTablaValidacion(iniciativasValidacion);
+            }
+        }
+        
+        // Función para editar iniciativa
+        function editarIniciativaValidacion(index) {
+            const init = iniciativasValidacion[index];
+            
+            const editNumeroSistema = document.getElementById('editNumeroSistema');
+            const editNumeroOrden = document.getElementById('editNumeroOrden');
+            const editTitulo = document.getElementById('editTitulo');
+            const editPresentador = document.getElementById('editPresentador');
+            const editPartido = document.getElementById('editPartido');
+            const editTipoMayoria = document.getElementById('editTipoMayoria');
+            const editRequiereVotacion = document.getElementById('editRequiereVotacion');
+            const editIndexHidden = document.getElementById('editIndexHidden');
+            
+            if (editNumeroSistema) editNumeroSistema.value = init.numero_sistema;
+            if (editNumeroOrden) editNumeroOrden.value = init.numero_orden_dia || '';
+            if (editTitulo) editTitulo.value = init.titulo || '';
+            if (editPresentador) editPresentador.value = init.presentador || '';
+            if (editPartido) editPartido.value = init.partido || '';
+            if (editTipoMayoria) editTipoMayoria.value = init.tipo_mayoria || 'simple';
+            if (editRequiereVotacion) editRequiereVotacion.checked = init.requiere_votacion || false;
+            if (editIndexHidden) editIndexHidden.value = index;
+            
+            const modalEl = document.getElementById('modalEditarIniciativa');
+            if (modalEl) {
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        }
+        
+        // Mostrar vista previa antes de confirmar
+        function mostrarVistaPrevia() {
+            const iniciativasSeleccionadas = iniciativasValidacion.filter(i => i.seleccionada);
+            const votables = iniciativasSeleccionadas.filter(i => i.requiere_votacion);
+            
+            let mensaje = `Vista Previa de Importación:\n\n`;
+            mensaje += `Total seleccionadas: ${iniciativasSeleccionadas.length}\n`;
+            mensaje += `Requieren votación: ${votables.length}\n`;
+            mensaje += `A comisiones: ${iniciativasSeleccionadas.filter(i => i.tipo_votacion && i.tipo_votacion.toLowerCase().includes('comisión')).length}\n`;
+            mensaje += `\n¿Proceder con la importación?`;
+            
+            if (confirm(mensaje)) {
+                guardarIniciativasSeleccionadas();
+            }
+        }
+        
+        // Función para guardar iniciativas seleccionadas
+        async function guardarIniciativasSeleccionadas() {
+            const iniciativasSeleccionadas = iniciativasValidacion.filter(i => i.seleccionada);
+            
+            if (iniciativasSeleccionadas.length === 0) {
+                alert('Por favor selecciona al menos una iniciativa para importar');
+                return;
+            }
+            
+            // Obtener el tipo de carga seleccionado
+            let tipoCarga = 'indefinida'; // Por defecto
+            let fechaProgramada = null;
+            
+            if (document.getElementById('cargaInmediataVal') && document.getElementById('cargaInmediataVal').checked) {
+                tipoCarga = 'inmediata';
+            } else if (document.getElementById('cargaProgramadaVal') && document.getElementById('cargaProgramadaVal').checked) {
+                tipoCarga = 'programada';
+                const fechaInput = document.getElementById('fechaSesionVal');
+                if (fechaInput && fechaInput.value) {
+                    fechaProgramada = fechaInput.value;
+                } else {
+                    alert('Por favor selecciona una fecha para la sesión programada');
+                    return;
+                }
+            }
+            
+            try {
+                // Mostrar loading
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'alert alert-info position-fixed top-0 end-0 m-3';
+                loadingDiv.style.zIndex = '9999';
+                loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importando iniciativas...';
+                document.body.appendChild(loadingDiv);
+                
+                // Llamar al API para guardar en la base de datos
+                const response = await fetch(`/api/validacion/validar-sesion/${sessionIdActual}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tipoCarga: tipoCarga,
+                        fechaProgramada: fechaProgramada,
+                        iniciativasSeleccionadas: iniciativasSeleccionadas
+                    })
+                });
+                
+                // Remover loading
+                loadingDiv.remove();
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al guardar las iniciativas');
+                }
+                
+                const data = await response.json();
+                
+                // Cerrar modal de validación
+                const modalEl = document.getElementById('modalValidacion');
+                if (modalEl) {
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) modalInstance.hide();
+                }
+                
+                // Mostrar mensaje de éxito
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+                alertDiv.style.zIndex = '9999';
+                alertDiv.innerHTML = `
+                    <strong>✅ Importación exitosa</strong><br>
+                    Se importaron ${iniciativasSeleccionadas.length} iniciativas correctamente.<br>
+                    <small>Sesión: ${data.sesion?.nombre || 'Nueva sesión'}</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(alertDiv);
+                
+                setTimeout(() => alertDiv.remove(), 5000);
+                
+                // Recargar las sesiones pendientes y la sesión activa
+                if (typeof loadSesionesPendientes === 'function') {
+                    loadSesionesPendientes();
+                }
+                
+                if (typeof loadActiveSession === 'function') {
+                    loadActiveSession();
+                }
+                
+                // Si es carga inmediata, recargar también la sesión activa
+                if (tipoCarga === 'inmediata') {
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                }
+                
+            } catch (error) {
+                console.error('Error al guardar iniciativas:', error);
+                alert('Error al importar las iniciativas: ' + error.message);
+            }
+        }
+        
+        // Funciones de selección de iniciativas
+        function toggleIniciativaSeleccion(index) {
+            iniciativasValidacion[index].seleccionada = !iniciativasValidacion[index].seleccionada;
+            actualizarContadorSeleccionadas();
+        }
+        
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAllCheckbox');
+            if (selectAll) {
+                const checked = selectAll.checked;
+                iniciativasValidacion.forEach(init => {
+                    init.seleccionada = checked;
+                });
+                renderizarTablaValidacion(iniciativasValidacion);
+            }
+        }
+        
+        function seleccionarTodasVotables() {
+            iniciativasValidacion.forEach(init => {
+                if (init.requiere_votacion) {
+                    init.seleccionada = true;
+                }
+            });
+            renderizarTablaValidacion(iniciativasValidacion);
+        }
+        
+        function seleccionarTodas() {
+            iniciativasValidacion.forEach(init => {
+                init.seleccionada = true;
+            });
+            renderizarTablaValidacion(iniciativasValidacion);
+        }
+        
+        function deseleccionarTodas() {
+            iniciativasValidacion.forEach(init => {
+                init.seleccionada = false;
+            });
+            renderizarTablaValidacion(iniciativasValidacion);
+        }
+        
+        // Función para mostrar modal de validación
+        async function mostrarValidacionPDF(file) {
+            console.log('Función mostrarValidacionPDF llamada con archivo:', file.name);
+            
+            // Verificar que Bootstrap esté cargado
+            if (typeof bootstrap === 'undefined') {
+                console.error('Bootstrap no está cargado');
+                alert('Error: Bootstrap no está cargado correctamente');
                 return;
             }
             
             const formData = new FormData();
-            formData.append('pdf', file);
+            formData.append('file', file);
             
-            // Agregar tipo de carga
-            const tipoCarga = document.querySelector('input[name="tipoCarga"]:checked').value;
-            formData.append('tipoCarga', tipoCarga);
-            
-            if (tipoCarga === 'programada') {
-                const fechaProgramada = document.getElementById('fechaSesion').value;
-                if (!fechaProgramada) {
-                    alert('Por favor selecciona una fecha para la sesión programada');
-                    return;
-                }
-                formData.append('fechaProgramada', fechaProgramada);
-            } else if (tipoCarga === 'indefinida') {
-                // Para sesión indefinida, no enviamos fecha
-                formData.append('indefinida', 'true');
+            // Mostrar loading
+            const statusDiv = document.getElementById('uploadStatus');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<div class="alert alert-info">Procesando PDF para validación...</div>';
             }
             
-            const statusDiv = document.getElementById('uploadStatus');
-            statusDiv.innerHTML = '<div class="alert alert-info">Procesando PDF...</div>';
-            
             try {
-                const response = await fetch('/api/operador/upload-pdf', {
+                console.log('Enviando a /api/validacion/preview-pdf');
+                const response = await fetch('/api/validacion/preview-pdf', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -1100,35 +1484,66 @@
                     body: formData
                 });
                 
-                const data = await response.json();
+                console.log('Respuesta recibida:', response.status);
                 
-                if (response.ok) {
-                    let mensaje = '';
-                    if (tipoCarga === 'inmediata') {
-                        mensaje = 'Las iniciativas están listas para que el presidente inicie la sesión';
-                    } else if (tipoCarga === 'programada') {
-                        mensaje = `Sesión programada para ${new Date(document.getElementById('fechaSesion').value).toLocaleString('es-MX')}`;
-                    } else if (tipoCarga === 'indefinida') {
-                        mensaje = 'Sesión guardada con fecha indefinida. Se podrá activar cuando se decida';
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error del servidor:', errorText);
+                    alert('Error al procesar el PDF: ' + response.status);
+                    return;
+                }
+                
+                const data = await response.json();
+                console.log('Datos recibidos:', data);
+                
+                if (data.success) {
+                    sessionIdActual = data.sessionId;
+                    iniciativasValidacion = data.iniciativas || [];
+                    iniciativasOriginales = [...iniciativasValidacion]; // Guardar copia
+                    filtroActual = 'todas'; // Resetear filtro
+                    
+                    console.log('Iniciativas para validación:', iniciativasValidacion.length);
+                    
+                    // Actualizar estadísticas
+                    actualizarEstadisticasValidacion();
+                    
+                    // Renderizar tabla
+                    renderizarTablaValidacion(iniciativasValidacion);
+                    
+                    // Limpiar filtro activo
+                    const filtroActivoEl = document.getElementById('filtroActivo');
+                    if (filtroActivoEl) {
+                        filtroActivoEl.style.display = 'none';
                     }
                     
-                    statusDiv.innerHTML = `
-                        <div class="alert alert-success">
-                            ✅ PDF procesado correctamente<br>
-                            ${data.iniciativas} iniciativas extraídas<br>
-                            <small class="text-muted">${mensaje}</small>
-                        </div>
-                    `;
-                    fileInput.value = '';
-                    loadActiveSession();
+                    // Mostrar modal
+                    console.log('Mostrando modal de validación...');
+                    const modalElement = document.getElementById('modalValidacion');
+                    if (modalElement) {
+                        console.log('Elemento del modal encontrado, creando instancia de Bootstrap...');
+                        try {
+                            const modal = new bootstrap.Modal(modalElement, {
+                                backdrop: 'static',
+                                keyboard: false
+                            });
+                            modal.show();
+                            console.log('Modal mostrado exitosamente');
+                        } catch (modalError) {
+                            console.error('Error al crear/mostrar el modal:', modalError);
+                            alert('Error al mostrar el modal de validación');
+                        }
+                    } else {
+                        console.error('No se encontró el elemento del modal con ID: modalValidacion');
+                        alert('Error: No se encontró el modal de validación en la página');
+                    }
                 } else {
-                    statusDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    alert('Error al procesar el PDF: ' + (data.error || 'Error desconocido'));
                 }
             } catch (error) {
                 console.error('Error:', error);
-                statusDiv.innerHTML = '<div class="alert alert-danger">Error al procesar el PDF</div>';
+                alert('Error al procesar el PDF');
             }
-        });
+        }
         
         // Cargar sesión activa
         // Función para obtener la clase CSS del partido
@@ -1173,7 +1588,7 @@
                         startSessionTimer();
                     }
                     
-                    displayInitiatives(data.iniciativas);
+                    displayInitiatives(data.iniciativas, data.textoOriginal);
                 } else {
                     document.getElementById('sessionStatus').innerHTML = 
                         '<p class="text-muted">Sin sesión activa</p>';
@@ -1189,7 +1604,7 @@
         }
         
         // Mostrar iniciativas con pestañas dinámicas
-        function displayInitiatives(initiatives) {
+        function displayInitiatives(initiatives, textoOriginal = null) {
             // Mostrar/ocultar botón de notificar si hay iniciativas
             const notificarContainer = document.getElementById('notificarMesaContainer');
             if (notificarContainer) {
@@ -1205,6 +1620,11 @@
             // Categorizar iniciativas
             const categorias = categorizarIniciativas(initiatives);
             
+            // Agregar texto original si está disponible
+            if (textoOriginal) {
+                categorias.textoOriginal = textoOriginal;
+            }
+            
             // Mostrar pestañas
             mostrarPestanas(categorias);
             
@@ -1212,46 +1632,93 @@
             mostrarContenidoPestanas(categorias);
         }
         
-        // Función para categorizar iniciativas por tipo
+        // Función para escapar HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        // Función para copiar texto original al portapapeles
+        function copiarTextoOriginal() {
+            const textoElement = document.getElementById('textoOriginalContent');
+            if (textoElement) {
+                const texto = textoElement.textContent;
+                navigator.clipboard.writeText(texto).then(() => {
+                    mostrarNotificacion('Texto copiado al portapapeles', 'success');
+                }).catch(err => {
+                    console.error('Error al copiar:', err);
+                    mostrarNotificacion('Error al copiar el texto', 'danger');
+                });
+            }
+        }
+        
+        // Función para categorizar iniciativas por tipo con estructura jerárquica
         function categorizarIniciativas(initiatives) {
             const categorias = {
                 todas: initiatives,
-                primeraLecturaUrgente: [],
+                procedimientos: [],
+                iniciativas: [],
+                primeraLectura: [],
                 segundaLectura: [],
                 puntosAcuerdo: [],
-                extraordinarias: [],
-                otras: []
+                otras: [],
+                textoOriginal: null  // Para almacenar el texto original del PDF
             };
             
+            // Agrupar por inciso principal y categoría
+            const incisosMap = {};
+            
             initiatives.forEach(init => {
-                // Extraordinarias
-                if (init.tipo_iniciativa === 'extraordinaria') {
-                    categorias.extraordinarias.push(init);
+                // Categorizar por tipo
+                if (init.es_procedimiento || init.categoria === 'procedimiento') {
+                    categorias.procedimientos.push(init);
                 }
-                
-                // Primera lectura urgente (con obvia resolución)
-                if (init.tipo_votacion && init.tipo_votacion.includes('primera_lectura_urgente')) {
-                    categorias.primeraLecturaUrgente.push(init);
+                else if (init.categoria === 'iniciativas' || 
+                        (init.titulo && init.titulo.toLowerCase().includes('iniciativa'))) {
+                    categorias.iniciativas.push(init);
                 }
-                // Segunda lectura
-                else if (init.titulo && init.titulo.toLowerCase().includes('segunda lectura')) {
+                else if (init.categoria === 'primera_lectura' || 
+                        (init.titulo && init.titulo.toLowerCase().includes('primera lectura'))) {
+                    categorias.primeraLectura.push(init);
+                }
+                else if (init.categoria === 'segunda_lectura' || 
+                        (init.titulo && init.titulo.toLowerCase().includes('segunda lectura'))) {
                     categorias.segundaLectura.push(init);
                 }
-                // Puntos de acuerdo
-                else if (init.tipo_votacion === 'punto_acuerdo' || 
+                else if (init.categoria === 'puntos_acuerdo' || init.tipo_votacion === 'punto_acuerdo' || 
                         (init.titulo && init.titulo.toLowerCase().includes('punto de acuerdo'))) {
                     categorias.puntosAcuerdo.push(init);
                 }
-                // Otras
-                else if (!init.tipo_iniciativa || init.tipo_iniciativa !== 'extraordinaria') {
+                else {
                     categorias.otras.push(init);
                 }
+                
+                // Agrupar por inciso principal para estructura jerárquica
+                if (init.inciso_principal) {
+                    if (!incisosMap[init.inciso_principal]) {
+                        incisosMap[init.inciso_principal] = {
+                            letra: init.inciso_principal,
+                            titulo: init.titulo_seccion || `Inciso ${init.inciso_principal}`,
+                            elementos: []
+                        };
+                    }
+                    incisosMap[init.inciso_principal].elementos.push(init);
+                }
             });
+            
+            categorias.estructuraIncisos = Object.values(incisosMap);
             
             return categorias;
         }
         
-        // Función para mostrar las pestañas dinámicas
+        // Función para mostrar las pestañas dinámicas con nueva estructura
         function mostrarPestanas(categorias) {
             const tabsContainer = document.getElementById('initiativesTabs');
             const tabsHtml = [];
@@ -1267,53 +1734,79 @@
                 </li>
             `);
             
-            // Primera Lectura Urgente
-            if (categorias.primeraLecturaUrgente.length > 0) {
+            // Procedimientos (Incisos procedimentales)
+            if (categorias.procedimientos.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="primeraLecturaUrgente-tab" data-bs-toggle="tab" 
-                                data-bs-target="#primeraLecturaUrgente" type="button" role="tab">
-                            <i class="fas fa-bolt"></i> Primera Lectura Urgente
-                            <span class="badge bg-warning ms-1">${categorias.primeraLecturaUrgente.length}</span>
+                        <button class="nav-link" id="procedimientos-tab" data-bs-toggle="tab" 
+                                data-bs-target="#procedimientos" type="button" role="tab">
+                            <i class="fas fa-clipboard-list"></i> Procedimientos
+                            <span class="badge bg-dark ms-1">${categorias.procedimientos.length}</span>
                         </button>
                     </li>
                 `);
             }
             
-            // Segunda Lectura
+            // Iniciativas
+            if (categorias.iniciativas.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="iniciativas-tab" data-bs-toggle="tab" 
+                                data-bs-target="#iniciativas" type="button" role="tab">
+                            <i class="fas fa-file-alt"></i> Iniciativas
+                            <span class="badge bg-primary ms-1">${categorias.iniciativas.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // Primera Lectura
+            if (categorias.primeraLectura.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="primeraLectura-tab" data-bs-toggle="tab" 
+                                data-bs-target="#primeraLectura" type="button" role="tab">
+                            <i class="fas fa-book-open"></i> Primera Lectura
+                            <span class="badge bg-warning ms-1">${categorias.primeraLectura.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // Segunda Lectura (con ⚡ para indicar votación)
             if (categorias.segundaLectura.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="segundaLectura-tab" data-bs-toggle="tab" 
                                 data-bs-target="#segundaLectura" type="button" role="tab">
-                            <i class="fas fa-book-reader"></i> Segunda Lectura
+                            <i class="fas fa-book-reader"></i> Segunda Lectura ⚡
                             <span class="badge bg-danger ms-1">${categorias.segundaLectura.length}</span>
                         </button>
                     </li>
                 `);
             }
             
-            // Puntos de Acuerdo
+            // Puntos de Acuerdo (con ⚡ para indicar votación)
             if (categorias.puntosAcuerdo.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="puntosAcuerdo-tab" data-bs-toggle="tab" 
                                 data-bs-target="#puntosAcuerdo" type="button" role="tab">
-                            <i class="fas fa-handshake"></i> Puntos de Acuerdo
+                            <i class="fas fa-handshake"></i> Puntos de Acuerdo ⚡
                             <span class="badge bg-info ms-1">${categorias.puntosAcuerdo.length}</span>
                         </button>
                     </li>
                 `);
             }
             
-            // Extraordinarias
-            if (categorias.extraordinarias.length > 0) {
+            // Documento Original - Siempre mostrar si hay texto original
+            if (categorias.textoOriginal) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="extraordinarias-tab" data-bs-toggle="tab" 
-                                data-bs-target="#extraordinarias" type="button" role="tab">
-                            <i class="fas fa-star"></i> Extraordinarias
-                            <span class="badge bg-warning ms-1" style="animation: pulse 2s infinite;">${categorias.extraordinarias.length}</span>
+                        <button class="nav-link" id="documentoOriginal-tab" data-bs-toggle="tab" 
+                                data-bs-target="#documentoOriginal" type="button" role="tab">
+                            <i class="fas fa-file-pdf"></i> Documento Original
+                            <span class="badge bg-secondary ms-1"><i class="fas fa-check"></i></span>
                         </button>
                     </li>
                 `);
@@ -1323,7 +1816,7 @@
             tabsContainer.style.display = 'flex';
         }
         
-        // Función para mostrar el contenido de las pestañas
+        // Función para mostrar el contenido de las pestañas con estructura jerárquica
         function mostrarContenidoPestanas(categorias) {
             const contentContainer = document.getElementById('initiativesTabContent');
             const contentHtml = [];
@@ -1332,20 +1825,47 @@
             contentHtml.push(`
                 <div class="tab-pane fade show active" id="todas" role="tabpanel">
                     <div id="initiativesList">
-                        ${renderizarIniciativas(categorias.todas)}
+                        ${renderizarIniciativasJerarquicas(categorias.todas, categorias.estructuraIncisos)}
                     </div>
                 </div>
             `);
             
-            // Contenido para Primera Lectura Urgente
-            if (categorias.primeraLecturaUrgente.length > 0) {
+            // Contenido para Procedimientos
+            if (categorias.procedimientos.length > 0) {
                 contentHtml.push(`
-                    <div class="tab-pane fade" id="primeraLecturaUrgente" role="tabpanel">
-                        <div class="alert alert-warning mb-3">
-                            <i class="fas fa-exclamation-triangle"></i> 
-                            Estas iniciativas requieren votación inmediata por urgente y obvia resolución
+                    <div class="tab-pane fade" id="procedimientos" role="tabpanel">
+                        <div class="alert alert-dark mb-3">
+                            <i class="fas fa-clipboard-list"></i> 
+                            <strong>Estructura completa del Orden del Día</strong>
+                            ${renderizarEstructuraCompleta(categorias)}
                         </div>
-                        ${renderizarIniciativas(categorias.primeraLecturaUrgente)}
+                        ${renderizarIniciativas(categorias.procedimientos)}
+                    </div>
+                `);
+            }
+            
+            // Contenido para Iniciativas
+            if (categorias.iniciativas.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="iniciativas" role="tabpanel">
+                        <div class="alert alert-primary mb-3">
+                            <i class="fas fa-file-alt"></i> 
+                            Iniciativas presentadas para turno a comisiones
+                        </div>
+                        ${renderizarIniciativasConInciso(categorias.iniciativas, 'F')}
+                    </div>
+                `);
+            }
+            
+            // Contenido para Primera Lectura
+            if (categorias.primeraLectura.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="primeraLectura" role="tabpanel">
+                        <div class="alert alert-warning mb-3">
+                            <i class="fas fa-book-open"></i> 
+                            Dictámenes en primera lectura
+                        </div>
+                        ${renderizarIniciativasConInciso(categorias.primeraLectura, 'G')}
                     </div>
                 `);
             }
@@ -1354,11 +1874,11 @@
             if (categorias.segundaLectura.length > 0) {
                 contentHtml.push(`
                     <div class="tab-pane fade" id="segundaLectura" role="tabpanel">
-                        <div class="alert alert-info mb-3">
-                            <i class="fas fa-info-circle"></i> 
-                            Todas las iniciativas de segunda lectura requieren votación
+                        <div class="alert alert-danger mb-3">
+                            <i class="fas fa-book-reader"></i> 
+                            <strong>⚡ Todas las iniciativas de segunda lectura requieren votación</strong>
                         </div>
-                        ${renderizarIniciativas(categorias.segundaLectura)}
+                        ${renderizarIniciativasConInciso(categorias.segundaLectura, 'H')}
                     </div>
                 `);
             }
@@ -1367,29 +1887,120 @@
             if (categorias.puntosAcuerdo.length > 0) {
                 contentHtml.push(`
                     <div class="tab-pane fade" id="puntosAcuerdo" role="tabpanel">
-                        <div class="alert alert-success mb-3">
-                            <i class="fas fa-check-circle"></i> 
-                            Los puntos de acuerdo requieren votación para su aprobación
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-handshake"></i> 
+                            <strong>⚡ Los puntos de acuerdo con urgente y obvia resolución requieren votación</strong>
                         </div>
-                        ${renderizarIniciativas(categorias.puntosAcuerdo)}
+                        ${renderizarIniciativasConInciso(categorias.puntosAcuerdo, 'I')}
                     </div>
                 `);
             }
             
-            // Contenido para Extraordinarias
-            if (categorias.extraordinarias.length > 0) {
+            // Contenido para Documento Original
+            if (categorias.textoOriginal) {
                 contentHtml.push(`
-                    <div class="tab-pane fade" id="extraordinarias" role="tabpanel">
-                        <div class="alert alert-warning mb-3">
-                            <i class="fas fa-star"></i> 
-                            Iniciativas extraordinarias agregadas durante la sesión
+                    <div class="tab-pane fade" id="documentoOriginal" role="tabpanel">
+                        <div class="alert alert-secondary mb-3">
+                            <i class="fas fa-file-pdf"></i> 
+                            <strong>Documento Original del PDF Importado</strong>
+                            <button class="btn btn-sm btn-outline-secondary float-end" onclick="copiarTextoOriginal()">
+                                <i class="fas fa-copy"></i> Copiar texto
+                            </button>
                         </div>
-                        ${renderizarIniciativas(categorias.extraordinarias)}
+                        <div class="card">
+                            <div class="card-body">
+                                <pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.9rem; max-height: 600px; overflow-y: auto;" id="textoOriginalContent">${escapeHtml(categorias.textoOriginal)}</pre>
+                            </div>
+                        </div>
                     </div>
                 `);
             }
             
             contentContainer.innerHTML = contentHtml.join('');
+        }
+        
+        // Nueva función para renderizar estructura completa de incisos
+        function renderizarEstructuraCompleta(categorias) {
+            let html = '<ul class="list-unstyled mt-3">';
+            
+            // Mapear todos los incisos posibles
+            const letras = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+            const nombresIncisos = {
+                'A': 'Pase de lista',
+                'B': 'Declaración del quórum',
+                'C': 'Lectura del orden del día',
+                'D': 'Aprobación del acta',
+                'E': 'Comunicaciones',
+                'F': 'Iniciativas',
+                'G': 'Dictamen de Primera Lectura',
+                'H': 'Dictámenes de Segunda Lectura',
+                'I': 'Propuestas de Puntos de Acuerdo',
+                'J': 'Correspondencia',
+                'K': 'Asuntos generales',
+                'L': 'Clausura de la Sesión'
+            };
+            
+            letras.forEach(letra => {
+                const nombre = nombresIncisos[letra] || `Inciso ${letra}`;
+                const tieneContenido = categorias.estructuraIncisos?.some(e => e.letra === letra);
+                const referencia = ['F', 'G', 'H', 'I'].includes(letra) ? 
+                    `<small class="text-primary ms-2">(Ver pestaña correspondiente)</small>` : '';
+                
+                html += `<li><strong>${letra})</strong> ${nombre} ${referencia}</li>`;
+            });
+            
+            html += '</ul>';
+            return html;
+        }
+        
+        // Nueva función para renderizar iniciativas con su inciso principal
+        function renderizarIniciativasConInciso(initiatives, incisoPrincipal) {
+            if (initiatives.length === 0) {
+                return '<p class="text-muted text-center">No hay iniciativas en esta categoría</p>';
+            }
+            
+            const titulo = initiatives[0]?.titulo_seccion || `Inciso ${incisoPrincipal}`;
+            
+            return `
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-folder-open"></i> ${incisoPrincipal}) ${titulo}
+                            <span class="badge bg-secondary ms-2">${initiatives.length} elementos</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        ${renderizarIniciativas(initiatives)}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Nueva función para renderizar con estructura jerárquica
+        function renderizarIniciativasJerarquicas(initiatives, estructuraIncisos) {
+            if (!estructuraIncisos || estructuraIncisos.length === 0) {
+                return renderizarIniciativas(initiatives);
+            }
+            
+            let html = '';
+            
+            estructuraIncisos.forEach(inciso => {
+                html += `
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-folder-open"></i> ${inciso.letra}) ${inciso.titulo}
+                                <span class="badge bg-secondary ms-2">${inciso.elementos.length} elementos</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            ${renderizarIniciativas(inciso.elementos)}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            return html;
         }
         
         // Función auxiliar para renderizar las iniciativas
@@ -2938,20 +3549,41 @@
                     if (data.sesion) {
                         sessionData = data.sesion;
                         
-                        // Habilitar botones de exportación
-                        document.getElementById('btnExportExcel').disabled = false;
-                        document.getElementById('btnExportPDF').disabled = false;
-                        document.getElementById('btnExportWord').disabled = false;
+                        // Habilitar botones de exportación con verificación
+                        const btnExportExcel = document.getElementById('btnExportExcel');
+                        if (btnExportExcel) btnExportExcel.disabled = false;
                         
-                        // Actualizar contadores del dashboard
-                        document.getElementById('votacionesActivas').textContent = data.votaciones_activas || 0;
-                        document.getElementById('votacionesCompletadas').textContent = data.votaciones_completadas || 0;
-                        document.getElementById('documentosPendientes').textContent = data.documentos_pendientes || 0;
+                        const btnExportPDF = document.getElementById('btnExportPDF');
+                        if (btnExportPDF) btnExportPDF.disabled = false;
+                        
+                        const btnExportWord = document.getElementById('btnExportWord');
+                        if (btnExportWord) btnExportWord.disabled = false;
+                        
+                        // Actualizar contadores del dashboard con verificación de elementos
+                        const votacionesActivasEl = document.getElementById('votacionesActivas');
+                        if (votacionesActivasEl) {
+                            votacionesActivasEl.textContent = data.votaciones_activas || 0;
+                        }
+                        
+                        const votacionesCompletadasEl = document.getElementById('votacionesCompletadas');
+                        if (votacionesCompletadasEl) {
+                            votacionesCompletadasEl.textContent = data.votaciones_completadas || 0;
+                        }
+                        
+                        const documentosPendientesEl = document.getElementById('documentosPendientes');
+                        if (documentosPendientesEl) {
+                            documentosPendientesEl.textContent = data.documentos_pendientes || 0;
+                        }
                     } else {
-                        // Deshabilitar botones si no hay sesión
-                        document.getElementById('btnExportExcel').disabled = true;
-                        document.getElementById('btnExportPDF').disabled = true;
-                        document.getElementById('btnExportWord').disabled = true;
+                        // Deshabilitar botones si no hay sesión con verificación
+                        const btnExportExcel = document.getElementById('btnExportExcel');
+                        if (btnExportExcel) btnExportExcel.disabled = true;
+                        
+                        const btnExportPDF = document.getElementById('btnExportPDF');
+                        if (btnExportPDF) btnExportPDF.disabled = true;
+                        
+                        const btnExportWord = document.getElementById('btnExportWord');
+                        if (btnExportWord) btnExportWord.disabled = true;
                     }
                 }
             } catch (error) {
@@ -3615,34 +4247,34 @@
                     <!-- Estadísticas -->
                     <div class="row mb-3">
                         <div class="col-md-3">
-                            <div class="card bg-info text-white" style="cursor: pointer;" onclick="filtrarIniciativas('todas')">
+                            <div class="card border-info" style="cursor: pointer; background-color: #d1ecf1;" onclick="filtrarIniciativas('todas')">
                                 <div class="card-body p-2 text-center">
-                                    <h6>Total Iniciativas</h6>
-                                    <h3 id="totalIniciativas">0</h3>
+                                    <h6 class="text-info">Total Iniciativas</h6>
+                                    <h3 id="totalIniciativas" class="text-info">0</h3>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card bg-success text-white" style="cursor: pointer;" onclick="filtrarIniciativas('votacion')">
+                            <div class="card border-success" style="cursor: pointer; background-color: #d4edda;" onclick="filtrarIniciativas('votacion')">
                                 <div class="card-body p-2 text-center">
-                                    <h6>Requieren Votación</h6>
-                                    <h3 id="requierenVotacion">0</h3>
+                                    <h6 class="text-success">Requieren Votación</h6>
+                                    <h3 id="requierenVotacion" class="text-success">0</h3>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card bg-warning text-white" style="cursor: pointer;" onclick="filtrarIniciativas('comisiones')">
+                            <div class="card border-warning" style="cursor: pointer; background-color: #fff3cd;" onclick="filtrarIniciativas('comisiones')">
                                 <div class="card-body p-2 text-center">
-                                    <h6>A Comisiones</h6>
-                                    <h3 id="aComisiones">0</h3>
+                                    <h6 class="text-warning-emphasis">A Comisiones</h6>
+                                    <h3 id="aComisiones" class="text-warning-emphasis">0</h3>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card bg-secondary text-white" style="cursor: pointer;" onclick="filtrarIniciativas('otros')">
+                            <div class="card border-secondary" style="cursor: pointer; background-color: #e2e3e5;" onclick="filtrarIniciativas('otros')">
                                 <div class="card-body p-2 text-center">
-                                    <h6>Otros</h6>
-                                    <h3 id="otros">0</h3>
+                                    <h6 class="text-secondary">Otros</h6>
+                                    <h3 id="otros" class="text-secondary">0</h3>
                                 </div>
                             </div>
                         </div>
@@ -3659,7 +4291,7 @@
                     <!-- Tipo de Carga -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Tipo de Carga:</label>
-                        <div class="form-check form-check-inline">
+                        <div class="form-check form-check-inline" id="tipoCargaValidacionGroup">
                             <input class="form-check-input" type="radio" name="tipoCargaValidacion" id="cargaInmediataVal" value="inmediata" checked>
                             <label class="form-check-label" for="cargaInmediataVal">
                                 <i class="fas fa-play"></i> Sesión Inmediata
@@ -3734,7 +4366,7 @@
                     <button type="button" class="btn btn-warning" onclick="mostrarVistaPrevia()">
                         <i class="fas fa-eye"></i> Vista Previa
                     </button>
-                    <button type="button" class="btn btn-primary" id="btnGuardarValidacion">
+                    <button type="button" class="btn btn-primary" id="btnGuardarValidacion" onclick="guardarIniciativasSeleccionadas()">
                         <i class="fas fa-save"></i> Confirmar y Cargar Iniciativas
                     </button>
                 </div>
@@ -3755,33 +4387,33 @@
                         <input type="hidden" id="editNumeroSistema">
                         
                         <div class="mb-3">
-                            <label class="form-label">Número Orden del Día:</label>
+                            <label for="editNumeroOrden" class="form-label">Número Orden del Día:</label>
                             <input type="number" class="form-control" id="editNumeroOrden" required>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Título:</label>
+                            <label for="editTitulo" class="form-label">Título:</label>
                             <textarea class="form-control" id="editTitulo" rows="2" required></textarea>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Descripción:</label>
-                            <textarea class="form-control" id="editDescripcion" rows="3"></textarea>
+                            <label for="editDescripcionModal" class="form-label">Descripción:</label>
+                            <textarea class="form-control" id="editDescripcionModal" rows="3"></textarea>
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Presentador:</label>
-                            <input type="text" class="form-control" id="editPresentador">
+                            <label for="editPresentadorModal" class="form-label">Presentador:</label>
+                            <input type="text" class="form-control" id="editPresentadorModal">
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Partido:</label>
-                            <input type="text" class="form-control" id="editPartido">
+                            <label for="editPartidoModal" class="form-label">Partido:</label>
+                            <input type="text" class="form-control" id="editPartidoModal">
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Tipo de Mayoría:</label>
-                            <select class="form-select" id="editTipoMayoria">
+                            <label for="editTipoMayoriaModal" class="form-label">Tipo de Mayoría:</label>
+                            <select class="form-select" id="editTipoMayoriaModal">
                                 <option value="simple">Simple</option>
                                 <option value="calificada">Calificada</option>
                                 <option value="especial">Especial</option>
@@ -3798,11 +4430,7 @@
     </div>
     
     <script>
-        // Variables para validación
-        let sessionIdActual = null;
-        let iniciativasValidacion = [];
-        let iniciativasOriginales = []; // Copia para restaurar
-        let filtroActual = 'todas';
+        // Variables para validación (ya declaradas globalmente al inicio)
         
         // Función para filtrar iniciativas
         function filtrarIniciativas(tipo) {
@@ -3843,78 +4471,6 @@
             renderizarTablaValidacion(iniciativasFiltradas);
         }
         
-        // Función para renderizar tabla
-        function renderizarTablaValidacion(iniciativas) {
-            const tbody = document.getElementById('tablaValidacion');
-            tbody.innerHTML = '';
-            
-            iniciativas.forEach((init) => {
-                const index = iniciativasValidacion.indexOf(init);
-                const tr = document.createElement('tr');
-                
-                // Determinar si requiere votación
-                const requiereVotacion = init.requiere_votacion || false;
-                
-                // Estilo de fila para iniciativas que requieren votación
-                if (requiereVotacion) {
-                    tr.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
-                }
-                
-                // Verificar si está seleccionada
-                const isSelected = init.seleccionada || false;
-                
-                tr.innerHTML = `
-                    <td>
-                        <input type="checkbox" 
-                               class="form-check-input iniciativa-checkbox" 
-                               data-index="${index}"
-                               ${isSelected ? 'checked' : ''}
-                               onchange="toggleIniciativaSeleccion(${index})">
-                    </td>
-                    <td>
-                        ${requiereVotacion ? '<i class="fas fa-vote-yea text-success me-1" title="Requiere votación"></i>' : ''}
-                        <strong>${init.numero_sistema}</strong>
-                    </td>
-                    <td>${init.numero_orden_dia || '-'}</td>
-                    <td>${init.titulo || 'Sin título'}</td>
-                    <td>${init.presentador || '-'}</td>
-                    <td>${init.partido || '-'}</td>
-                    <td>
-                        <span class="badge bg-${init.tipo_mayoria === 'calificada' ? 'warning' : 'secondary'}">
-                            ${init.tipo_mayoria || 'simple'}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary" 
-                                    onclick="editarIniciativaValidacion(${index})"
-                                    title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-outline-danger" 
-                                    onclick="eliminarIniciativaValidacion(${index})"
-                                    title="Eliminar">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            
-            if (iniciativas.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="8" class="text-center text-muted">
-                            No hay iniciativas ${filtroActual !== 'todas' ? 'en este filtro' : ''}
-                        </td>
-                    </tr>
-                `;
-            }
-            
-            actualizarContadorSeleccionadas();
-        }
-        
         // Función para eliminar iniciativa en validación
         function eliminarIniciativaValidacion(index) {
             if (!confirm('¿Eliminar esta iniciativa? No se importará a la sesión.')) return;
@@ -3933,36 +4489,10 @@
             }
         }
         
-        // Función para actualizar estadísticas
-        function actualizarEstadisticasValidacion() {
-            document.getElementById('totalIniciativas').textContent = iniciativasValidacion.length;
-            
-            const requierenVot = iniciativasValidacion.filter(i => i.requiere_votacion).length;
-            document.getElementById('requierenVotacion').textContent = requierenVot;
-            
-            const aComision = iniciativasValidacion.filter(i => 
-                i.tipo_votacion && i.tipo_votacion.toLowerCase().includes('comisión')).length;
-            document.getElementById('aComisiones').textContent = aComision;
-            
-            document.getElementById('otros').textContent = 
-                iniciativasValidacion.length - requierenVot - aComision;
-        }
-        
         // Funciones de selección de iniciativas
         function toggleIniciativaSeleccion(index) {
             iniciativasValidacion[index].seleccionada = !iniciativasValidacion[index].seleccionada;
             actualizarContadorSeleccionadas();
-        }
-        
-        function actualizarContadorSeleccionadas() {
-            const seleccionadas = iniciativasValidacion.filter(i => i.seleccionada).length;
-            document.getElementById('contadorSeleccionadas').textContent = seleccionadas;
-            
-            // Actualizar estado del checkbox principal
-            const totalCheckboxes = document.querySelectorAll('.iniciativa-checkbox').length;
-            const checkedCheckboxes = document.querySelectorAll('.iniciativa-checkbox:checked').length;
-            document.getElementById('selectAllCheckbox').checked = totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes;
-            document.getElementById('selectAllCheckbox').indeterminate = checkedCheckboxes > 0 && checkedCheckboxes < totalCheckboxes;
         }
         
         function toggleSelectAll() {
@@ -4037,49 +4567,6 @@
             document.getElementById('fechaProgramadaVal').style.display = 'none';
         });
         
-        // Función para mostrar modal de validación
-        async function mostrarValidacionPDF(file) {
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            try {
-                const response = await fetch('/api/validacion/preview-pdf', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
-                    sessionIdActual = data.sessionId;
-                    iniciativasValidacion = data.iniciativas;
-                    iniciativasOriginales = [...data.iniciativas]; // Guardar copia
-                    filtroActual = 'todas'; // Resetear filtro
-                    
-                    // Actualizar estadísticas
-                    actualizarEstadisticasValidacion();
-                    
-                    // Renderizar tabla
-                    renderizarTablaValidacion(iniciativasValidacion);
-                    
-                    // Limpiar filtro activo
-                    document.getElementById('filtroActivo').style.display = 'none';
-                    
-                    // Mostrar modal
-                    const modal = new bootstrap.Modal(document.getElementById('modalValidacion'));
-                    modal.show();
-                } else {
-                    alert('Error al procesar el PDF: ' + (data.error || 'Error desconocido'));
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al procesar el PDF');
-            }
-        }
-        
         // Función para editar iniciativa
         function editarIniciativaValidacion(index) {
             const init = iniciativasValidacion[index];
@@ -4087,10 +4574,10 @@
             document.getElementById('editNumeroSistema').value = init.numero_sistema;
             document.getElementById('editNumeroOrden').value = init.numero_orden_dia;
             document.getElementById('editTitulo').value = init.titulo;
-            document.getElementById('editDescripcion').value = init.descripcion;
-            document.getElementById('editPresentador').value = init.presentador;
-            document.getElementById('editPartido').value = init.partido;
-            document.getElementById('editTipoMayoria').value = init.tipo_mayoria;
+            document.getElementById('editDescripcionModal').value = init.descripcion;
+            document.getElementById('editPresentadorModal').value = init.presentador;
+            document.getElementById('editPartidoModal').value = init.partido;
+            document.getElementById('editTipoMayoriaModal').value = init.tipo_mayoria;
             
             const modalEdit = new bootstrap.Modal(document.getElementById('modalEditarIniciativa'));
             modalEdit.show();
@@ -4103,10 +4590,10 @@
             const datosActualizados = {
                 numero_orden_dia: parseInt(document.getElementById('editNumeroOrden').value),
                 titulo: document.getElementById('editTitulo').value,
-                descripcion: document.getElementById('editDescripcion').value,
-                presentador: document.getElementById('editPresentador').value,
-                partido: document.getElementById('editPartido').value,
-                tipo_mayoria: document.getElementById('editTipoMayoria').value
+                descripcion: document.getElementById('editDescripcionModal').value,
+                presentador: document.getElementById('editPresentadorModal').value,
+                partido: document.getElementById('editPartidoModal').value,
+                tipo_mayoria: document.getElementById('editTipoMayoriaModal').value
             };
             
             try {
@@ -4286,7 +4773,8 @@
         }
         
         // Guardar iniciativas validadas CON CONFIRMACIÓN
-        document.getElementById('btnGuardarValidacion').addEventListener('click', async function() {
+        // NOTA: Este event listener está comentado porque el botón ya tiene onclick="guardarIniciativasSeleccionadas()"
+        /* document.getElementById('btnGuardarValidacion').addEventListener('click', async function() {
             // Filtrar solo las iniciativas seleccionadas
             const iniciativasSeleccionadas = iniciativasValidacion.filter(i => i.seleccionada === true);
             
@@ -4379,23 +4867,8 @@
                 this.disabled = false;
                 this.innerHTML = '<i class="fas fa-save"></i> Guardar Iniciativas Validadas';
             }
-        });
+        }); */
         
-        // Modificar el evento de carga de PDF para usar validación
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const fileInput = document.getElementById('pdfFile');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                alert('Por favor selecciona un archivo PDF');
-                return;
-            }
-            
-            // Mostrar modal de validación en lugar de cargar directamente
-            mostrarValidacionPDF(file);
-        });
     </script>
     
     <script src="/js/theme-switcher.js"></script>

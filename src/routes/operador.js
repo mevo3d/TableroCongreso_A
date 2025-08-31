@@ -252,7 +252,38 @@ router.get('/sesion-activa', (req, res) => {
                     return res.status(500).json({ error: 'Error obteniendo iniciativas' });
                 }
                 
-                res.json({ sesion, iniciativas });
+                // Buscar el texto original del documento si existe
+                // Primero verificar si la tabla existe
+                db.get(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='documentos_originales'",
+                    (err, tableExists) => {
+                        if (err || !tableExists) {
+                            // Si la tabla no existe, devolver sin texto original
+                            res.json({ 
+                                sesion, 
+                                iniciativas,
+                                textoOriginal: null 
+                            });
+                        } else {
+                            // Si la tabla existe, buscar el documento
+                            db.get(
+                                'SELECT texto_original FROM documentos_originales WHERE sesion_id = ?',
+                                [sesion.id],
+                                (err, documento) => {
+                                    if (err) {
+                                        console.log('Documento original no encontrado para sesión:', sesion.id);
+                                    }
+                                    
+                                    res.json({ 
+                                        sesion, 
+                                        iniciativas,
+                                        textoOriginal: documento?.texto_original || null 
+                                    });
+                                }
+                            );
+                        }
+                    }
+                );
             }
         );
     });
@@ -1932,40 +1963,71 @@ router.delete('/sesion/:id', (req, res) => {
     const { id } = req.params;
     const db = req.db;
     
-    // Verificar que la sesión no esté activa
+    // Primero buscar en sesiones normales
     db.get('SELECT * FROM sesiones WHERE id = ?', [id], (err, sesion) => {
         if (err) {
             return res.status(500).json({ error: 'Error verificando sesión' });
         }
         
-        if (!sesion) {
-            return res.status(404).json({ error: 'Sesión no encontrada' });
-        }
-        
-        if (sesion.activa) {
-            return res.status(400).json({ error: 'No se puede eliminar una sesión activa' });
-        }
-        
-        // Eliminar iniciativas de la sesión
-        db.run('DELETE FROM iniciativas WHERE sesion_id = ?', [id], (err) => {
-            if (err) {
-                console.error('Error eliminando iniciativas:', err);
-                return res.status(500).json({ error: 'Error eliminando iniciativas' });
+        if (sesion) {
+            // Sesión encontrada en tabla sesiones
+            if (sesion.activa) {
+                return res.status(400).json({ error: 'No se puede eliminar una sesión activa' });
             }
             
-            // Eliminar la sesión
-            db.run('DELETE FROM sesiones WHERE id = ?', [id], (err) => {
+            // Eliminar iniciativas de la sesión
+            db.run('DELETE FROM iniciativas WHERE sesion_id = ?', [id], (err) => {
                 if (err) {
-                    console.error('Error eliminando sesión:', err);
-                    return res.status(500).json({ error: 'Error eliminando sesión' });
+                    console.error('Error eliminando iniciativas:', err);
+                    return res.status(500).json({ error: 'Error eliminando iniciativas' });
                 }
                 
-                res.json({ 
-                    success: true, 
-                    message: 'Sesión eliminada correctamente' 
+                // Eliminar la sesión
+                db.run('DELETE FROM sesiones WHERE id = ?', [id], (err) => {
+                    if (err) {
+                        console.error('Error eliminando sesión:', err);
+                        return res.status(500).json({ error: 'Error eliminando sesión' });
+                    }
+                    
+                    res.json({ 
+                        success: true, 
+                        message: 'Sesión eliminada correctamente' 
+                    });
                 });
             });
-        });
+        } else {
+            // Si no está en sesiones, buscar en sesiones_temporales
+            db.get('SELECT * FROM sesiones_temporales WHERE id = ?', [id], (err, sesionTemp) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Error verificando sesión temporal' });
+                }
+                
+                if (!sesionTemp) {
+                    return res.status(404).json({ error: 'Sesión no encontrada' });
+                }
+                
+                // Eliminar iniciativas de la sesión temporal
+                db.run('DELETE FROM iniciativas_temporales WHERE sesion_temporal_id = ?', [id], (err) => {
+                    if (err) {
+                        console.error('Error eliminando iniciativas temporales:', err);
+                        return res.status(500).json({ error: 'Error eliminando iniciativas temporales' });
+                    }
+                    
+                    // Eliminar la sesión temporal
+                    db.run('DELETE FROM sesiones_temporales WHERE id = ?', [id], (err) => {
+                        if (err) {
+                            console.error('Error eliminando sesión temporal:', err);
+                            return res.status(500).json({ error: 'Error eliminando sesión temporal' });
+                        }
+                        
+                        res.json({ 
+                            success: true, 
+                            message: 'Sesión temporal eliminada correctamente' 
+                        });
+                    });
+                });
+            });
+        }
     });
 });
 

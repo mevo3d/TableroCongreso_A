@@ -194,6 +194,17 @@ db.serialize(() => {
         )
     `);
     
+    // Tabla de documentos originales (PDF importados)
+    db.run(`
+        CREATE TABLE IF NOT EXISTS documentos_originales (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sesion_id INTEGER NOT NULL,
+            texto_original TEXT,
+            fecha_carga DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sesion_id) REFERENCES sesiones(id) ON DELETE CASCADE
+        )
+    `);
+    
     // Insertar partidos políticos por defecto
     const partidos = [
         { nombre: 'Morena', siglas: 'MORENA', color: '#8B1B1B' },
