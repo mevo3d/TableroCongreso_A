@@ -1187,6 +1187,27 @@
                 // Verificar si está seleccionada
                 const isSelected = init.seleccionada || false;
                 
+                // Preparar el contenido para mostrar
+                const descripcion = init.descripcion || init.contenido || init.titulo || 'Sin descripción';
+                const descripcionCorta = descripcion.length > 150 ? 
+                    descripcion.substring(0, 150) + '...' : descripcion;
+                
+                // Determinar el tipo de elemento
+                const tipoElemento = init.tipo_documento || init.tipo_votacion || 'General';
+                
+                // Determinar la categoría
+                const categoriaElemento = init.categoria || 'otras';
+                const categoriaBadge = {
+                    'dictamenes': 'bg-success',
+                    'primera_lectura': 'bg-info',
+                    'segunda_lectura': 'bg-warning',
+                    'urgente': 'bg-danger',
+                    'puntos_acuerdo': 'bg-purple',
+                    'iniciativas': 'bg-primary',
+                    'procedimiento': 'bg-dark',
+                    'otras': 'bg-secondary'
+                }[categoriaElemento] || 'bg-secondary';
+                
                 tr.innerHTML = `
                     <td>
                         <input type="checkbox" 
@@ -1198,12 +1219,20 @@
                     <td>
                         ${esRecomendada ? '<i class="fas fa-robot text-warning me-1" title="Recomendada por el sistema"></i>' : ''}
                         ${requiereVotacion ? '<i class="fas fa-vote-yea text-success me-1" title="Requiere votación"></i>' : ''}
-                        <strong>${init.numero_sistema}</strong>
+                        <small>${init.numero_sistema || index + 1}</small>
                     </td>
-                    <td>${init.numero_orden_dia || '-'}</td>
-                    <td>${init.titulo || 'Sin título'}</td>
-                    <td>${init.presentador || '-'}</td>
-                    <td>${init.partido || '-'}</td>
+                    <td><small>${init.numero_orden_dia || init.numero_original || '-'}</small></td>
+                    <td title="${descripcion.replace(/"/g, '&quot;')}">
+                        <small>${descripcionCorta}</small>
+                    </td>
+                    <td>
+                        <small>${tipoElemento}</small>
+                    </td>
+                    <td>
+                        <span class="badge ${categoriaBadge}">
+                            ${categoriaElemento}
+                        </span>
+                    </td>
                     <td>
                         <span class="badge bg-${init.tipo_mayoria === 'calificada' ? 'warning' : 'secondary'}">
                             ${init.tipo_mayoria || 'simple'}
@@ -1344,8 +1373,14 @@
         
         // Función para guardar iniciativas seleccionadas
         async function guardarIniciativasSeleccionadas() {
+            console.log('=== INICIANDO GUARDADO DE INICIATIVAS ===');
+            console.log('Iniciativas en validación:', iniciativasValidacion);
+            console.log('Session ID actual:', sessionIdActual);
+            
             // Verificar el modo de importación
             const importarTodas = document.getElementById('importarTodasSwitch')?.checked ?? false;
+            console.log('Modo importar todas:', importarTodas);
+            
             let iniciativasAImportar = [];
             let iniciativasParaVotacion = [];
             
@@ -1398,6 +1433,11 @@
             }
             
             try {
+                console.log('Iniciando proceso de guardado...');
+                console.log('Iniciativas a importar:', iniciativasAImportar.length);
+                console.log('Tipo de carga:', tipoCarga);
+                console.log('Fecha programada:', fechaProgramada);
+                
                 // Mostrar loading
                 const loadingDiv = document.createElement('div');
                 loadingDiv.className = 'alert alert-info position-fixed top-0 end-0 m-3';
@@ -1406,20 +1446,28 @@
                 document.body.appendChild(loadingDiv);
                 
                 // Llamar al API para guardar en la base de datos
-                const response = await fetch(`/api/validacion/validar-sesion/${sessionIdActual}`, {
+                const url = `/api/validacion/validar-sesion/${sessionIdActual}`;
+                console.log('URL de la API:', url);
+                
+                const bodyData = {
+                    tipoCarga: tipoCarga,
+                    fechaProgramada: fechaProgramada,
+                    iniciativasSeleccionadas: iniciativasAImportar,
+                    modoImportacion: importarTodas ? 'todas' : 'seleccionadas',
+                    iniciativasVotacion: iniciativasParaVotacion.map(i => i.numero)
+                };
+                console.log('Datos a enviar:', bodyData);
+                
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        tipoCarga: tipoCarga,
-                        fechaProgramada: fechaProgramada,
-                        iniciativasSeleccionadas: iniciativasAImportar,  // Enviar las iniciativas a importar
-                        modoImportacion: importarTodas ? 'todas' : 'seleccionadas',  // Indicar el modo
-                        iniciativasVotacion: iniciativasParaVotacion.map(i => i.numero)  // IDs de las que van a votación
-                    })
+                    body: JSON.stringify(bodyData)
                 });
+                
+                console.log('Respuesta recibida:', response.status, response.ok);
                 
                 // Remover loading
                 loadingDiv.remove();
@@ -1479,8 +1527,17 @@
                 }
                 
             } catch (error) {
-                console.error('Error al guardar iniciativas:', error);
-                alert('Error al importar las iniciativas: ' + error.message);
+                console.error('=== ERROR AL GUARDAR INICIATIVAS ===');
+                console.error('Error completo:', error);
+                console.error('Stack:', error.stack);
+                console.error('Mensaje:', error.message);
+                
+                // Mostrar error más detallado
+                alert(`Error al importar las iniciativas:\n\nError: ${error.message}\n\nRevisa la consola para más detalles.`);
+                
+                // Remover loading si existe
+                const loadingDivs = document.querySelectorAll('.alert.alert-info.position-fixed');
+                loadingDivs.forEach(div => div.remove());
             }
         }
         
@@ -1577,11 +1634,28 @@
                 }
                 
                 const data = await response.json();
-                console.log('Datos recibidos:', data);
+                console.log('=== DATOS RECIBIDOS DEL SERVIDOR ===');
+                console.log('Success:', data.success);
+                console.log('SessionId:', data.sessionId);
+                console.log('Número de iniciativas:', data.iniciativas?.length || 0);
+                console.log('Primera iniciativa:', data.iniciativas?.[0]);
                 
                 if (data.success) {
                     sessionIdActual = data.sessionId;
                     iniciativasValidacion = data.iniciativas || [];
+                    
+                    // Verificar estructura de las iniciativas
+                    if (iniciativasValidacion.length > 0) {
+                        console.log('Estructura de iniciativa ejemplo:');
+                        const ejemplo = iniciativasValidacion[0];
+                        console.log('- numero_sistema:', ejemplo.numero_sistema);
+                        console.log('- titulo:', ejemplo.titulo);
+                        console.log('- descripcion:', ejemplo.descripcion);
+                        console.log('- contenido:', ejemplo.contenido);
+                        console.log('- categoria:', ejemplo.categoria);
+                        console.log('- requiere_votacion:', ejemplo.requiere_votacion);
+                    }
+                    
                     iniciativasOriginales = [...iniciativasValidacion]; // Guardar copia
                     filtroActual = 'todas'; // Resetear filtro
                     
@@ -4672,12 +4746,12 @@
                                     <th width="40">
                                         <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" title="Seleccionar todas">
                                     </th>
-                                    <th width="80">Núm.</th>
-                                    <th width="80">Orden</th>
-                                    <th>Título</th>
-                                    <th width="150">Presentador</th>
-                                    <th width="100">Partido</th>
-                                    <th width="100">Mayoría</th>
+                                    <th width="60">Núm.</th>
+                                    <th width="60">Orden</th>
+                                    <th>Descripción / Contenido</th>
+                                    <th width="120">Tipo</th>
+                                    <th width="100">Categoría</th>
+                                    <th width="80">Mayoría</th>
                                     <th width="80">Acciones</th>
                                 </tr>
                             </thead>
