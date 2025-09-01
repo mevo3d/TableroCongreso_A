@@ -425,7 +425,7 @@
                             <h5 class="mb-0"><i class="fas fa-list"></i> Iniciativas y Dictámenes</h5>
                             <div class="btn-group" role="group">
                                 <button class="btn btn-warning btn-sm" onclick="mostrarModalExtraordinarias()" title="Agregar iniciativas extraordinarias">
-                                    <i class="fas fa-plus-circle"></i> Extraordinarias
+                                    <i class="fas fa-plus-circle"></i> Agregar
                                 </button>
                                 <button class="btn btn-info btn-sm" onclick="guardarSesion()" title="Guardar sesión para uso posterior">
                                     <i class="fas fa-save"></i> Guardar
@@ -1196,8 +1196,9 @@
                 // Verificar si está seleccionada
                 const isSelected = init.seleccionada || false;
                 
-                // Preparar el contenido para mostrar
-                const descripcion = init.descripcion || init.contenido || init.titulo || 'Sin descripción';
+                // Preparar el contenido para mostrar - usar el campo que tenga más contenido
+                const descripcion = init.descripcion || init.titulo || init.contenido || 'Sin descripción';
+                console.log(`Iniciativa ${init.numero_sistema}: desc=${init.descripcion?.length || 0} chars, titulo=${init.titulo?.length || 0} chars`);
                 const descripcionCorta = descripcion.length > 150 ? 
                     descripcion.substring(0, 150) + '...' : descripcion;
                 

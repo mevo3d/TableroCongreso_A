@@ -659,22 +659,34 @@ router.post('/cargar-pdf', upload.single('pdf'), async (req, res) => {
             // Actualizar la sesión precargada con la ruta del documento
             db.run('UPDATE sesiones_precargadas SET archivo_pdf = ? WHERE id = ?', [pdfFileName, sesionId]);
             
-            // Insertar iniciativas
+            // Insertar iniciativas con categoría
             const stmt = db.prepare(`
                 INSERT INTO iniciativas_precargadas (
-                    sesion_precargada_id, numero, titulo, descripcion,
-                    tipo_mayoria, tipo_iniciativa
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    sesion_precargada_id, numero, numero_orden_dia, titulo, descripcion,
+                    tipo_mayoria, tipo_iniciativa, categoria, presentador, partido_presentador
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
             
             iniciativas.forEach(init => {
+                // Log para verificar que recibimos texto completo
+                if (init.numero <= 3) {
+                    console.log(`Guardando iniciativa ${init.numero}:`);
+                    console.log(`  - Descripción (${init.descripcion?.length || 0} chars): ${init.descripcion?.substring(0, 200)}...`);
+                    console.log(`  - Categoría: ${init.categoria || 'otras'}`);
+                    console.log(`  - Presentador: ${init.presentador || 'No especificado'}`);
+                }
+                
                 stmt.run(
                     sesionId,
                     init.numero,
-                    init.titulo,
-                    init.descripcion || '',
+                    init.numero_orden_dia || init.numero_general || init.numero,
+                    init.titulo || init.descripcion || init.contenido || '',
+                    init.descripcion || init.titulo || init.contenido || '',
                     init.tipo_mayoria || 'simple',
-                    'ordinaria'
+                    'ordinaria',
+                    init.categoria || 'otras',
+                    init.presentador || '',
+                    init.partido || init.partido_presentador || ''
                 );
             });
             

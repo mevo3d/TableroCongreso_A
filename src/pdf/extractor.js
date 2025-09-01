@@ -209,6 +209,7 @@ async function extraerIniciativasDefinitivo(pdfBuffer) {
         texto = texto.replace(/\n{3,}/g, '\n\n');
         
         // Log para debugging
+        console.log('=== USANDO EXTRACCIÓN SIMPLIFICADA ===');
         console.log('=== TEXTO EXTRAÍDO DEL PDF (primeros 1000 caracteres) ===');
         console.log(texto.substring(0, 1000));
         console.log('=== FIN DEL PREVIEW ===');
@@ -219,8 +220,12 @@ async function extraerIniciativasDefinitivo(pdfBuffer) {
         // Extraer estructura completa de incisos
         const estructuraIncisos = extraerEstructuraIncisos(texto);
         
-        // NUEVO: Extraer elementos con la estructura de incisos para mantener categorías
-        const elementos = extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion);
+        // HÍBRIDO: Usar función compleja para categorías correctas pero con extracción simple para texto completo
+        const elementosComplejos = extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion);
+        const elementosSimples = extraerTextoCompletoSimple(texto);
+        
+        // Combinar: usar categorías de la función compleja con texto completo de la función simple
+        const elementos = combinarElementosConTextoCompleto(elementosComplejos, elementosSimples);
         
         // Generar estadísticas y resumen
         const estadisticas = generarEstadisticas(elementos);
@@ -231,7 +236,7 @@ async function extraerIniciativasDefinitivo(pdfBuffer) {
                 paginas: data.numpages,
                 tipoSesion: tipoSesion,
                 fecha: extraerFecha(texto),
-                estructuraIncisos: estructuraIncisos,  // Incluir estructura de incisos
+                estructuraIncisos: estructuraIncisos,  // Usar estructura real de incisos
                 textoOriginal: texto  // Incluir el texto original completo del PDF
             },
             elementos: elementos,
@@ -240,7 +245,7 @@ async function extraerIniciativasDefinitivo(pdfBuffer) {
                 e.requiere_votacion && e.momento_votacion === 'inmediato'
             ).map(e => ({
                 numero: e.numero,
-                titulo: e.titulo.substring(0, 100) + (e.titulo.length > 100 ? '...' : ''),
+                titulo: e.titulo, // NO TRUNCAR - Mantener título completo
                 tipo: e.tipo_votacion,
                 mayoria: e.tipo_mayoria,
                 prioridad: e.prioridad || 'normal'
@@ -608,8 +613,8 @@ function extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion) {
                 numero_orden_dia: numeroEnSeccion,
                 numero_original: numeroOriginal,
                 
-                // Contenido
-                titulo: contenido.substring(0, 100),
+                // Contenido - NO TRUNCAR
+                titulo: contenido, // Mantener completo
                 descripcion: contenido,
                 contenido_completo: contenido,
                 
@@ -983,6 +988,7 @@ function extraerElementos(texto, tipoSesion) {
                 i--; // Retroceder para procesar esta línea como nuevo elemento
             } else {
                 // Acumular TODAS las líneas que son continuación del elemento actual
+                // IMPORTANTE: NO filtrar por longitud - acumular TODO incluso líneas cortas como "de", "y", etc.
                 if (linea.length > 0) {
                     // Agregar la línea con un espacio si no termina con guión (palabra cortada)
                     if (textoAcumulado.endsWith('-')) {
@@ -1165,6 +1171,9 @@ function finalizarElemento(elemento, texto, listaElementos) {
     // Log de debugging para ver qué categoría se está guardando
     console.log(`📝 Finalizando elemento #${elemento.numero} con categoría: ${elemento.categoria} (inciso: ${elemento.inciso_principal || 'ninguno'})`);
     
+    // LOG CRÍTICO: Ver exactamente qué texto está llegando
+    console.log(`   📄 TEXTO RECIBIDO (${texto.length} chars): "${texto.substring(0, 300)}..."`);
+    
     // Limpiar texto
     texto = texto.replace(/\s+/g, ' ').trim();
     
@@ -1174,11 +1183,16 @@ function finalizarElemento(elemento, texto, listaElementos) {
     // Limpiar número del inicio si existe
     descripcion = descripcion.replace(/^\d+\.\s*/, '');
     
-    // No limitar la longitud de la descripción para preservar todo el contenido
-    // Mantener el texto completo sin cortes
-    elemento.titulo = '';  // No usar título
+    // IMPORTANTE: Guardar el texto completo en TODOS los campos para evitar pérdidas
+    // Algunos lugares usan titulo, otros descripcion, otros contenido
+    elemento.titulo = descripcion;  // Texto completo también en título
     elemento.descripcion = descripcion;  // Todo el texto va en descripción
     elemento.contenido = texto; // Guardar también el texto original completo
+    
+    // LOG para verificar que se está guardando completo
+    if (elemento.numero <= 5) {
+        console.log(`   ✅ GUARDANDO: titulo=${elemento.titulo.length} chars, descripcion=${elemento.descripcion.length} chars`);
+    }
     
     // Extraer presentador y partido
     const matchPresentador = texto.match(/presentad[oa]\s+por\s+(?:el\s+|la\s+)?(?:Diputad[oa]\s+)?([^(,;]+)(?:\s*\(([A-Z]+)\))?/i);
@@ -1308,11 +1322,214 @@ async function extraerIniciativasCompatible(pdfBuffer, tipo) {
     return resultado;
 }
 
+/**
+ * Nueva función simplificada para capturar texto completo
+ * Específicamente diseñada para no perder texto de presentadores
+ */
+function extraerTextoCompletoSimple(texto) {
+    const lineas = texto.split('\n');
+    const elementos = [];
+    let elementoActual = null;
+    let textoAcumulado = [];
+    
+    console.log(`\n🔄 Extracción SIMPLE - Total líneas: ${lineas.length}`);
+    
+    for (let i = 0; i < lineas.length; i++) {
+        const linea = lineas[i].trim();
+        
+        // Detectar inicio de nuevo elemento: número + punto + palabra clave
+        const matchInicio = linea.match(/^(\d+)\.\s+(Iniciativa|Dictamen|Dict[aá]men|Proposici[oó]n|Punto|Comunicaci[oó]n|Solicitud|Oficio|Acuerdo|Lectura|Discusi[oó]n|Votaci[oó]n)/i);
+        
+        if (matchInicio) {
+            // Si tenemos un elemento previo, guardarlo
+            if (elementoActual && textoAcumulado.length > 0) {
+                const textoCompleto = textoAcumulado.join(' ').replace(/\s+/g, ' ').trim();
+                console.log(`   ✅ Guardando elemento ${elementoActual.numero}: ${textoCompleto.length} caracteres`);
+                console.log(`      Primeros 200 chars: "${textoCompleto.substring(0, 200)}..."`);
+                
+                elementos.push({
+                    numero: elementoActual.numero,
+                    numero_general: elementoActual.numero,
+                    numero_orden_dia: elementoActual.numero,
+                    titulo: textoCompleto,
+                    descripcion: textoCompleto,
+                    contenido: textoCompleto,
+                    presentador: elementoActual.presentador || '',
+                    partido: elementoActual.partido || '',
+                    categoria: elementoActual.categoria || 'otras',
+                    requiere_votacion: elementoActual.requiere_votacion || false,
+                    tipo_votacion: elementoActual.tipo_votacion || '',
+                    tipo_mayoria: elementoActual.tipo_mayoria || 'simple'
+                });
+            }
+            
+            // Iniciar nuevo elemento
+            const numero = parseInt(matchInicio[1]);
+            const tipo = matchInicio[2].toLowerCase();
+            
+            elementoActual = {
+                numero: numero,
+                categoria: determinarCategoriaSimple(linea),
+                requiere_votacion: false,
+                tipo_votacion: '',
+                tipo_mayoria: 'simple',
+                presentador: '',
+                partido: ''
+            };
+            
+            textoAcumulado = [linea];
+            console.log(`\n   📋 Nuevo elemento ${numero}: "${linea.substring(0, 100)}..."`);
+            
+        } else if (elementoActual) {
+            // Acumular TODA línea que no sea un nuevo elemento
+            if (linea.length > 0) {
+                textoAcumulado.push(linea);
+                
+                // Buscar presentador en esta línea
+                const matchPresentador = linea.match(/presentad[ao]?\s+por\s+(?:el\s+|la\s+)?(?:Diputad[ao]\s+)?([^(;]+?)(?:\s*\(([^)]+)\))?/i);
+                if (matchPresentador) {
+                    elementoActual.presentador = matchPresentador[1].trim();
+                    elementoActual.partido = matchPresentador[2] || '';
+                    console.log(`      👤 Presentador encontrado: ${elementoActual.presentador} (${elementoActual.partido})`);
+                }
+                
+                // Log para líneas importantes
+                if (linea.includes('presentad') || linea.includes('Diputad') || i < 30) {
+                    console.log(`      + Acumulando: "${linea.substring(0, 100)}..."`);
+                }
+            }
+        }
+    }
+    
+    // Guardar último elemento
+    if (elementoActual && textoAcumulado.length > 0) {
+        const textoCompleto = textoAcumulado.join(' ').replace(/\s+/g, ' ').trim();
+        console.log(`   ✅ Guardando último elemento ${elementoActual.numero}: ${textoCompleto.length} caracteres`);
+        
+        elementos.push({
+            numero: elementoActual.numero,
+            numero_general: elementoActual.numero,
+            numero_orden_dia: elementoActual.numero,
+            titulo: textoCompleto,
+            descripcion: textoCompleto,
+            contenido: textoCompleto,
+            presentador: elementoActual.presentador || '',
+            partido: elementoActual.partido || '',
+            categoria: elementoActual.categoria || 'otras',
+            requiere_votacion: elementoActual.requiere_votacion || false,
+            tipo_votacion: elementoActual.tipo_votacion || '',
+            tipo_mayoria: elementoActual.tipo_mayoria || 'simple'
+        });
+    }
+    
+    console.log(`\n✅ Total elementos extraídos: ${elementos.length}`);
+    return elementos;
+}
+
+/**
+ * Determina la categoría de forma simple pero mejorada
+ */
+function determinarCategoriaSimple(texto) {
+    const textoLower = texto.toLowerCase();
+    
+    // PRIORIDAD 1: Detectar primera y segunda lectura específicamente para dictámenes
+    if (textoLower.includes('dictamen') || textoLower.includes('dictámen')) {
+        if (textoLower.includes('primera lectura') || textoLower.includes('1a. lectura') || textoLower.includes('1era lectura')) {
+            return 'primera_lectura';
+        }
+        if (textoLower.includes('segunda lectura') || textoLower.includes('2a. lectura') || textoLower.includes('2da lectura')) {
+            return 'segunda_lectura';
+        }
+        // Si es dictamen pero no especifica lectura, categorizar como dictamen genérico
+        return 'dictamenes';
+    }
+    
+    // PRIORIDAD 2: Detectar por palabras clave generales
+    if (textoLower.includes('primera lectura')) return 'primera_lectura';
+    if (textoLower.includes('segunda lectura')) return 'segunda_lectura';
+    if (textoLower.includes('iniciativa')) return 'iniciativas';
+    if (textoLower.includes('punto de acuerdo') || textoLower.includes('proposición')) return 'puntos_acuerdo';
+    
+    return 'otras';
+}
+
+/**
+ * Combina elementos: categorías correctas del sistema original + texto completo de la función simple
+ */
+function combinarElementosConTextoCompleto(elementosComplejos, elementosSimples) {
+    const elementosCombinados = [];
+    
+    // Crear múltiples mapas para buscar coincidencias por diferentes criterios
+    const mapaPorNumero = new Map();
+    const mapaPorTextoInicio = new Map();
+    
+    elementosSimples.forEach(elem => {
+        const numero = elem.numero || elem.numero_general || elem.numero_orden_dia;
+        const textoInicio = (elem.titulo || elem.descripcion || elem.contenido || '').substring(0, 100).toLowerCase();
+        
+        mapaPorNumero.set(numero, elem);
+        if (textoInicio.length > 20) {
+            mapaPorTextoInicio.set(textoInicio, elem);
+        }
+    });
+    
+    console.log(`🔄 Combinando elementos: ${elementosComplejos.length} complejos + ${elementosSimples.length} simples`);
+    
+    elementosComplejos.forEach((elemComplejo, index) => {
+        const numero = elemComplejo.numero || elemComplejo.numero_general || elemComplejo.numero_orden_dia;
+        const textoComplejoInicio = (elemComplejo.titulo || elemComplejo.descripcion || '').substring(0, 100).toLowerCase();
+        
+        // Buscar coincidencia por número primero
+        let elemSimple = mapaPorNumero.get(numero);
+        
+        // Si no encuentra por número, buscar por texto similar
+        if (!elemSimple && textoComplejoInicio.length > 20) {
+            for (let [textoSimple, elemCandidate] of mapaPorTextoInicio) {
+                if (textoSimple.includes(textoComplejoInicio.substring(0, 50)) || 
+                    textoComplejoInicio.includes(textoSimple.substring(0, 50))) {
+                    elemSimple = elemCandidate;
+                    console.log(`   🔍 Elemento ${numero} encontrado por similitud de texto`);
+                    break;
+                }
+            }
+        }
+        
+        if (elemSimple) {
+            // Combinar: categoría del complejo + texto completo del simple
+            const elementoCombinado = {
+                ...elemComplejo,
+                // USAR TEXTO COMPLETO DEL ELEMENTO SIMPLE
+                titulo: elemSimple.titulo || elemSimple.descripcion || elemSimple.contenido || elemComplejo.titulo,
+                descripcion: elemSimple.descripcion || elemSimple.titulo || elemSimple.contenido || elemComplejo.descripcion,
+                contenido: elemSimple.contenido || elemSimple.descripcion || elemSimple.titulo || elemComplejo.contenido,
+                // Mantener presentador del elemento simple si existe
+                presentador: elemSimple.presentador || elemComplejo.presentador || '',
+                partido: elemSimple.partido || elemComplejo.partido || ''
+            };
+            
+            elementosCombinados.push(elementoCombinado);
+            
+            if (index < 10 || elemComplejo.categoria === 'segunda_lectura' || elemComplejo.categoria === 'puntos_acuerdo') {
+                console.log(`   ✅ [${elemComplejo.categoria}] Elemento ${numero} combinado: ${elementoCombinado.descripcion?.length || 0} chars`);
+                console.log(`      Primeros 100 chars: "${elementoCombinado.descripcion?.substring(0, 100) || 'Sin descripción'}..."`);
+            }
+        } else {
+            // Si no hay equivalente simple, usar el complejo tal como está
+            elementosCombinados.push(elemComplejo);
+            console.log(`   ⚠️ [${elemComplejo.categoria}] Elemento ${numero} SIN EQUIVALENTE SIMPLE - usando texto complejo (${elemComplejo.descripcion?.length || 0} chars)`);
+        }
+    });
+    
+    console.log(`✅ Elementos combinados: ${elementosCombinados.length}`);
+    return elementosCombinados;
+}
+
 // Exportar funciones
 module.exports = {
     extraerIniciativas: extraerIniciativasDefinitivo,
     extraerIniciativasCompatible,
     extraerIniciativasDefinitivo,
+    extraerTextoCompletoSimple,
     CONFIGURACION_SECCIONES,
     PATRONES_ESPECIALES
 };

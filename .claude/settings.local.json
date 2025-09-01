@@ -39,7 +39,8 @@
       "Bash(\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" \"http://localhost:3333/autologin/operador\")",
       "Bash(del create-documentos-originales-table.js)",
       "Bash(find:*)",
-      "Bash(del add-categoria-column.js fix-categorias-dictamenes.js)"
+      "Bash(del add-categoria-column.js fix-categorias-dictamenes.js)",
+      "Bash(del \"C:\\Users\\BALERION\\proyectos-automatizacion\\TableroAGit\\src\\db\\migrations\\add-categoria-iniciativas-precargadas.js\")"
     ],
     "deny": [],
     "ask": [],

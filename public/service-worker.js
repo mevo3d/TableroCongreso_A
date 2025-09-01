@@ -18,8 +18,17 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Simplemente pasar todas las peticiones sin cache
-  event.respondWith(fetch(event.request));
+  // Pasar todas las peticiones sin cache con manejo de errores
+  event.respondWith(
+    fetch(event.request).catch(error => {
+      console.log('Service Worker fetch error:', error);
+      // Retornar una respuesta de error en lugar de fallar
+      return new Response('Network error', { 
+        status: 408,
+        statusText: 'Network Timeout' 
+      });
+    })
+  );
 });
 
 self.addEventListener('activate', event => {

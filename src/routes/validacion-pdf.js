@@ -21,14 +21,16 @@ const sesionesPendientes = new Map();
  * Endpoint para cargar y previsualizar PDF
  * NO guarda en base de datos, solo extrae y muestra
  */
-router.post('/preview-pdf', upload.single('file'), async (req, res) => {
-    if (!req.file) {
+router.post('/preview-pdf', upload.fields([{name: 'file', maxCount: 1}, {name: 'pdfFile', maxCount: 1}]), async (req, res) => {
+    // Obtener el archivo ya sea de 'file' o 'pdfFile'
+    const archivo = req.files?.file?.[0] || req.files?.pdfFile?.[0];
+    if (!archivo) {
         return res.status(400).json({ error: 'No se proporcionó archivo' });
     }
 
     try {
         // Extraer iniciativas del PDF
-        const resultado = await pdfExtractor.extraerIniciativasDefinitivo(req.file.buffer);
+        const resultado = await pdfExtractor.extraerIniciativasDefinitivo(archivo.buffer);
         
         console.log('Resultado del extractor:', {
             esArray: Array.isArray(resultado),
@@ -54,8 +56,8 @@ router.post('/preview-pdf', upload.single('file'), async (req, res) => {
             numero_sistema: index + 1,
             numero_orden_dia: init.numero || init.numero_general || index + 1,
             numero_seccion: init.numero_seccion || null,
-            titulo: init.titulo || init.descripcion || `Elemento ${index + 1}`,
-            descripcion: init.descripcion || init.contenido || '',
+            titulo: init.titulo || init.descripcion || init.contenido || `Elemento ${index + 1}`,
+            descripcion: init.descripcion || init.titulo || init.contenido || '',
             presentador: init.presentador || '',
             partido: init.partido || '',
             tipo_mayoria: init.tipo_mayoria || 'simple',
@@ -78,7 +80,7 @@ router.post('/preview-pdf', upload.single('file'), async (req, res) => {
             estadisticas: estadisticas,
             textoOriginal: resultado.metadatos?.textoOriginal || null,  // Guardar texto original
             fechaCarga: new Date(),
-            nombreArchivo: req.file.originalname
+            nombreArchivo: archivo.originalname
         });
         
         // Limpiar sesiones antiguas (más de 1 hora)

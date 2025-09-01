@@ -766,20 +766,36 @@ router.post('/activar-sesion-pendiente/:id', (req, res) => {
             // Desactivar otras sesiones activas
             db.run('UPDATE sesiones SET activa = 0 WHERE activa = 1', (err) => {
                 if (err) {
-                    return res.status(500).json({ error: 'Error desactivando sesiones' });
+                    console.error('Error desactivando sesiones:', err);
+                    return res.status(500).json({ error: 'Error desactivando sesiones', detalle: err.message });
                 }
                 
                 // Crear nueva sesión desde la precargada
                 const codigo = sesionPrecargada.codigo_sesion || `SES-${Date.now()}`;
+                const nombreSesion = sesionPrecargada.nombre_sesion || 'Sesión sin nombre';
+                const descripcion = sesionPrecargada.descripcion || '';
+                
+                console.log('Creando nueva sesión:', {
+                    codigo: codigo,
+                    nombre: nombreSesion,
+                    descripcion: descripcion,
+                    usuario_id: req.user.id
+                });
+                
                 db.run(`
                     INSERT INTO sesiones (
                         codigo_sesion, nombre, descripcion, estado, 
-                        activa, ejecutar_inmediato, fecha, iniciada_por
-                    ) VALUES (?, ?, ?, 'preparada', 1, 1, ?, ?)
-                `, [codigo, sesionPrecargada.nombre_sesion, sesionPrecargada.descripcion, 
+                        activa, ejecutar_inmediato, fecha, iniciada_por, tipo_sesion
+                    ) VALUES (?, ?, ?, 'preparada', 1, 1, ?, ?, 'ordinaria')
+                `, [codigo, nombreSesion, descripcion, 
                     new Date().toISOString(), req.user.id], function(err) {
                     if (err) {
-                        return res.status(500).json({ error: 'Error creando sesión activa' });
+                        console.error('Error creando sesión activa:', err);
+                        return res.status(500).json({ 
+                            error: 'Error creando sesión activa', 
+                            detalle: err.message,
+                            codigo: err.code
+                        });
                     }
                     
                     const nuevaSesionId = this.lastID;
@@ -794,42 +810,110 @@ router.post('/activar-sesion-pendiente/:id', (req, res) => {
                         }
                         
                         if (iniciativas.length > 0) {
+                            console.log(`Insertando ${iniciativas.length} iniciativas en sesión ${nuevaSesionId}`);
+                            
                             const stmt = db.prepare(`
                                 INSERT INTO iniciativas (
-                                    sesion_id, numero, titulo, descripcion, 
-                                    presentador, partido_presentador, tipo_mayoria
-                                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                                    sesion_id, numero, numero_orden_dia, titulo, descripcion, 
+                                    presentador, partido_presentador, tipo_mayoria, categoria
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                             `);
                             
-                            iniciativas.forEach(init => {
+                            let erroresInsert = [];
+                            iniciativas.forEach((init, index) => {
+                                console.log(`Procesando iniciativa ${index + 1}/${iniciativas.length}:`, {
+                                    numero: init.numero,
+                                    titulo: init.titulo?.substring(0, 50),
+                                    tiene_descripcion: !!init.descripcion,
+                                    categoria: init.categoria
+                                });
+                                
                                 stmt.run(
-                                    nuevaSesionId, init.numero, init.titulo, init.descripcion,
-                                    init.presentador || '', init.partido_presentador || '', 
-                                    init.tipo_mayoria || 'simple'
-                                );
+                                    nuevaSesionId, 
+                                    init.numero, 
+                                    init.numero_orden_dia || init.numero,  // usar numero_orden_dia si existe
+                                    init.titulo || '', 
+                                    init.descripcion || '',
+                                    init.presentador || '', 
+                                    init.partido_presentador || '', 
+                                    init.tipo_mayoria || 'simple',
+                                    init.categoria || 'otras'  // agregar categoría con valor por defecto
+                                , (err) => {
+                                    if (err) {
+                                        console.error(`Error insertando iniciativa ${init.numero}:`, err);
+                                        erroresInsert.push({numero: init.numero, error: err.message});
+                                    }
+                                });
                             });
                             
-                            stmt.finalize();
+                            stmt.finalize((err) => {
+                                if (err) {
+                                    console.error('Error finalizando statement:', err);
+                                    return res.status(500).json({ 
+                                        error: 'Error insertando iniciativas',
+                                        detalle: err.message
+                                    });
+                                }
+                                
+                                if (erroresInsert.length > 0) {
+                                    console.error('Hubo errores insertando iniciativas:', erroresInsert);
+                                }
+                                
+                                // Marcar la sesión precargada como procesada DESPUÉS de insertar iniciativas
+                                db.run(`
+                                    UPDATE sesiones_precargadas 
+                                    SET estado = 'procesada' 
+                                    WHERE id = ?
+                                `, [id], (err) => {
+                                    if (err) {
+                                        console.error('Error marcando sesión como procesada:', err);
+                                    }
+                                    
+                                    // Emitir evento
+                                    if (io) {
+                                        io.emit('sesion-activada', {
+                                            sesion_id: nuevaSesionId,
+                                            nombre: sesionPrecargada.nombre_sesion
+                                        });
+                                    }
+                                    
+                                    // Enviar respuesta exitosa
+                                    res.json({ 
+                                        success: true,
+                                        message: 'Sesión activada correctamente',
+                                        sesion_id: nuevaSesionId,
+                                        iniciativas_procesadas: iniciativas.length
+                                    });
+                                });
+                            });
+                        } else {
+                            // Si no hay iniciativas, proceder directamente
+                            // Marcar la sesión precargada como procesada
+                            db.run(`
+                                UPDATE sesiones_precargadas 
+                                SET estado = 'procesada' 
+                                WHERE id = ?
+                            `, [id], (err) => {
+                                if (err) {
+                                    console.error('Error marcando sesión como procesada:', err);
+                                }
+                                
+                                // Emitir evento
+                                if (io) {
+                                    io.emit('sesion-activada', {
+                                        sesion_id: nuevaSesionId,
+                                        nombre: sesionPrecargada.nombre_sesion
+                                    });
+                                }
+                                
+                                // Enviar respuesta exitosa
+                                res.json({ 
+                                    success: true,
+                                    message: 'Sesión activada correctamente (sin iniciativas)',
+                                    sesion_id: nuevaSesionId
+                                });
+                            });
                         }
-                        
-                        // Marcar la sesión precargada como procesada
-                        db.run(`
-                            UPDATE sesiones_precargadas 
-                            SET estado = 'procesada' 
-                            WHERE id = ?
-                        `, [id]);
-                        
-                        // Emitir evento
-                        io.emit('sesion-activada', {
-                            sesion_id: nuevaSesionId,
-                            nombre: sesionPrecargada.nombre_sesion
-                        });
-                        
-                        res.json({ 
-                            success: true,
-                            message: 'Sesión activada correctamente',
-                            sesion_id: nuevaSesionId
-                        });
                     });
                 });
             });
@@ -2064,6 +2148,25 @@ router.get('/sesiones-finalizadas', (req, res) => {
             success: true,
             sesiones: sesiones || []
         });
+    });
+});
+
+// Endpoint para obtener partidos disponibles
+router.get('/partidos', (req, res) => {
+    const db = req.db;
+    
+    db.all(`
+        SELECT nombre, siglas, color_primario 
+        FROM partidos 
+        WHERE activo = 1 
+        ORDER BY nombre ASC
+    `, (err, partidos) => {
+        if (err) {
+            console.error('Error obteniendo partidos:', err);
+            return res.status(500).json({ error: 'Error obteniendo partidos' });
+        }
+        
+        res.json({ partidos });
     });
 });
 
