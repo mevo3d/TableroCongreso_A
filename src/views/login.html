@@ -80,7 +80,7 @@
         /* Layer 1 - Nubes (más lento, más lejano) */
         .layer-1 {
             background-image: url('/images/parallax/layer-1-nubes.png');
-            animation: float-clouds 40s ease-in-out infinite;
+            animation: float-clouds 19s ease-in-out infinite;
             z-index: 1;
             /* Expandir 25% más para mejor cobertura */
             width: 135%;
@@ -89,11 +89,37 @@
             left: -17.5%;
         }
         
+        /* Layer 1b - Nubes adicionales (velocidad diferente) */
+        .layer-1b {
+            background-image: url('/images/parallax/layer-1-nubes.png');
+            animation: float-clouds-alt 23s ease-in-out infinite;
+            z-index: 1;
+            width: 140%;
+            height: 140%;
+            top: -20%;
+            left: -20%;
+            opacity: 0.7;
+            transform: scaleX(-1); /* Voltear horizontalmente para variación */
+        }
+        
+        /* Layer 1c - Más nubes con movimiento rápido */
+        .layer-1c {
+            background-image: url('/images/parallax/layer-1-nubes.png');
+            animation: float-clouds-fast 14s linear infinite;
+            z-index: 1;
+            width: 150%;
+            height: 150%;
+            top: -25%;
+            left: -25%;
+            opacity: 0.5;
+            mix-blend-mode: screen;
+        }
+        
         /* Layer 2 - Volcán (velocidad media) */
         .layer-2 {
             background-image: url('/images/parallax/layer-2-volcan.png');
             z-index: 2;
-            animation: subtle-shift 30s ease-in-out infinite;
+            animation: subtle-shift 14s ease-in-out infinite;
         }
         
         /* Layer 3 - Congreso (más rápido, más cercano) */
@@ -104,16 +130,33 @@
             background-position: right center;
         }
         
-        /* Animaciones sutiles */
+        /* Animaciones más dinámicas */
         @keyframes float-clouds {
-            0%, 100% { transform: translateX(0) translateY(0); }
-            33% { transform: translateX(-2%) translateY(-1%); }
-            66% { transform: translateX(2%) translateY(1%); }
+            0% { transform: translateX(0) translateY(0); }
+            25% { transform: translateX(-5%) translateY(-2%); }
+            50% { transform: translateX(-3%) translateY(3%); }
+            75% { transform: translateX(4%) translateY(-1%); }
+            100% { transform: translateX(0) translateY(0); }
+        }
+        
+        @keyframes float-clouds-alt {
+            0% { transform: scaleX(-1) translateX(0) translateY(0); }
+            25% { transform: scaleX(-1) translateX(3%) translateY(2%); }
+            50% { transform: scaleX(-1) translateX(-4%) translateY(-3%); }
+            75% { transform: scaleX(-1) translateX(2%) translateY(1%); }
+            100% { transform: scaleX(-1) translateX(0) translateY(0); }
+        }
+        
+        @keyframes float-clouds-fast {
+            0% { transform: translateX(-10%) translateY(0); }
+            100% { transform: translateX(10%) translateY(0); }
         }
         
         @keyframes subtle-shift {
             0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-8px); }
             50% { transform: translateY(-5px); }
+            75% { transform: translateY(-10px); }
         }
         
         /* Overlay gradient para mejor legibilidad */
@@ -145,8 +188,10 @@
             }
         }
         
-        .layer-1 { animation: layer-entrance 1.5s ease-out, float-clouds 40s ease-in-out infinite 1.5s; }
-        .layer-2 { animation: layer-entrance 1.2s ease-out 0.3s both, subtle-shift 30s ease-in-out infinite 1.5s; }
+        .layer-1 { animation: layer-entrance 1.5s ease-out, float-clouds 19s ease-in-out infinite 1.5s; }
+        .layer-1b { animation: layer-entrance 1.3s ease-out 0.2s both, float-clouds-alt 23s ease-in-out infinite 1.5s; }
+        .layer-1c { animation: layer-entrance 1.4s ease-out 0.1s both, float-clouds-fast 14s linear infinite 1.5s; }
+        .layer-2 { animation: layer-entrance 1.2s ease-out 0.3s both, subtle-shift 14s ease-in-out infinite 1.5s; }
         .layer-3 { animation: layer-entrance 1s ease-out 0.6s both; }
         
         body {
@@ -493,6 +538,8 @@
     <!-- Contenedor Parallax -->
     <div class="parallax-container" id="parallaxContainer">
         <div class="parallax-layer layer-1" data-speed="0.2"></div>
+        <div class="parallax-layer layer-1b" data-speed="0.3"></div>
+        <div class="parallax-layer layer-1c" data-speed="0.4"></div>
         <div class="parallax-layer layer-2" data-speed="0.5"></div>
         <div class="parallax-layer layer-3" data-speed="0.8"></div>
         <div class="gradient-overlay"></div>

@@ -1701,8 +1701,15 @@
                         filtroActivoEl.style.display = 'none';
                     }
                     
-                    // Mostrar modal
-                    console.log('Mostrando modal de validación...');
+                    // Mostrar modal APPLE en lugar del de Bootstrap
+                    console.log('Mostrando modal Apple de validación...');
+                    
+                    // Usar el nuevo modal Apple
+                    abrirModalApple();
+                    console.log('Modal Apple abierto');
+                    
+                    // Ya no usamos Bootstrap
+                    /*
                     const modalElement = document.getElementById('modalValidacion');
                     if (modalElement) {
                         console.log('Elemento del modal encontrado, creando instancia de Bootstrap...');
@@ -1868,6 +1875,161 @@
             };
             return text.replace(/[&<>"']/g, m => map[m]);
         }
+        
+        // ========== FUNCIONES PARA EL MODAL ESTILO APPLE ==========
+        
+        // Abrir modal Apple
+        function abrirModalApple() {
+            console.log('Abriendo modal estilo Apple...');
+            const modal = document.getElementById('modalValidacionApple');
+            if (modal) {
+                modal.style.display = 'block';
+                // Animar entrada
+                setTimeout(() => {
+                    modal.style.opacity = '1';
+                }, 10);
+                
+                // Actualizar contenido
+                actualizarContenidoModalApple();
+            }
+        }
+        
+        // Cerrar modal Apple
+        function cerrarModalApple() {
+            console.log('Cerrando modal Apple...');
+            const modal = document.getElementById('modalValidacionApple');
+            if (modal) {
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+        }
+        
+        // Vista previa Apple
+        function vistaPreviewApple() {
+            console.log('Vista previa Apple ejecutada');
+            const seleccionadas = iniciativasValidacion.filter(i => i.seleccionada);
+            alert(`Vista Previa\n\nTotal: ${iniciativasValidacion.length} iniciativas\nSeleccionadas: ${seleccionadas.length}\n\nAquí se mostraría el preview...`);
+        }
+        
+        // Confirmar carga Apple
+        function confirmarCargaApple() {
+            console.log('\n=== CONFIRMAR CARGA APPLE ===');
+            console.log('Botón Apple funcionando correctamente!');
+            console.log('Iniciativas:', iniciativasValidacion);
+            
+            if (!iniciativasValidacion || iniciativasValidacion.length === 0) {
+                alert('No hay iniciativas para cargar');
+                return;
+            }
+            
+            const seleccionadas = iniciativasValidacion.filter(i => i.seleccionada).length;
+            
+            if (confirm(`¿Confirmar la carga?\n\nTotal: ${iniciativasValidacion.length}\nSeleccionadas para votación: ${seleccionadas}`)) {
+                console.log('Procediendo con la carga...');
+                cerrarModalApple();
+                
+                // Llamar a la función de guardado
+                try {
+                    guardarIniciativasSeleccionadas();
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al guardar: ' + error.message);
+                }
+            }
+        }
+        
+        // Actualizar contenido del modal Apple
+        function actualizarContenidoModalApple() {
+            const bodyEl = document.getElementById('modalBodyApple');
+            const contadorEl = document.getElementById('contadorApple');
+            
+            if (!iniciativasValidacion || iniciativasValidacion.length === 0) {
+                if (bodyEl) {
+                    bodyEl.innerHTML = `
+                        <div style="background: white; border-radius: 12px; padding: 40px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                            <p style="color: #8e8e93; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                                No hay iniciativas cargadas
+                            </p>
+                        </div>
+                    `;
+                }
+                return;
+            }
+            
+            const seleccionadas = iniciativasValidacion.filter(i => i.seleccionada).length;
+            
+            if (contadorEl) {
+                contadorEl.textContent = `${seleccionadas} de ${iniciativasValidacion.length} iniciativas seleccionadas`;
+            }
+            
+            if (bodyEl) {
+                // Crear tabla simplificada estilo iOS
+                let html = `
+                    <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                        <table style="width: 100%; border-collapse: collapse; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                            <thead>
+                                <tr style="background: #f2f2f7; border-bottom: 1px solid #e5e5ea;">
+                                    <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase;">Sel.</th>
+                                    <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase;">#</th>
+                                    <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase;">Descripción</th>
+                                    <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase;">Tipo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                iniciativasValidacion.forEach((init, index) => {
+                    const descripcion = init.descripcion || init.contenido || init.titulo || 'Sin descripción';
+                    const descripcionCorta = descripcion.length > 60 ? descripcion.substring(0, 60) + '...' : descripcion;
+                    
+                    html += `
+                        <tr style="border-bottom: 1px solid #f2f2f7;">
+                            <td style="padding: 12px;">
+                                <input type="checkbox" 
+                                       ${init.seleccionada ? 'checked' : ''}
+                                       onchange="toggleIniciativaApple(${index})"
+                                       style="width: 18px; height: 18px; cursor: pointer;">
+                            </td>
+                            <td style="padding: 12px; color: #1c1c1e; font-size: 14px; font-weight: 500;">${index + 1}</td>
+                            <td style="padding: 12px; color: #3c3c43; font-size: 14px;">${descripcionCorta}</td>
+                            <td style="padding: 12px;">
+                                <span style="
+                                    display: inline-block;
+                                    padding: 4px 8px;
+                                    border-radius: 6px;
+                                    font-size: 12px;
+                                    font-weight: 500;
+                                    background: ${init.requiere_votacion ? '#34c759' : '#f2f2f7'};
+                                    color: ${init.requiere_votacion ? 'white' : '#8e8e93'};
+                                ">
+                                    ${init.categoria || 'general'}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                bodyEl.innerHTML = html;
+            }
+        }
+        
+        // Toggle iniciativa en modal Apple
+        function toggleIniciativaApple(index) {
+            if (iniciativasValidacion[index]) {
+                iniciativasValidacion[index].seleccionada = !iniciativasValidacion[index].seleccionada;
+                actualizarContenidoModalApple();
+            }
+        }
+        
+        // ========== FIN FUNCIONES MODAL APPLE ==========
         
         // Función simple y directa para ejecutar el guardado
         function ejecutarGuardado() {
@@ -4767,8 +4929,97 @@
         verificarSesionesPrecargadas();
     </script>
     
-    <!-- Modal de Validación de PDF -->
-    <div class="modal fade" id="modalValidacion" data-bs-backdrop="static" data-bs-keyboard="false">
+    <!-- Modal de Validación Estilo Apple/iOS -->
+    <div id="modalValidacionApple" style="display: none;">
+        <!-- Overlay con blur estilo iOS -->
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 9998;" onclick="cerrarModalApple()"></div>
+        
+        <!-- Modal con estilo Apple -->
+        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 1100px; max-height: 85vh; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.5) inset; z-index: 9999; overflow: hidden; display: flex; flex-direction: column;">
+            
+            <!-- Header estilo iOS -->
+            <div style="background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(248,248,248,1) 100%); border-bottom: 1px solid rgba(0,0,0,0.1); padding: 20px 30px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="flex: 1;">
+                    <h2 style="margin: 0; font-size: 22px; font-weight: 600; color: #1c1c1e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Validación de Iniciativas</h2>
+                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #8e8e93; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Revisa y confirma las iniciativas a importar</p>
+                </div>
+                <button onclick="cerrarModalApple()" style="width: 30px; height: 30px; border-radius: 50%; background: #e5e5e7; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #8e8e93; transition: all 0.2s;" onmouseover="this.style.background='#d1d1d3'" onmouseout="this.style.background='#e5e5e7'">
+                    ✕
+                </button>
+            </div>
+            
+            <!-- Body con scroll suave iOS -->
+            <div style="flex: 1; overflow-y: auto; padding: 30px; background: #f2f2f7; -webkit-overflow-scrolling: touch;" id="modalBodyApple">
+                <!-- Contenido dinámico aquí -->
+                <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                    <p style="color: #1c1c1e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Cargando iniciativas...</p>
+                </div>
+            </div>
+            
+            <!-- Footer con botones estilo iOS -->
+            <div style="background: linear-gradient(180deg, rgba(248,248,248,1) 0%, rgba(255,255,255,1) 100%); border-top: 1px solid rgba(0,0,0,0.1); padding: 20px 30px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 14px; color: #8e8e93; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                    <span id="contadorApple">0 iniciativas seleccionadas</span>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <!-- Botón Cancelar -->
+                    <button onclick="cerrarModalApple()" style="
+                        padding: 12px 24px;
+                        background: #f2f2f7;
+                        color: #3c3c43;
+                        border: none;
+                        border-radius: 12px;
+                        cursor: pointer;
+                        font-size: 15px;
+                        font-weight: 500;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                        transition: all 0.2s;
+                        min-width: 100px;
+                    " onmouseover="this.style.background='#e5e5ea'" onmouseout="this.style.background='#f2f2f7'">
+                        Cancelar
+                    </button>
+                    
+                    <!-- Botón Vista Previa -->
+                    <button onclick="vistaPreviewApple()" style="
+                        padding: 12px 24px;
+                        background: #FF1493;
+                        color: white;
+                        border: none;
+                        border-radius: 12px;
+                        cursor: pointer;
+                        font-size: 15px;
+                        font-weight: 500;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                        transition: all 0.2s;
+                        min-width: 120px;
+                    " onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 15px rgba(255,20,147,0.3)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+                        Vista Previa
+                    </button>
+                    
+                    <!-- Botón Confirmar -->
+                    <button onclick="confirmarCargaApple()" style="
+                        padding: 12px 30px;
+                        background: linear-gradient(135deg, #FF8C00 0%, #FFA500 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 12px;
+                        cursor: pointer;
+                        font-size: 15px;
+                        font-weight: 600;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                        transition: all 0.2s;
+                        min-width: 180px;
+                        box-shadow: 0 2px 10px rgba(255,140,0,0.3);
+                    " onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 20px rgba(255,140,0,0.4)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 10px rgba(255,140,0,0.3)'">
+                        Confirmar y Cargar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal original de Bootstrap (lo mantenemos pero oculto) -->
+    <div class="modal fade" id="modalValidacion" data-bs-backdrop="static" data-bs-keyboard="false" style="display: none !important;">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
