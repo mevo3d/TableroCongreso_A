@@ -722,8 +722,16 @@ function extraerElementos(texto, tipoSesion) {
         // Detectar inciso principal (A), B), C), etc.)
         const matchIncisoPrincipal = linea.match(/^([A-Z])\)\s+(.+)/);
         if (matchIncisoPrincipal) {
-            incisoPrincipalActual = matchIncisoPrincipal[1];
+            const nuevoInciso = matchIncisoPrincipal[1];
             const contenidoInciso = matchIncisoPrincipal[2];
+            
+            // Si cambió de inciso, reiniciar numeración
+            if (incisoPrincipalActual !== nuevoInciso) {
+                console.log(`🔄 Cambiando de inciso ${incisoPrincipalActual || 'ninguno'} → ${nuevoInciso}: reiniciando numeración`);
+                numeroElemento = 0; // REINICIAR numeración para nueva sección
+            }
+            
+            incisoPrincipalActual = nuevoInciso;
             
             // Determinar categoría basada en el contenido del inciso
             categoriaActual = determinarCategoriaInciso(contenidoInciso);
