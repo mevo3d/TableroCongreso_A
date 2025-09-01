@@ -220,12 +220,28 @@ async function extraerIniciativasDefinitivo(pdfBuffer) {
         // Extraer estructura completa de incisos
         const estructuraIncisos = extraerEstructuraIncisos(texto);
         
-        // HÍBRIDO: Usar función compleja para categorías correctas pero con extracción simple para texto completo
-        const elementosComplejos = extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion);
-        const elementosSimples = extraerTextoCompletoSimple(texto);
+        // USAR SISTEMA ORIGINAL con mejora de texto completo
+        const elementos = extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion);
         
-        // Combinar: usar categorías de la función compleja con texto completo de la función simple
-        const elementos = combinarElementosConTextoCompleto(elementosComplejos, elementosSimples);
+        // MEJORAR: Solo aplicar mejora de texto completo a elementos que lo necesiten
+        elementos.forEach((elemento, index) => {
+            if (elemento.descripcion && elemento.descripcion.length < 100) {
+                // Si el texto parece truncado, intentar obtener más texto del PDF
+                console.log(`   🔧 Mejorando texto truncado del elemento ${elemento.numero} (${elemento.descripcion.length} chars)`);
+                
+                // Buscar el texto completo en el PDF original
+                const patron = new RegExp(`${elemento.numero}\\.[\\s\\S]*?(?=\\d+\\.|$)`, 'i');
+                const match = texto.match(patron);
+                
+                if (match && match[0].length > elemento.descripcion.length) {
+                    const textoMejorado = match[0].replace(/^\d+\.\s*/, '').trim();
+                    elemento.titulo = textoMejorado;
+                    elemento.descripcion = textoMejorado;
+                    elemento.contenido = match[0];
+                    console.log(`      ✅ Texto mejorado: ${textoMejorado.length} chars`);
+                }
+            }
+        });
         
         // Generar estadísticas y resumen
         const estadisticas = generarEstadisticas(elementos);
@@ -1344,16 +1360,17 @@ function extraerTextoCompletoSimple(texto) {
             // Si tenemos un elemento previo, guardarlo
             if (elementoActual && textoAcumulado.length > 0) {
                 const textoCompleto = textoAcumulado.join(' ').replace(/\s+/g, ' ').trim();
+                const textoLimpio = textoCompleto.replace(/^\d+\.\s*/, ''); // Quitar "1. " del inicio
                 console.log(`   ✅ Guardando elemento ${elementoActual.numero}: ${textoCompleto.length} caracteres`);
-                console.log(`      Primeros 200 chars: "${textoCompleto.substring(0, 200)}..."`);
+                console.log(`      Primeros 200 chars: "${textoLimpio.substring(0, 200)}..."`);
                 
                 elementos.push({
                     numero: elementoActual.numero,
                     numero_general: elementoActual.numero,
                     numero_orden_dia: elementoActual.numero,
-                    titulo: textoCompleto,
-                    descripcion: textoCompleto,
-                    contenido: textoCompleto,
+                    titulo: textoLimpio,
+                    descripcion: textoLimpio,
+                    contenido: textoCompleto, // Mantener texto original completo
                     presentador: elementoActual.presentador || '',
                     partido: elementoActual.partido || '',
                     categoria: elementoActual.categoria || 'otras',
@@ -1404,15 +1421,16 @@ function extraerTextoCompletoSimple(texto) {
     // Guardar último elemento
     if (elementoActual && textoAcumulado.length > 0) {
         const textoCompleto = textoAcumulado.join(' ').replace(/\s+/g, ' ').trim();
+        const textoLimpio = textoCompleto.replace(/^\d+\.\s*/, ''); // Quitar "1. " del inicio
         console.log(`   ✅ Guardando último elemento ${elementoActual.numero}: ${textoCompleto.length} caracteres`);
         
         elementos.push({
             numero: elementoActual.numero,
             numero_general: elementoActual.numero,
             numero_orden_dia: elementoActual.numero,
-            titulo: textoCompleto,
-            descripcion: textoCompleto,
-            contenido: textoCompleto,
+            titulo: textoLimpio,
+            descripcion: textoLimpio,
+            contenido: textoCompleto, // Mantener texto original completo
             presentador: elementoActual.presentador || '',
             partido: elementoActual.partido || '',
             categoria: elementoActual.categoria || 'otras',
@@ -1459,49 +1477,63 @@ function determinarCategoriaSimple(texto) {
 function combinarElementosConTextoCompleto(elementosComplejos, elementosSimples) {
     const elementosCombinados = [];
     
-    // Crear múltiples mapas para buscar coincidencias por diferentes criterios
-    const mapaPorNumero = new Map();
-    const mapaPorTextoInicio = new Map();
-    
-    elementosSimples.forEach(elem => {
-        const numero = elem.numero || elem.numero_general || elem.numero_orden_dia;
-        const textoInicio = (elem.titulo || elem.descripcion || elem.contenido || '').substring(0, 100).toLowerCase();
-        
-        mapaPorNumero.set(numero, elem);
-        if (textoInicio.length > 20) {
-            mapaPorTextoInicio.set(textoInicio, elem);
-        }
-    });
-    
     console.log(`🔄 Combinando elementos: ${elementosComplejos.length} complejos + ${elementosSimples.length} simples`);
+    console.log(`   ℹ️ IMPORTANTE: Las numeraciones se reinician en cada sección (Iniciativas 1,2,3... Dictámenes 1,2,3... etc.)`);
     
     elementosComplejos.forEach((elemComplejo, index) => {
         const numero = elemComplejo.numero || elemComplejo.numero_general || elemComplejo.numero_orden_dia;
-        const textoComplejoInicio = (elemComplejo.titulo || elemComplejo.descripcion || '').substring(0, 100).toLowerCase();
+        const textoComplejoInicio = (elemComplejo.titulo || elemComplejo.descripcion || '').substring(0, 80).toLowerCase();
         
-        // Buscar coincidencia por número primero
-        let elemSimple = mapaPorNumero.get(numero);
+        // MÉTODO 1: Buscar por similitud de texto (más confiable que número debido a reinicio)
+        let elemSimple = null;
+        let mejorCoincidencia = 0;
         
-        // Si no encuentra por número, buscar por texto similar
-        if (!elemSimple && textoComplejoInicio.length > 20) {
-            for (let [textoSimple, elemCandidate] of mapaPorTextoInicio) {
-                if (textoSimple.includes(textoComplejoInicio.substring(0, 50)) || 
-                    textoComplejoInicio.includes(textoSimple.substring(0, 50))) {
-                    elemSimple = elemCandidate;
-                    console.log(`   🔍 Elemento ${numero} encontrado por similitud de texto`);
-                    break;
+        elementosSimples.forEach((candidato, candidatoIndex) => {
+            const textoSimpleInicio = (candidato.titulo || candidato.descripcion || candidato.contenido || '').substring(0, 80).toLowerCase();
+            
+            // Calcular similitud entre textos
+            let similitud = 0;
+            if (textoComplejoInicio.length > 10 && textoSimpleInicio.length > 10) {
+                const palabrasComplejo = textoComplejoInicio.split(' ').filter(p => p.length > 3);
+                const palabrasSimple = textoSimpleInicio.split(' ').filter(p => p.length > 3);
+                
+                palabrasComplejo.forEach(palabra => {
+                    if (textoSimpleInicio.includes(palabra)) {
+                        similitud++;
+                    }
+                });
+                
+                // Normalizar similitud por número de palabras
+                if (palabrasComplejo.length > 0) {
+                    similitud = similitud / palabrasComplejo.length;
                 }
             }
+            
+            // Si encontramos una buena coincidencia, usarla
+            if (similitud > mejorCoincidencia && similitud > 0.3) {
+                mejorCoincidencia = similitud;
+                elemSimple = candidato;
+            }
+        });
+        
+        // MÉTODO 2: Si no encuentra por similitud y hay elementos suficientes, usar por posición
+        if (!elemSimple && index < elementosSimples.length) {
+            elemSimple = elementosSimples[index];
+            console.log(`   📍 [${elemComplejo.categoria}] Elemento ${numero} asignado por posición ${index}`);
         }
         
         if (elemSimple) {
-            // Combinar: categoría del complejo + texto completo del simple
+            // Obtener texto completo y limpiar número del inicio
+            const textoCompleto = elemSimple.descripcion || elemSimple.titulo || elemSimple.contenido || elemComplejo.descripcion || '';
+            const textoLimpio = textoCompleto.replace(/^\d+\.\s*/, ''); // Quitar "1. " del inicio
+            
+            // Combinar: categoría del complejo + texto completo del simple (limpio)
             const elementoCombinado = {
                 ...elemComplejo,
-                // USAR TEXTO COMPLETO DEL ELEMENTO SIMPLE
-                titulo: elemSimple.titulo || elemSimple.descripcion || elemSimple.contenido || elemComplejo.titulo,
-                descripcion: elemSimple.descripcion || elemSimple.titulo || elemSimple.contenido || elemComplejo.descripcion,
-                contenido: elemSimple.contenido || elemSimple.descripcion || elemSimple.titulo || elemComplejo.contenido,
+                // USAR TEXTO COMPLETO LIMPIO (sin número duplicado)
+                titulo: textoLimpio,
+                descripcion: textoLimpio,
+                contenido: textoCompleto, // Mantener texto original completo aquí
                 // Mantener presentador del elemento simple si existe
                 presentador: elemSimple.presentador || elemComplejo.presentador || '',
                 partido: elemSimple.partido || elemComplejo.partido || ''
@@ -1510,8 +1542,8 @@ function combinarElementosConTextoCompleto(elementosComplejos, elementosSimples)
             elementosCombinados.push(elementoCombinado);
             
             if (index < 10 || elemComplejo.categoria === 'segunda_lectura' || elemComplejo.categoria === 'puntos_acuerdo') {
-                console.log(`   ✅ [${elemComplejo.categoria}] Elemento ${numero} combinado: ${elementoCombinado.descripcion?.length || 0} chars`);
-                console.log(`      Primeros 100 chars: "${elementoCombinado.descripcion?.substring(0, 100) || 'Sin descripción'}..."`);
+                console.log(`   ✅ [${elemComplejo.categoria}] Elemento ${numero} combinado (similitud: ${mejorCoincidencia.toFixed(2)}): ${elementoCombinado.descripcion?.length || 0} chars`);
+                console.log(`      Texto: "${elementoCombinado.descripcion?.substring(0, 120) || 'Sin descripción'}..."`);
             }
         } else {
             // Si no hay equivalente simple, usar el complejo tal como está
