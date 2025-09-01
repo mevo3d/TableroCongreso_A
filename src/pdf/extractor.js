@@ -6,8 +6,8 @@ const pdfParse = require('pdf-parse');
  */
 
 // Configuración de tipos de sección y sus características de votación
-// IMPORTANTE: No buscar por incisos (A,B,C,etc) ya que cambian en cada sesión
-// Buscar por el CONTENIDO después del inciso
+// IMPORTANTE: Los incisos (G), H), I), etc. indican secciones importantes
+// Después de cada inciso viene el tipo de iniciativa y luego la numeración
 const CONFIGURACION_SECCIONES = {
     'PASE_LISTA': {
         patrones: [/Pase de lista/i],
@@ -202,7 +202,16 @@ const PATRONES_ESPECIALES = {
 async function extraerIniciativasDefinitivo(pdfBuffer) {
     try {
         const data = await pdfParse(pdfBuffer);
-        const texto = data.text;
+        let texto = data.text;
+        
+        // Mejorar el formato del texto para preservar mejor la estructura
+        // Reemplazar saltos de línea múltiples con uno solo
+        texto = texto.replace(/\n{3,}/g, '\n\n');
+        
+        // Log para debugging
+        console.log('=== TEXTO EXTRAÍDO DEL PDF (primeros 1000 caracteres) ===');
+        console.log(texto.substring(0, 1000));
+        console.log('=== FIN DEL PREVIEW ===');
         
         // Detectar tipo de sesión
         const tipoSesion = detectarTipoSesion(texto);
@@ -210,8 +219,8 @@ async function extraerIniciativasDefinitivo(pdfBuffer) {
         // Extraer estructura completa de incisos
         const estructuraIncisos = extraerEstructuraIncisos(texto);
         
-        // Extraer elementos
-        const elementos = extraerElementos(texto, tipoSesion);
+        // NUEVO: Extraer elementos con la estructura de incisos para mantener categorías
+        const elementos = extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion);
         
         // Generar estadísticas y resumen
         const estadisticas = generarEstadisticas(elementos);
@@ -432,37 +441,87 @@ function extraerFecha(texto) {
 
 /**
  * Extrae la estructura completa de incisos del documento
- * Retorna un mapa de todos los incisos principales (A, B, C, etc.)
+ * IMPORTANTE: Detecta secciones por CONTENIDO, no por letra fija
+ * Patrón: [CUALQUIER_LETRA]) [TIPO] → 1. 2. 3. (numeración propia por sección)
  */
 function extraerEstructuraIncisos(texto) {
     const estructura = [];
     const lineas = texto.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     
+    console.log('\n🔍 === INICIANDO DETECCIÓN DE SECCIONES POR CONTENIDO ===');
+    
     for (let i = 0; i < lineas.length; i++) {
         const linea = lineas[i];
         
-        // Detectar incisos principales con formato: A), B), C), etc.
+        // Detectar incisos principales con formato: CUALQUIER_LETRA) CONTENIDO
         const matchIncisoPrincipal = linea.match(/^([A-Z])\)\s+(.+)/);
         if (matchIncisoPrincipal) {
             const letra = matchIncisoPrincipal[1];
             const contenido = matchIncisoPrincipal[2];
+            const contenidoLower = contenido.toLowerCase();
             
-            // Determinar el tipo de inciso
+            // Determinar categoría por CONTENIDO, no por letra
             let tipoInciso = null;
-            let categoria = 'procedimiento';
-            let esProcedimiento = true;
+            let categoria = null;
+            let requiereVotacion = false;
+            let esProcedimiento = false;
             
-            // Buscar en configuración de secciones
-            for (const [key, config] of Object.entries(CONFIGURACION_SECCIONES)) {
-                for (const patron of config.patrones) {
-                    if (contenido.match(patron)) {
-                        tipoInciso = key;
-                        categoria = config.categoria || 'procedimiento';
-                        esProcedimiento = config.esProcedimiento !== undefined ? config.esProcedimiento : true;
-                        break;
-                    }
-                }
-                if (tipoInciso) break;
+            // DETECTAR POR PALABRAS CLAVE (orden de prioridad importante)
+            if (contenidoLower.match(/segunda\s+lectura|2a\.\s*lectura|2da\.\s*lectura/)) {
+                // SEGUNDA LECTURA - SIEMPRE SE VOTA
+                tipoInciso = 'DICTAMENES_SEGUNDA';
+                categoria = 'segunda_lectura';
+                requiereVotacion = true;
+                console.log(`✅ Inciso ${letra}) - SEGUNDA LECTURA detectada → SE VOTA`);
+                
+            } else if (contenidoLower.match(/primera\s+lectura|1a\.\s*lectura|1ra\.\s*lectura/)) {
+                // PRIMERA LECTURA - Solo se vota si es urgente
+                tipoInciso = 'DICTAMENES_PRIMERA';
+                categoria = 'primera_lectura';
+                requiereVotacion = contenidoLower.includes('urgente') || contenidoLower.includes('obvia');
+                console.log(`📋 Inciso ${letra}) - PRIMERA LECTURA detectada → ${requiereVotacion ? 'URGENTE (SE VOTA)' : 'Normal (próxima sesión)'}`);
+                
+            } else if (contenidoLower.match(/dict[aá]m[eé]n/i) && !contenidoLower.includes('lectura')) {
+                // DICTÁMENES (sin especificar lectura) - Generalmente se votan
+                tipoInciso = 'DICTAMENES';
+                categoria = 'dictamenes';
+                requiereVotacion = true;
+                console.log(`✅ Inciso ${letra}) - DICTÁMENES detectados → SE VOTAN`);
+                
+            } else if (contenidoLower.match(/punto.*acuerdo|proposici[oó]n.*punto/)) {
+                // PUNTOS DE ACUERDO - SE VOTAN
+                tipoInciso = 'PUNTOS_ACUERDO';
+                categoria = 'puntos_acuerdo';
+                requiereVotacion = true;
+                console.log(`✅ Inciso ${letra}) - PUNTOS DE ACUERDO detectados → SE VOTAN`);
+                
+            } else if (contenidoLower.match(/iniciativa/)) {
+                // INICIATIVAS - Solo turno a comisión
+                tipoInciso = 'INICIATIVAS';
+                categoria = 'iniciativas';
+                requiereVotacion = false;
+                console.log(`📄 Inciso ${letra}) - INICIATIVAS detectadas → Turno a comisión (NO se votan)`);
+                
+            } else if (contenidoLower.match(/comunicaci[oó]n/)) {
+                // COMUNICACIONES - Procedimiento
+                tipoInciso = 'COMUNICACIONES';
+                categoria = 'procedimiento';
+                esProcedimiento = true;
+                requiereVotacion = false;
+                console.log(`📨 Inciso ${letra}) - COMUNICACIONES detectadas → Procedimiento`);
+                
+            } else if (contenidoLower.match(/pase.*lista|quorum|qu[oó]rum|orden.*d[ií]a|acta/)) {
+                // PROCEDIMIENTOS
+                tipoInciso = 'PROCEDIMIENTO';
+                categoria = 'procedimiento';
+                esProcedimiento = true;
+                requiereVotacion = contenidoLower.includes('votación') || contenidoLower.includes('aprobación');
+                console.log(`⚙️ Inciso ${letra}) - PROCEDIMIENTO detectado`);
+                
+            } else {
+                // NO IDENTIFICADO - Marcar para revisión
+                categoria = 'otras';
+                console.log(`❓ Inciso ${letra}) - Tipo NO IDENTIFICADO: "${contenido}"`);
             }
             
             estructura.push({
@@ -471,20 +530,160 @@ function extraerEstructuraIncisos(texto) {
                 tipoInciso: tipoInciso,
                 categoria: categoria,
                 esProcedimiento: esProcedimiento,
-                referencia: esProcedimiento ? null : `Ver pestaña ${categoria}`
+                requiereVotacion: requiereVotacion,
+                elementos: [], // Aquí se agregarán los elementos numerados
+                descripcion: obtenerDescripcionCategoria(categoria)
             });
         }
     }
+    
+    console.log(`\n📊 Total de secciones detectadas: ${estructura.length}`);
+    estructura.forEach(s => {
+        console.log(`   ${s.letra}) ${s.categoria} - ${s.requiereVotacion ? '✅ SE VOTA' : '⏸️ NO se vota'}`);
+    });
     
     return estructura;
 }
 
 /**
- * Extrae todos los elementos del documento con mejor detección de categorías
+ * Obtiene una descripción clara de la categoría
+ */
+function obtenerDescripcionCategoria(categoria) {
+    const descripciones = {
+        'primera_lectura': 'Dictámenes en primera lectura (se votan en próxima sesión)',
+        'segunda_lectura': 'Dictámenes en segunda lectura (SE VOTAN HOY)',
+        'puntos_acuerdo': 'Proposiciones con punto de acuerdo (SE VOTAN HOY)',
+        'iniciativas': 'Iniciativas (se turnan a comisiones, no se votan)',
+        'procedimiento': 'Asuntos de procedimiento parlamentario',
+        'dictamenes': 'Dictámenes para votación',
+        'urgente': 'Asuntos de urgente y obvia resolución (SE VOTAN HOY)'
+    };
+    
+    return descripciones[categoria] || categoria;
+}
+
+/**
+ * NUEVA FUNCIÓN: Extrae elementos respetando la estructura de incisos y numeración dual
+ */
+function extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion) {
+    const elementos = [];
+    const lineas = texto.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    
+    let numeroGeneral = 0; // Contador general de todos los elementos
+    let seccionActual = null; // Sección actual (inciso)
+    let numeroEnSeccion = 0; // Contador dentro de cada sección
+    
+    console.log('\n📋 === EXTRAYENDO ELEMENTOS CON CATEGORÍAS ===');
+    
+    for (let i = 0; i < lineas.length; i++) {
+        const linea = lineas[i];
+        
+        // Detectar cambio de sección (inciso principal)
+        const matchInciso = linea.match(/^([A-Z])\)\s+(.+)/);
+        if (matchInciso) {
+            const letra = matchInciso[1];
+            // Buscar esta sección en la estructura
+            seccionActual = estructuraIncisos.find(e => e.letra === letra);
+            numeroEnSeccion = 0; // Reiniciar contador de sección
+            
+            if (seccionActual) {
+                console.log(`\n📂 Entrando a sección ${letra}) ${seccionActual.categoria}`);
+            }
+            continue;
+        }
+        
+        // Detectar elementos numerados (1. 2. 3. etc)
+        const matchNumero = linea.match(/^(\d+)\.\s+(.+)/);
+        if (matchNumero && seccionActual && !seccionActual.esProcedimiento) {
+            numeroGeneral++;
+            numeroEnSeccion++;
+            
+            const numeroOriginal = parseInt(matchNumero[1]);
+            const contenido = matchNumero[2];
+            
+            // Crear elemento con toda la información
+            const elemento = {
+                // Numeración dual
+                numero: numeroGeneral,
+                numero_orden_dia: numeroEnSeccion,
+                numero_original: numeroOriginal,
+                
+                // Contenido
+                titulo: contenido.substring(0, 100),
+                descripcion: contenido,
+                contenido_completo: contenido,
+                
+                // Categorización
+                categoria: seccionActual.categoria,
+                tipo: seccionActual.tipoInciso,
+                tipo_documento: seccionActual.categoria,
+                
+                // Votación
+                requiere_votacion: seccionActual.requiereVotacion,
+                tipo_votacion: seccionActual.requiereVotacion ? 
+                    (seccionActual.categoria === 'segunda_lectura' ? 'votacion_dictamen' :
+                     seccionActual.categoria === 'puntos_acuerdo' ? 'punto_acuerdo' :
+                     seccionActual.categoria === 'dictamenes' ? 'votacion_dictamen' :
+                     'votacion_general') : 'turno_comision',
+                tipo_mayoria: 'simple', // Por defecto
+                
+                // Metadatos
+                inciso_principal: seccionActual.letra,
+                titulo_seccion: seccionActual.contenido,
+                momento_votacion: seccionActual.requiereVotacion ? 'inmediato' : 'no_aplica',
+                
+                // Para UI
+                recomendado_para_votacion: seccionActual.requiereVotacion,
+                es_votable: seccionActual.requiereVotacion,
+                marcada_para_votacion: false, // Se marcará en la UI
+                seleccionada: false // Para el checkbox en la UI
+            };
+            
+            // Detectar si es urgente
+            if (contenido.toLowerCase().includes('urgente') && contenido.toLowerCase().includes('obvia')) {
+                elemento.urgente = true;
+                elemento.requiere_votacion = true;
+                elemento.tipo_votacion = 'urgente_obvia';
+            }
+            
+            // Extraer presentador si existe
+            const matchPresentador = contenido.match(/presentad[ao]\s+por\s+(?:el\s+|la\s+)?(?:Diputad[ao]\s+)?([^(]+)(?:\(([^)]+)\))?/i);
+            if (matchPresentador) {
+                elemento.presentador = matchPresentador[1].trim();
+                elemento.partido = matchPresentador[2] || '';
+            }
+            
+            elementos.push(elemento);
+            
+            console.log(`   ✓ ${numeroGeneral}/${numeroEnSeccion}. ${contenido.substring(0, 50)}... [${seccionActual.categoria}]`);
+        }
+    }
+    
+    console.log(`\n✅ Total elementos extraídos: ${elementos.length}`);
+    console.log(`   - Requieren votación: ${elementos.filter(e => e.requiere_votacion).length}`);
+    console.log(`   - Por categoría:`);
+    
+    // Contar por categoría
+    const categorias = {};
+    elementos.forEach(e => {
+        categorias[e.categoria] = (categorias[e.categoria] || 0) + 1;
+    });
+    
+    Object.entries(categorias).forEach(([cat, count]) => {
+        console.log(`     • ${cat}: ${count}`);
+    });
+    
+    return elementos;
+}
+
+/**
+ * Extrae todos los elementos del documento con numeración dual (general/sección)
+ * Respeta las categorías detectadas por contenido
  */
 function extraerElementos(texto, tipoSesion) {
     const elementos = [];
-    const lineas = texto.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    // NO filtrar líneas vacías, mantenerlas para detectar separaciones
+    const lineas = texto.split('\n').map(l => l.trim());
     
     let seccionActual = null;
     let tipoSeccionActual = null;
@@ -507,6 +706,7 @@ function extraerElementos(texto, tipoSesion) {
             
             // Determinar categoría basada en el contenido del inciso
             categoriaActual = determinarCategoriaInciso(contenidoInciso);
+            console.log(`📂 Inciso ${incisoPrincipalActual}) detectado: "${contenidoInciso.substring(0, 50)}..." → Categoría: ${categoriaActual}`);
             
             // Detectar si es una nueva sección basada en el contenido
             const nuevaSeccion = detectarSeccion(linea);
@@ -525,6 +725,7 @@ function extraerElementos(texto, tipoSesion) {
                 tipoSeccionActual.incisoPrincipal = incisoPrincipalActual;  // Guardar el inciso principal
                 tipoSeccionActual.tituloCompleto = linea;  // Guardar el título completo con inciso
                 tipoSeccionActual.categoria = categoriaActual;  // Usar la categoría determinada
+                console.log(`   ✅ Sección establecida: ${seccionActual} con categoría: ${categoriaActual}`);
                 procesandoElemento = false;
                 elementoActual = null;
                 textoAcumulado = '';
@@ -533,7 +734,8 @@ function extraerElementos(texto, tipoSesion) {
         }
         
         // Detectar cambio de sección (sin inciso principal)
-        const nuevaSeccion = detectarSeccion(linea);
+        // Solo procesar si la línea no está vacía
+        const nuevaSeccion = linea.length > 0 ? detectarSeccion(linea) : null;
         if (nuevaSeccion && !matchIncisoPrincipal) {
             // Procesar elemento pendiente si existe
             if (elementoActual && textoAcumulado) {
@@ -613,8 +815,16 @@ function extraerElementos(texto, tipoSesion) {
             numeroElemento++; // Siempre incrementar el número asignado por el programa
             
             procesandoElemento = true;
-            textoAcumulado = linea;
+            textoAcumulado = linea; // Iniciar con la primera línea
             incisos = []; // Reiniciar incisos para el nuevo elemento
+            
+            // IMPORTANTE: Crear elementoActual INMEDIATAMENTE para que funcione la acumulación
+            // Esto DEBE estar aquí antes de cualquier análisis para que el texto se acumule correctamente
+            elementoActual = {
+                numero: numeroElemento,
+                numero_original: numeroOriginal,
+                // Los demás campos se llenarán después del análisis
+            };
             
             // MODIFICADO: Determinar categoría y RECOMENDAR votación (no filtrar)
             let requiereVotacionElemento = false; // Por defecto no requiere votación
@@ -625,22 +835,59 @@ function extraerElementos(texto, tipoSesion) {
             // Analizar el contenido para determinar la categoría y recomendación
             const textoAnalizar = linea.toLowerCase();
             
-            if (esDictamen || textoAnalizar.includes('dictamen') || textoAnalizar.includes('dictámen')) {
+            // Log para debugging de categorización
+            if (numeroElemento <= 10) {
+                console.log(`\n🔍 Analizando elemento ${numeroElemento}: "${textoAnalizar.substring(0, 100)}..."`);
+            }
+            
+            // PRIORIDAD 1: Si estamos dentro de un inciso con categoría específica, usarla
+            if (incisoPrincipalActual && tipoSeccionActual && tipoSeccionActual.categoria) {
+                categoriaElemento = tipoSeccionActual.categoria;
+                console.log(`   → ✅ HEREDANDO categoría del inciso ${incisoPrincipalActual}: ${categoriaElemento} (tipo sección: ${tipoSeccionActual.nombre})`);
+                
+                // Configurar votación según la categoría heredada
+                if (categoriaElemento === 'primera_lectura') {
+                    recomendadoParaVotacion = false;
+                    tipoVotacionElemento = 'primera_lectura';
+                } else if (categoriaElemento === 'segunda_lectura') {
+                    recomendadoParaVotacion = true;
+                    requiereVotacionElemento = true;
+                    tipoVotacionElemento = 'votacion_dictamen';
+                } else if (categoriaElemento === 'dictamenes') {
+                    recomendadoParaVotacion = true;
+                    tipoVotacionElemento = 'votacion_dictamen';
+                } else if (categoriaElemento === 'puntos_acuerdo') {
+                    recomendadoParaVotacion = true;
+                    requiereVotacionElemento = true;
+                    tipoVotacionElemento = 'punto_acuerdo';
+                } else if (categoriaElemento === 'iniciativas') {
+                    recomendadoParaVotacion = false;
+                    tipoVotacionElemento = 'turno_comision';
+                }
+            }
+            // PRIORIDAD 2: Detectar por contenido si no hay categoría del inciso
+            else if (esDictamen || textoAnalizar.includes('dictamen') || textoAnalizar.includes('dictámen')) {
                 // Buscar si es primera o segunda lectura
                 if (textoAnalizar.match(/primera\s+lectura/) || textoAnalizar.match(/1[ae]?r?a?\.\s*lectura/)) {
                     categoriaElemento = 'primera_lectura';
                     recomendadoParaVotacion = false; // Primera lectura normalmente no se vota
                     tipoVotacionElemento = 'primera_lectura';
+                    console.log(`   → Categorizado como PRIMERA LECTURA`);
                 } else if (textoAnalizar.match(/segunda\s+lectura/) || textoAnalizar.match(/2[ad]?a?\.\s*lectura/)) {
                     categoriaElemento = 'segunda_lectura';
                     recomendadoParaVotacion = true; // Segunda lectura SÍ se recomienda votar
                     requiereVotacionElemento = true;
                     tipoVotacionElemento = 'votacion_dictamen';
+                    console.log(`   → Categorizado como SEGUNDA LECTURA`);
                 } else {
-                    // Dictamen genérico - categorizar como dictámenes
-                    categoriaElemento = 'dictamenes';
-                    recomendadoParaVotacion = true; // Dictámenes generalmente se votan
-                    tipoVotacionElemento = 'votacion_dictamen';
+                    // Solo categorizar como dictamen genérico si NO estamos en un inciso específico
+                    // Si estamos en G) o H), ya debería tener categoría del inciso
+                    if (!incisoPrincipalActual || !tipoSeccionActual) {
+                        categoriaElemento = 'dictamenes';
+                        recomendadoParaVotacion = true; // Dictámenes generalmente se votan
+                        tipoVotacionElemento = 'votacion_dictamen';
+                        console.log(`   → Categorizado como DICTAMEN GENÉRICO (sin inciso específico)`);
+                    }
                 }
             }
             // Iniciativas - se turnan pero no se votan normalmente
@@ -648,6 +895,7 @@ function extraerElementos(texto, tipoSesion) {
                 categoriaElemento = 'iniciativas';
                 recomendadoParaVotacion = false;
                 tipoVotacionElemento = 'turno_comision';
+                console.log(`   → Categorizado como INICIATIVA`);
             }
             // Puntos de acuerdo - generalmente se votan
             else if (esProposicion || textoAnalizar.includes('punto') && textoAnalizar.includes('acuerdo')) {
@@ -655,6 +903,7 @@ function extraerElementos(texto, tipoSesion) {
                 recomendadoParaVotacion = true;
                 requiereVotacionElemento = true;
                 tipoVotacionElemento = 'punto_acuerdo';
+                console.log(`   → Categorizado como PUNTO DE ACUERDO`);
             }
             // Urgente y obvia resolución - SIEMPRE se vota
             else if (textoAnalizar.includes('urgente') && textoAnalizar.includes('obvia')) {
@@ -662,12 +911,7 @@ function extraerElementos(texto, tipoSesion) {
                 recomendadoParaVotacion = true;
                 requiereVotacionElemento = true;
                 tipoVotacionElemento = 'urgente_obvia';
-            }
-            // Si tiene el inciso principal, usar su categoría
-            else if (incisoPrincipalActual && tipoSeccionActual) {
-                categoriaElemento = tipoSeccionActual.categoria || categoriaActual;
-                recomendadoParaVotacion = tipoSeccionActual.requiereVotacion || false;
-                tipoVotacionElemento = tipoSeccionActual.tipoVotacion || '';
+                console.log(`   → Categorizado como URGENTE Y OBVIA RESOLUCIÓN`);
             }
             // Si no se puede categorizar, dejar como 'otras'
             else {
@@ -675,7 +919,8 @@ function extraerElementos(texto, tipoSesion) {
                 recomendadoParaVotacion = false;
             }
             
-            elementoActual = {
+            // Actualizar el elementoActual que ya fue creado arriba
+            Object.assign(elementoActual, {
                 numero: numeroElemento,
                 numero_original: numeroOriginal,
                 numero_display: numeroOriginal ? `${numeroElemento}/${numeroOriginal}` : `${numeroElemento}`,
@@ -693,7 +938,7 @@ function extraerElementos(texto, tipoSesion) {
                 prioridad: 'normal',
                 caracteristicas_especiales: [],
                 capturado_automaticamente: true  // NUEVO: Marcar que fue capturado automáticamente
-            };
+            });
             
             // En sesiones solemnes o ceremoniales, nada se vota pero mantener categorías
             if (tipoSesion === 'solemne' || tipoSesion === 'ceremonial') {
@@ -707,15 +952,23 @@ function extraerElementos(texto, tipoSesion) {
             }
             
         } else if (procesandoElemento && elementoActual) {
-            // Verificar si es el inicio de un nuevo elemento
-            const esNuevoElemento = linea.match(/^(\d+)\.\s+/) || // Nuevo elemento numerado
-                                   linea.match(/^[A-Z]\)\s+/) || // Nuevo inciso principal
-                                   linea.match(/^Dict[aá]m/i) || // Nuevo dictamen
-                                   linea.match(/^Iniciativa/i) || // Nueva iniciativa
-                                   linea.match(/^Proposición/i) || // Nueva proposición
-                                   linea.match(/^Punto de Acuerdo/i); // Nuevo punto de acuerdo
+            // MEJORADO: Detectar nuevo elemento solo si tiene número al inicio
+            // Esto evita cortar el texto cuando continúa en la siguiente línea
+            const esNuevoElemento = linea.match(/^(\d+)\.\s+/); // Solo número + punto = nuevo elemento
+            const esNuevoInciso = linea.match(/^[A-Z]\)\s+/); // Nuevo inciso principal (letra + paréntesis)
             
-            if (esNuevoElemento) {
+            // Verificar que realmente es un nuevo elemento y no continuación
+            // IMPORTANTE: Solo considerar nuevo si tiene número Y una palabra clave específica al inicio
+            // Esto evita cortar el texto cuando el PDF tiene saltos de línea
+            const palabrasInicioElemento = /^(\d+)\.\s+(Iniciativa|Dictamen|Dict[aá]men|Proposici[oó]n|Punto|Comunicaci[oó]n|Solicitud|Oficio|Acuerdo|Lectura|Discusi[oó]n|Votaci[oó]n)/i;
+            const esRealmenteNuevo = esNuevoElemento && linea.match(palabrasInicioElemento);
+            
+            // Log para debug
+            if (esNuevoElemento && !esRealmenteNuevo && numeroElemento <= 10) {
+                console.log(`   ⚠️ Línea con número pero NO es nuevo elemento: "${linea.substring(0, 80)}..."`);
+            }
+            
+            if (esRealmenteNuevo || esNuevoInciso) {
                 // Finalizar elemento actual y retroceder para procesar el nuevo
                 if (elementoActual && textoAcumulado) {
                     if (incisos.length > 0) {
@@ -728,14 +981,35 @@ function extraerElementos(texto, tipoSesion) {
                 textoAcumulado = '';
                 incisos = [];
                 i--; // Retroceder para procesar esta línea como nuevo elemento
-            } else if (linea.length > 10) { // Solo acumular líneas con contenido significativo
-                textoAcumulado += ' ' + linea;
+            } else {
+                // Acumular TODAS las líneas que son continuación del elemento actual
+                if (linea.length > 0) {
+                    // Agregar la línea con un espacio si no termina con guión (palabra cortada)
+                    if (textoAcumulado.endsWith('-')) {
+                        // Palabra cortada al final de línea, unir sin espacio
+                        textoAcumulado = textoAcumulado.slice(0, -1) + linea;
+                    } else {
+                        // Línea normal, agregar con espacio
+                        textoAcumulado += ' ' + linea;
+                    }
+                } else if (textoAcumulado.length > 0) {
+                    // Línea vacía: podría indicar fin de párrafo, agregar doble espacio
+                    textoAcumulado += '  ';
+                }
+                
+                // Log de depuración mejorado - AUMENTADO para ver más elementos
+                if (numeroElemento <= 10 && linea.length > 0) {
+                    console.log(`   📝 [Elemento ${numeroElemento}] Acumulando línea ${i}: "${linea.substring(0, 80)}..."`);
+                    console.log(`      Texto total acumulado (${textoAcumulado.length} chars): "${textoAcumulado.substring(0, 200)}..."`);
+                }
                 
                 // Buscar patrones especiales que modifiquen la votación
                 aplicarPatronesEspeciales(elementoActual, linea);
                 
-                // Limitar acumulación para evitar elementos demasiado largos
-                if (textoAcumulado.length > 3000) {
+                // NO cerrar automáticamente por líneas vacías
+                // Seguir acumulando hasta encontrar un nuevo elemento real
+                // Solo cerrar si el texto es excesivamente largo
+                if (textoAcumulado.length > 25000) { // Aumentado límite a 25000 chars para textos largos
                     if (elementoActual && textoAcumulado) {
                         if (incisos.length > 0) {
                             elementoActual.incisos = incisos;
@@ -888,6 +1162,9 @@ function aplicarPatronesEspeciales(elemento, texto) {
  * Finaliza el procesamiento de un elemento
  */
 function finalizarElemento(elemento, texto, listaElementos) {
+    // Log de debugging para ver qué categoría se está guardando
+    console.log(`📝 Finalizando elemento #${elemento.numero} con categoría: ${elemento.categoria} (inciso: ${elemento.inciso_principal || 'ninguno'})`);
+    
     // Limpiar texto
     texto = texto.replace(/\s+/g, ' ').trim();
     
@@ -898,9 +1175,10 @@ function finalizarElemento(elemento, texto, listaElementos) {
     descripcion = descripcion.replace(/^\d+\.\s*/, '');
     
     // No limitar la longitud de la descripción para preservar todo el contenido
-    // Solo poner la descripción, NO el título
+    // Mantener el texto completo sin cortes
     elemento.titulo = '';  // No usar título
     elemento.descripcion = descripcion;  // Todo el texto va en descripción
+    elemento.contenido = texto; // Guardar también el texto original completo
     
     // Extraer presentador y partido
     const matchPresentador = texto.match(/presentad[oa]\s+por\s+(?:el\s+|la\s+)?(?:Diputad[oa]\s+)?([^(,;]+)(?:\s*\(([A-Z]+)\))?/i);
@@ -981,7 +1259,7 @@ function generarEstadisticas(elementos) {
         if (elem.es_ceremonial) stats.ceremoniales++;
         
         // Reformas constitucionales
-        if (elem.caracteristicas_especiales.includes('REFORMA_CONSTITUCIONAL')) {
+        if (elem.caracteristicas_especiales && elem.caracteristicas_especiales.includes('REFORMA_CONSTITUCIONAL')) {
             stats.reformasConstitucionales++;
         }
         
@@ -995,7 +1273,9 @@ function generarEstadisticas(elementos) {
         }
         
         // Por tipo de mayoría
-        stats.porTipoMayoria[elem.tipo_mayoria]++;
+        if (elem.tipo_mayoria) {
+            stats.porTipoMayoria[elem.tipo_mayoria] = (stats.porTipoMayoria[elem.tipo_mayoria] || 0) + 1;
+        }
     });
     
     // Calcular porcentajes

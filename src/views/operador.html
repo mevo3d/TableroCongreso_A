@@ -703,13 +703,12 @@
                         </div>
                         <div class="mb-3">
                             <label for="editTipoMayoria" class="form-label">Tipo de Mayoría</label>
-                            <select class="form-select" id="editTipoMayoria" disabled>
+                            <select class="form-select" id="editTipoMayoria">
                                 <option value="simple">Mayoría Simple</option>
                                 <option value="absoluta">Mayoría Absoluta</option>
                                 <option value="calificada">Mayoría Calificada (2/3)</option>
                                 <option value="unanime">Unanimidad</option>
                             </select>
-                            <small class="text-muted">Solo el secretario puede editar el tipo de mayoría</small>
                         </div>
                     </form>
                 </div>
@@ -1342,7 +1341,7 @@
             
             const editNumeroSistema = document.getElementById('editNumeroSistema');
             const editNumeroOrden = document.getElementById('editNumeroOrden');
-            const editTitulo = document.getElementById('editTitulo');
+            const editDescripcion = document.getElementById('editDescripcionModal');
             const editPresentador = document.getElementById('editPresentador');
             const editPartido = document.getElementById('editPartido');
             const editTipoMayoria = document.getElementById('editTipoMayoria');
@@ -1351,7 +1350,7 @@
             
             if (editNumeroSistema) editNumeroSistema.value = init.numero_sistema;
             if (editNumeroOrden) editNumeroOrden.value = init.numero_orden_dia || '';
-            if (editTitulo) editTitulo.value = init.titulo || '';
+            if (editDescripcion) editDescripcion.value = init.descripcion || '';
             if (editPresentador) editPresentador.value = init.presentador || '';
             if (editPartido) editPartido.value = init.partido || '';
             if (editTipoMayoria) editTipoMayoria.value = init.tipo_mayoria || 'simple';
@@ -1381,7 +1380,8 @@
             }
         }
         
-        // Función para guardar iniciativas seleccionadas
+        // Función para guardar iniciativas seleccionadas - MOVIDA MÁS ABAJO
+        /* COMENTADA - FUNCIÓN DUPLICADA
         async function guardarIniciativasSeleccionadas() {
             console.log('=== INICIANDO GUARDADO DE INICIATIVAS ===');
             console.log('Iniciativas en validación:', iniciativasValidacion);
@@ -1411,11 +1411,37 @@
                 // Las seleccionadas se marcan para votación
                 iniciativasParaVotacion = iniciativasValidacion.filter(i => i.seleccionada);
                 
-                // Marcar cuáles van a votación
+                // Marcar cuáles van a votación y asegurar categorías correctas
                 iniciativasAImportar.forEach(init => {
                     init.marcada_para_votacion = init.seleccionada;
-                    // Si está seleccionada, asegurar que tiene requiere_votacion
-                    if (init.seleccionada) {
+                    
+                    // Asegurar que cada iniciativa tenga su categoría correcta
+                    if (!init.categoria) {
+                        // Determinar categoría basándose en el tipo
+                        if (init.tipo_votacion === 'votacion_dictamen' || init.tipo === 'segunda_lectura') {
+                            init.categoria = 'segunda_lectura';
+                            init.requiere_votacion = true;
+                        } else if (init.tipo === 'primera_lectura') {
+                            init.categoria = 'primera_lectura';
+                            init.requiere_votacion = false;
+                        } else if (init.tipo === 'punto_acuerdo' || init.tipo_votacion === 'punto_acuerdo') {
+                            init.categoria = 'puntos_acuerdo';
+                            init.requiere_votacion = true;
+                        } else if (init.tipo === 'iniciativa' || init.tipo_votacion === 'turno_comision') {
+                            init.categoria = 'iniciativas';
+                            init.requiere_votacion = false;
+                        } else if (init.tipo === 'dictamen' || init.tipo_votacion === 'votacion_dictamen') {
+                            init.categoria = 'dictamenes';
+                            init.requiere_votacion = true;
+                        }
+                    }
+                    
+                    // Si está seleccionada y es de una categoría votable, marcar para votación
+                    if (init.seleccionada && 
+                        (init.categoria === 'segunda_lectura' || 
+                         init.categoria === 'puntos_acuerdo' || 
+                         init.categoria === 'dictamenes' ||
+                         init.categoria === 'urgente')) {
                         init.requiere_votacion = true;
                     }
                 });
@@ -1479,6 +1505,13 @@
                 };
                 console.log('Datos a enviar:', bodyData);
                 
+                // Verificar que las descripciones completas se están enviando
+                if (iniciativasAImportar.length > 0) {
+                    console.log('Primera iniciativa - descripción completa:');
+                    console.log('Longitud:', iniciativasAImportar[0].descripcion?.length || 0);
+                    console.log('Contenido:', iniciativasAImportar[0].descripcion);
+                }
+                
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -1500,11 +1533,16 @@
                 
                 const data = await response.json();
                 
-                // Cerrar modal de validación
-                const modalEl = document.getElementById('modalValidacion');
-                if (modalEl) {
-                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                    if (modalInstance) modalInstance.hide();
+                // Cerrar modal de validación (Apple o Bootstrap)
+                const modalApple = document.getElementById('modalValidacionApple');
+                if (modalApple && modalApple.style.display !== 'none') {
+                    cerrarModalApple();
+                } else {
+                    const modalEl = document.getElementById('modalValidacion');
+                    if (modalEl && typeof bootstrap !== 'undefined') {
+                        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+                    }
                 }
                 
                 // Mostrar mensaje de éxito
@@ -1540,12 +1578,11 @@
                     loadActiveSession();
                 }
                 
-                // Si es carga inmediata, recargar también la sesión activa
-                if (tipoCarga === 'inmediata') {
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                }
+                // SIEMPRE recargar la página después de importar para mostrar las iniciativas correctamente
+                console.log('Recargando página después de importar iniciativas...');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
                 
             } catch (error) {
                 console.error('=== ERROR AL GUARDAR INICIATIVAS ===');
@@ -1561,6 +1598,7 @@
                 loadingDivs.forEach(div => div.remove());
             }
         }
+        FIN DE FUNCIÓN DUPLICADA */
         
         // Funciones de selección de iniciativas
         function toggleIniciativaSeleccion(index) {
@@ -1626,13 +1664,6 @@
             // Guardar el archivo PDF para el visor
             pdfActual = file;
             
-            // Verificar que Bootstrap esté cargado
-            if (typeof bootstrap === 'undefined') {
-                console.error('Bootstrap no está cargado');
-                alert('Error: Bootstrap no está cargado correctamente');
-                return;
-            }
-            
             const formData = new FormData();
             formData.append('file', file);
             
@@ -1672,6 +1703,9 @@
                     sessionIdActual = data.sessionId;
                     iniciativasValidacion = data.iniciativas || [];
                     
+                    console.log(`Frontend recibió ${iniciativasValidacion.length} iniciativas`);
+                    console.log(`Total elementos reportados: ${data.totalElementos}`);
+                    
                     // Verificar estructura de las iniciativas
                     if (iniciativasValidacion.length > 0) {
                         console.log('Estructura de iniciativa ejemplo:');
@@ -1682,6 +1716,13 @@
                         console.log('- contenido:', ejemplo.contenido);
                         console.log('- categoria:', ejemplo.categoria);
                         console.log('- requiere_votacion:', ejemplo.requiere_votacion);
+                        
+                        // Contar por categorías
+                        const categorias = {};
+                        iniciativasValidacion.forEach(i => {
+                            categorias[i.categoria] = (categorias[i.categoria] || 0) + 1;
+                        });
+                        console.log('Iniciativas por categoría:', categorias);
                     }
                     
                     iniciativasOriginales = [...iniciativasValidacion]; // Guardar copia
@@ -1708,8 +1749,8 @@
                     abrirModalApple();
                     console.log('Modal Apple abierto');
                     
-                    // Ya no usamos Bootstrap
-                    /*
+                    // Ya no usamos Bootstrap - código comentado del modal anterior
+                    /* Código del modal Bootstrap anterior - ya no se usa
                     const modalElement = document.getElementById('modalValidacion');
                     if (modalElement) {
                         console.log('Elemento del modal encontrado, creando instancia de Bootstrap...');
@@ -1767,6 +1808,7 @@
                         console.error('No se encontró el elemento del modal con ID: modalValidacion');
                         alert('Error: No se encontró el modal de validación en la página');
                     }
+                    */
                 } else {
                     alert('Error al procesar el PDF: ' + (data.error || 'Error desconocido'));
                 }
@@ -1806,6 +1848,10 @@
                 
                 const data = await response.json();
                 
+                console.log('=== DATOS DE SESIÓN ACTIVA ===');
+                console.log('Sesión:', data.sesion);
+                console.log('Número de iniciativas:', data.iniciativas?.length || 0);
+                
                 if (data.sesion) {
                     document.getElementById('sessionStatus').innerHTML = `
                         <strong>Sesión:</strong> ${data.sesion.nombre}<br>
@@ -1836,6 +1882,13 @@
         
         // Mostrar iniciativas con pestañas dinámicas
         function displayInitiatives(initiatives, textoOriginal = null) {
+            console.log('=== MOSTRANDO INICIATIVAS ===');
+            console.log('Total de iniciativas recibidas:', initiatives.length);
+            if (initiatives.length > 0) {
+                console.log('Primera iniciativa:', initiatives[0]);
+                console.log('Categorías encontradas:', [...new Set(initiatives.map(i => i.categoria))]);
+            }
+            
             // Mostrar/ocultar botón de notificar si hay iniciativas
             const notificarContainer = document.getElementById('notificarMesaContainer');
             if (notificarContainer) {
@@ -1889,8 +1942,24 @@
                     modal.style.opacity = '1';
                 }, 10);
                 
-                // Actualizar contenido
-                actualizarContenidoModalApple();
+                // Actualizar estadísticas
+                actualizarEstadisticasValidacion();
+                
+                // Renderizar tabla
+                renderizarTablaValidacion(iniciativasValidacion);
+                
+                // Configurar eventos de tipo de carga
+                configurarEventosTipoCarga();
+                
+                // Resetear el visor de PDF (oculto por defecto)
+                const visorContainer = document.getElementById('visorPDFContainerApple');
+                const validacionContainer = document.getElementById('validacionContainerApple');
+                if (visorContainer) {
+                    visorContainer.style.display = 'none';
+                }
+                if (validacionContainer) {
+                    validacionContainer.style.width = '100%';
+                }
             }
         }
         
@@ -1903,6 +1972,98 @@
                 setTimeout(() => {
                     modal.style.display = 'none';
                 }, 300);
+                
+                // Limpiar el visor de PDF
+                const pdfViewer = document.getElementById('pdfViewerApple');
+                if (pdfViewer && pdfViewer.src) {
+                    URL.revokeObjectURL(pdfViewer.src);
+                    pdfViewer.src = '';
+                }
+            }
+        }
+        
+        // Toggle visor PDF Apple
+        function toggleVisorPDFApple() {
+            const visorContainer = document.getElementById('visorPDFContainerApple');
+            const validacionContainer = document.getElementById('validacionContainerApple');
+            
+            if (!visorContainer || !validacionContainer) {
+                console.error('No se encontraron los contenedores del visor PDF');
+                return;
+            }
+            
+            if (visorContainer.style.display === 'none' || !visorContainer.style.display) {
+                // Mostrar visor PDF
+                visorContainer.style.display = 'flex';
+                validacionContainer.style.width = '50%';
+                
+                // Si hay un PDF cargado, mostrarlo
+                if (pdfActual) {
+                    const pdfURL = URL.createObjectURL(pdfActual);
+                    const pdfViewer = document.getElementById('pdfViewerApple');
+                    if (pdfViewer) {
+                        pdfViewer.src = pdfURL;
+                    }
+                }
+            } else {
+                // Ocultar visor PDF
+                cerrarVisorPDFApple();
+            }
+        }
+        
+        // Cerrar visor PDF Apple
+        function cerrarVisorPDFApple() {
+            const visorContainer = document.getElementById('visorPDFContainerApple');
+            const validacionContainer = document.getElementById('validacionContainerApple');
+            
+            if (visorContainer) {
+                visorContainer.style.display = 'none';
+            }
+            if (validacionContainer) {
+                validacionContainer.style.width = '100%';
+            }
+        }
+        
+        // Configurar eventos de tipo de carga
+        function configurarEventosTipoCarga() {
+            const cargaProgramada = document.getElementById('cargaProgramadaVal');
+            const cargaInmediata = document.getElementById('cargaInmediataVal');
+            const cargaIndefinida = document.getElementById('cargaIndefinidaVal');
+            const fechaProgramada = document.getElementById('fechaProgramadaVal');
+            
+            // Limpiar eventos anteriores para evitar duplicados
+            if (cargaProgramada && !cargaProgramada.hasAttribute('data-configured')) {
+                cargaProgramada.setAttribute('data-configured', 'true');
+                cargaProgramada.addEventListener('change', function() {
+                    if (this.checked && fechaProgramada) {
+                        fechaProgramada.style.display = 'block';
+                        const now = new Date();
+                        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                        const fechaSesionVal = document.getElementById('fechaSesionVal');
+                        if (fechaSesionVal) {
+                            fechaSesionVal.min = now.toISOString().slice(0, 16);
+                            fechaSesionVal.required = true;
+                        }
+                    }
+                });
+            }
+            
+            if (cargaInmediata && !cargaInmediata.hasAttribute('data-configured')) {
+                cargaInmediata.setAttribute('data-configured', 'true');
+                cargaInmediata.addEventListener('change', function() {
+                    if (this.checked && fechaProgramada) {
+                        fechaProgramada.style.display = 'none';
+                    }
+                });
+            }
+            
+            if (cargaIndefinida && !cargaIndefinida.hasAttribute('data-configured')) {
+                cargaIndefinida.setAttribute('data-configured', 'true');
+                cargaIndefinida.addEventListener('change', function() {
+                    if (this.checked && fechaProgramada) {
+                        fechaProgramada.style.display = 'none';
+                    }
+                });
             }
         }
         
@@ -1926,9 +2087,14 @@
             
             const seleccionadas = iniciativasValidacion.filter(i => i.seleccionada).length;
             
+            if (seleccionadas === 0) {
+                alert('Por favor selecciona al menos una iniciativa para cargar');
+                return;
+            }
+            
             if (confirm(`¿Confirmar la carga?\n\nTotal: ${iniciativasValidacion.length}\nSeleccionadas para votación: ${seleccionadas}`)) {
                 console.log('Procediendo con la carga...');
-                cerrarModalApple();
+                // NO cerrar el modal aquí - se cerrará automáticamente en guardarIniciativasSeleccionadas
                 
                 // Llamar a la función de guardado
                 try {
@@ -1972,9 +2138,9 @@
                             <thead>
                                 <tr style="background: #f2f2f7; border-bottom: 1px solid #e5e5ea;">
                                     <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase;">Sel.</th>
-                                    <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase;">#</th>
+                                    <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase;">Núm.</th>
                                     <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase;">Descripción</th>
-                                    <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase;">Tipo</th>
+                                    <th style="padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase;">Categoría</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1984,27 +2150,72 @@
                     const descripcion = init.descripcion || init.contenido || init.titulo || 'Sin descripción';
                     const descripcionCorta = descripcion.length > 60 ? descripcion.substring(0, 60) + '...' : descripcion;
                     
+                    // Determinar si requiere votación
+                    const requiereVotacion = init.requiere_votacion || false;
+                    
+                    // Estilo de fila con fondo verde claro para elementos votables
+                    const rowStyle = requiereVotacion ? 
+                        'border-bottom: 1px solid #f2f2f7; background-color: #f0fdf4; border-left: 4px solid #34c759;' : 
+                        'border-bottom: 1px solid #f2f2f7;';
+                    
+                    // Mostrar número dual si existe
+                    const numeroDisplay = init.numero_seccion ? 
+                        `${init.numero_general}/${init.numero_seccion}` : 
+                        (index + 1).toString();
+                    
+                    // Determinar etiqueta de categoría con colores apropiados
+                    let categoriaLabel = '';
+                    let categoriaColor = '#f2f2f7';
+                    let textColor = '#8e8e93';
+                    
+                    if (init.categoria === 'dictamenes' || requiereVotacion) {
+                        categoriaLabel = 'DICTÁMEN ⚡';
+                        categoriaColor = '#34c759';
+                        textColor = 'white';
+                    } else if (init.categoria === 'segunda_lectura') {
+                        categoriaLabel = 'DICTAMEN 2da ⚡';
+                        categoriaColor = '#34c759';
+                        textColor = 'white';
+                    } else if (init.categoria === 'puntos_acuerdo') {
+                        categoriaLabel = 'P. ACUERDO';
+                        categoriaColor = '#007aff';
+                        textColor = 'white';
+                    } else if (init.categoria === 'primera_lectura') {
+                        categoriaLabel = 'DICTAMEN 1era';
+                        categoriaColor = '#ff9500';
+                        textColor = 'white';
+                    } else if (init.categoria === 'iniciativas') {
+                        categoriaLabel = 'INICIATIVA';
+                        categoriaColor = '#5856d6';
+                        textColor = 'white';
+                    } else {
+                        categoriaLabel = (init.categoria || 'general').toUpperCase();
+                    }
+                    
                     html += `
-                        <tr style="border-bottom: 1px solid #f2f2f7;">
+                        <tr style="${rowStyle}">
                             <td style="padding: 12px;">
                                 <input type="checkbox" 
                                        ${init.seleccionada ? 'checked' : ''}
                                        onchange="toggleIniciativaApple(${index})"
                                        style="width: 18px; height: 18px; cursor: pointer;">
                             </td>
-                            <td style="padding: 12px; color: #1c1c1e; font-size: 14px; font-weight: 500;">${index + 1}</td>
-                            <td style="padding: 12px; color: #3c3c43; font-size: 14px;">${descripcionCorta}</td>
+                            <td style="padding: 12px; color: #1c1c1e; font-size: 14px; font-weight: 600;">${numeroDisplay}</td>
+                            <td style="padding: 12px; color: #3c3c43; font-size: 14px;">
+                                ${descripcionCorta}
+                                ${requiereVotacion ? '<span style="color: #34c759; font-weight: 600;"> [✓ Votación]</span>' : ''}
+                            </td>
                             <td style="padding: 12px;">
                                 <span style="
                                     display: inline-block;
                                     padding: 4px 8px;
                                     border-radius: 6px;
-                                    font-size: 12px;
-                                    font-weight: 500;
-                                    background: ${init.requiere_votacion ? '#34c759' : '#f2f2f7'};
-                                    color: ${init.requiere_votacion ? 'white' : '#8e8e93'};
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    background: ${categoriaColor};
+                                    color: ${textColor};
                                 ">
-                                    ${init.categoria || 'general'}
+                                    ${categoriaLabel}
                                 </span>
                             </td>
                         </tr>
@@ -2177,49 +2388,67 @@
                 const contenido = (init.contenido || '').toLowerCase();
                 const textoCompleto = titulo + ' ' + contenido;
                 
-                // Categorización mejorada por tipo
-                if (init.es_procedimiento || init.categoria === 'procedimiento') {
+                // Usar la categoría asignada por el extractor
+                const categoria = init.categoria || '';
+                
+                // Categorización basada en la categoría del extractor
+                // IMPORTANTE: Procesar categorías específicas primero antes de verificar requiere_votacion
+                if (categoria === 'primera_lectura') {
+                    categorias.primeraLectura.push(init);
+                    console.log(`✅ Elemento ${init.numero} → PRIMERA LECTURA`);
+                }
+                else if (categoria === 'segunda_lectura') {
+                    categorias.segundaLectura.push(init);
+                    console.log(`✅ Elemento ${init.numero} → SEGUNDA LECTURA`);
+                }
+                else if (categoria === 'puntos_acuerdo') {
+                    categorias.puntosAcuerdo.push(init);
+                    console.log(`✅ Elemento ${init.numero} → PUNTOS DE ACUERDO`);
+                }
+                else if (categoria === 'iniciativas') {
+                    categorias.iniciativas.push(init);
+                    console.log(`✅ Elemento ${init.numero} → INICIATIVAS`);
+                }
+                else if (categoria === 'dictamenes') {
+                    // Solo agregar a dictámenes genéricos si EXPLÍCITAMENTE tiene esa categoría
+                    // NO agregar si es primera o segunda lectura
+                    categorias.dictamenes.push(init);
+                    console.log(`✅ Elemento ${init.numero} → DICTÁMENES GENÉRICOS`);
+                }
+                else if (categoria === 'urgente') {
+                    categorias.urgente.push(init);
+                    console.log(`⚡ Elemento ${init.numero} → URGENTE Y OBVIA`);
+                }
+                // Fallback a análisis de texto SOLO si no hay categoría asignada
+                else if (!categoria) {
+                    console.log(`⚠️ Elemento ${init.numero} sin categoría, analizando texto...`);
+                    
+                    if (textoCompleto.includes('urgente') && 
+                            (textoCompleto.includes('obvia') || textoCompleto.includes('resolución'))) {
+                        categorias.urgente.push(init);
+                    }
+                    else if (textoCompleto.includes('primera lectura')) {
+                        categorias.primeraLectura.push(init);
+                    }
+                    else if (textoCompleto.includes('segunda lectura')) {
+                        categorias.segundaLectura.push(init);
+                    }
+                    else if (textoCompleto.includes('dictamen') || textoCompleto.includes('dictamina')) {
+                        categorias.dictamenes.push(init);
+                    }
+                    else if (textoCompleto.includes('punto de acuerdo') || 
+                            textoCompleto.includes('puntos de acuerdo')) {
+                        categorias.puntosAcuerdo.push(init);
+                    }
+                    else if (textoCompleto.includes('iniciativa')) {
+                        categorias.iniciativas.push(init);
+                    }
+                }
+                else if (init.es_procedimiento) {
                     categorias.procedimientos.push(init);
                 }
-                // Dictámenes (elementos votables)
-                else if (init.requiere_votacion || 
-                        textoCompleto.includes('dictamen') || 
-                        textoCompleto.includes('votación') ||
-                        textoCompleto.includes('dictamina')) {
-                    categorias.dictamenes.push(init);
-                }
-                // Urgente y obvia resolución
-                else if (textoCompleto.includes('urgente') && 
-                        (textoCompleto.includes('obvia') || textoCompleto.includes('resolución'))) {
-                    categorias.urgente.push(init);
-                }
-                // Primera lectura
-                else if (init.categoria === 'primera_lectura' || 
-                        textoCompleto.includes('primera lectura')) {
-                    categorias.primeraLectura.push(init);
-                }
-                // Segunda lectura
-                else if (init.categoria === 'segunda_lectura' || 
-                        textoCompleto.includes('segunda lectura')) {
-                    categorias.segundaLectura.push(init);
-                }
-                // Puntos de acuerdo
-                else if (init.categoria === 'puntos_acuerdo' || 
-                        init.tipo_votacion === 'punto_acuerdo' || 
-                        textoCompleto.includes('punto de acuerdo') ||
-                        textoCompleto.includes('puntos de acuerdo')) {
-                    categorias.puntosAcuerdo.push(init);
-                }
-                // Detectar incisos (a), b), c), etc.
-                else if (init.inciso || 
-                        /^[a-z]\)|^\([a-z]\)/.test(titulo) ||
-                        init.es_subinciso) {
+                else if (init.inciso || /^[a-z]\)|^\([a-z]\)/.test(titulo) || init.es_subinciso) {
                     categorias.incisos.push(init);
-                }
-                // Iniciativas generales
-                else if (init.categoria === 'iniciativas' || 
-                        textoCompleto.includes('iniciativa')) {
-                    categorias.iniciativas.push(init);
                 }
                 else {
                     categorias.otras.push(init);
@@ -2248,168 +2477,113 @@
             const tabsContainer = document.getElementById('initiativesTabs');
             const tabsHtml = [];
             
-            // Siempre mostrar pestaña "Todas"
+            // ORDEN FIJO: TODAS, INICIATIVAS, PRIMERA LECTURA, SEGUNDA LECTURA, PUNTOS DE ACUERDO, DOCUMENTO ORIGINAL
+            
+            // 1. TODAS - Siempre mostrar
             tabsHtml.push(`
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="todas-tab" data-bs-toggle="tab" 
                             data-bs-target="#todas" type="button" role="tab">
-                        <i class="fas fa-list"></i> Todas
+                        <i class="fas fa-list"></i> TODAS
                         <span class="badge bg-secondary ms-1">${categorias.todas.length}</span>
                     </button>
                 </li>
             `);
             
-            // Dictámenes (votables) - mostrar primero si hay
-            if (categorias.dictamenes.length > 0) {
-                tabsHtml.push(`
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="dictamenes-tab" data-bs-toggle="tab" 
-                                data-bs-target="#dictamenes" type="button" role="tab">
-                            <i class="fas fa-vote-yea"></i> Dictámenes
-                            <span class="badge bg-success ms-1">${categorias.dictamenes.length}</span>
-                        </button>
-                    </li>
-                `);
-            }
-            
-            // Urgente y Obvia Resolución - con resaltado especial
-            if (categorias.urgente.length > 0) {
-                tabsHtml.push(`
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link text-danger fw-bold" id="urgente-tab" data-bs-toggle="tab" 
-                                data-bs-target="#urgente" type="button" role="tab">
-                            <i class="fas fa-exclamation-triangle"></i> Urgente
-                            <span class="badge bg-danger ms-1">${categorias.urgente.length}</span>
-                        </button>
-                    </li>
-                `);
-            }
-            
-            // Primera Lectura
-            if (categorias.primeraLectura.length > 0) {
-                tabsHtml.push(`
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="primeraLectura-tab" data-bs-toggle="tab" 
-                                data-bs-target="#primeraLectura" type="button" role="tab">
-                            <i class="fas fa-book-open"></i> 1ra Lectura
-                            <span class="badge bg-info ms-1">${categorias.primeraLectura.length}</span>
-                        </button>
-                    </li>
-                `);
-            }
-            
-            // Segunda Lectura
-            if (categorias.segundaLectura.length > 0) {
-                tabsHtml.push(`
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="segundaLectura-tab" data-bs-toggle="tab" 
-                                data-bs-target="#segundaLectura" type="button" role="tab">
-                            <i class="fas fa-book"></i> 2da Lectura
-                            <span class="badge bg-warning ms-1">${categorias.segundaLectura.length}</span>
-                        </button>
-                    </li>
-                `);
-            }
-            
-            // Puntos de Acuerdo
-            if (categorias.puntosAcuerdo.length > 0) {
-                tabsHtml.push(`
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="puntosAcuerdo-tab" data-bs-toggle="tab" 
-                                data-bs-target="#puntosAcuerdo" type="button" role="tab">
-                            <i class="fas fa-handshake"></i> Puntos Acuerdo
-                            <span class="badge bg-purple ms-1">${categorias.puntosAcuerdo.length}</span>
-                        </button>
-                    </li>
-                `);
-            }
-            
-            // Incisos
-            if (categorias.incisos.length > 0) {
-                tabsHtml.push(`
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="incisos-tab" data-bs-toggle="tab" 
-                                data-bs-target="#incisos" type="button" role="tab">
-                            <i class="fas fa-list-ol"></i> Incisos
-                            <span class="badge bg-secondary ms-1">${categorias.incisos.length}</span>
-                        </button>
-                    </li>
-                `);
-            }
-            
-            // Procedimientos (Incisos procedimentales)
-            if (categorias.procedimientos.length > 0) {
-                tabsHtml.push(`
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="procedimientos-tab" data-bs-toggle="tab" 
-                                data-bs-target="#procedimientos" type="button" role="tab">
-                            <i class="fas fa-clipboard-list"></i> Procedimientos
-                            <span class="badge bg-dark ms-1">${categorias.procedimientos.length}</span>
-                        </button>
-                    </li>
-                `);
-            }
-            
-            // Iniciativas (genéricas)
+            // 2. INICIATIVAS
             if (categorias.iniciativas.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="iniciativas-tab" data-bs-toggle="tab" 
                                 data-bs-target="#iniciativas" type="button" role="tab">
-                            <i class="fas fa-file-alt"></i> Iniciativas
+                            <i class="fas fa-file-alt"></i> INICIATIVAS
                             <span class="badge bg-primary ms-1">${categorias.iniciativas.length}</span>
                         </button>
                     </li>
                 `);
             }
             
-            // Primera Lectura
+            // 3. PRIMERA LECTURA
             if (categorias.primeraLectura.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="primeraLectura-tab" data-bs-toggle="tab" 
                                 data-bs-target="#primeraLectura" type="button" role="tab">
-                            <i class="fas fa-book-open"></i> Primera Lectura
-                            <span class="badge bg-warning ms-1">${categorias.primeraLectura.length}</span>
+                            <i class="fas fa-book-open"></i> DICTÁMENES 1era
+                            <span class="badge bg-info ms-1">${categorias.primeraLectura.length}</span>
                         </button>
                     </li>
                 `);
             }
             
-            // Segunda Lectura (con ⚡ para indicar votación)
+            // 4. SEGUNDA LECTURA
             if (categorias.segundaLectura.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="segundaLectura-tab" data-bs-toggle="tab" 
                                 data-bs-target="#segundaLectura" type="button" role="tab">
-                            <i class="fas fa-book-reader"></i> Segunda Lectura ⚡
-                            <span class="badge bg-danger ms-1">${categorias.segundaLectura.length}</span>
+                            <i class="fas fa-book"></i> DICTÁMENES 2da ⚡
+                            <span class="badge bg-success ms-1">${categorias.segundaLectura.length}</span>
                         </button>
                     </li>
                 `);
             }
             
-            // Puntos de Acuerdo (con ⚡ para indicar votación)
+            // 5. PUNTOS DE ACUERDO
             if (categorias.puntosAcuerdo.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="puntosAcuerdo-tab" data-bs-toggle="tab" 
                                 data-bs-target="#puntosAcuerdo" type="button" role="tab">
-                            <i class="fas fa-handshake"></i> Puntos de Acuerdo ⚡
-                            <span class="badge bg-info ms-1">${categorias.puntosAcuerdo.length}</span>
+                            <i class="fas fa-handshake"></i> PUNTOS DE ACUERDO
+                            <span class="badge bg-purple ms-1">${categorias.puntosAcuerdo.length}</span>
                         </button>
                     </li>
                 `);
             }
             
-            // Documento Original - Siempre mostrar si hay texto original
+            // 6. DOCUMENTO ORIGINAL - Al final
             if (categorias.textoOriginal) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="documentoOriginal-tab" data-bs-toggle="tab" 
                                 data-bs-target="#documentoOriginal" type="button" role="tab">
-                            <i class="fas fa-file-pdf"></i> Documento Original
+                            <i class="fas fa-file-pdf"></i> DOCUMENTO ORIGINAL
                             <span class="badge bg-secondary ms-1"><i class="fas fa-check"></i></span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // Otras categorías opcionales (solo si existen y no están vacías)
+            
+            // Dictámenes (si hay y no están en segunda lectura)
+            if (categorias.dictamenes.length > 0) {
+                // Solo mostrar si hay dictámenes que no estén ya en segunda lectura
+                const dictamenesUnicos = categorias.dictamenes.filter(d => 
+                    !categorias.segundaLectura.some(s => s.descripcion === d.descripcion)
+                );
+                if (dictamenesUnicos.length > 0) {
+                    tabsHtml.push(`
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="dictamenes-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#dictamenes" type="button" role="tab">
+                                <i class="fas fa-vote-yea"></i> DICTÁMENES
+                                <span class="badge bg-success ms-1">${dictamenesUnicos.length}</span>
+                            </button>
+                        </li>
+                    `);
+                }
+            }
+            
+            // Urgente y Obvia Resolución
+            if (categorias.urgente.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link text-danger fw-bold" id="urgente-tab" data-bs-toggle="tab" 
+                                data-bs-target="#urgente" type="button" role="tab">
+                            <i class="fas fa-exclamation-triangle"></i> URGENTE
+                            <span class="badge bg-danger ms-1">${categorias.urgente.length}</span>
                         </button>
                     </li>
                 `);
@@ -2424,7 +2598,9 @@
             const contentContainer = document.getElementById('initiativesTabContent');
             const contentHtml = [];
             
-            // Contenido para "Todas"
+            // ORDEN FIJO: TODAS, INICIATIVAS, PRIMERA LECTURA, SEGUNDA LECTURA, PUNTOS DE ACUERDO, DOCUMENTO ORIGINAL
+            
+            // 1. TODAS - Siempre mostrar
             contentHtml.push(`
                 <div class="tab-pane fade show active" id="todas" role="tabpanel">
                     <div id="initiativesList">
@@ -2433,112 +2609,59 @@
                 </div>
             `);
             
-            // Contenido para Procedimientos
-            if (categorias.procedimientos.length > 0) {
-                contentHtml.push(`
-                    <div class="tab-pane fade" id="procedimientos" role="tabpanel">
-                        <div class="alert alert-dark mb-3">
-                            <i class="fas fa-clipboard-list"></i> 
-                            <strong>Estructura completa del Orden del Día</strong>
-                            ${renderizarEstructuraCompleta(categorias)}
-                        </div>
-                        ${renderizarIniciativas(categorias.procedimientos)}
-                    </div>
-                `);
-            }
-            
-            // Contenido para Iniciativas
+            // 2. INICIATIVAS
             if (categorias.iniciativas.length > 0) {
                 contentHtml.push(`
                     <div class="tab-pane fade" id="iniciativas" role="tabpanel">
                         <div class="alert alert-primary mb-3">
                             <i class="fas fa-file-alt"></i> 
-                            Iniciativas presentadas para turno a comisiones
+                            <strong>Iniciativas presentadas para turno a comisiones (NO se votan)</strong>
                         </div>
-                        ${renderizarIniciativasConInciso(categorias.iniciativas, 'F')}
+                        ${renderizarIniciativas(categorias.iniciativas)}
                     </div>
                 `);
             }
             
-            // Contenido para Primera Lectura
+            // 3. PRIMERA LECTURA
             if (categorias.primeraLectura.length > 0) {
                 contentHtml.push(`
                     <div class="tab-pane fade" id="primeraLectura" role="tabpanel">
                         <div class="alert alert-warning mb-3">
                             <i class="fas fa-book-open"></i> 
-                            Dictámenes en primera lectura
+                            <strong>Dictámenes en primera lectura (NO se votan hoy, se votarán en próxima sesión)</strong>
                         </div>
-                        ${renderizarIniciativasConInciso(categorias.primeraLectura, 'G')}
+                        ${renderizarIniciativas(categorias.primeraLectura)}
                     </div>
                 `);
             }
             
-            // Contenido para Segunda Lectura
+            // 4. SEGUNDA LECTURA
             if (categorias.segundaLectura.length > 0) {
                 contentHtml.push(`
                     <div class="tab-pane fade" id="segundaLectura" role="tabpanel">
-                        <div class="alert alert-danger mb-3">
+                        <div class="alert alert-success mb-3">
                             <i class="fas fa-book-reader"></i> 
-                            <strong>⚡ Todas las iniciativas de segunda lectura requieren votación</strong>
+                            <strong>⚡ Dictámenes en segunda lectura - SE VOTAN HOY</strong>
                         </div>
-                        ${renderizarIniciativasConInciso(categorias.segundaLectura, 'H')}
+                        ${renderizarIniciativas(categorias.segundaLectura)}
                     </div>
                 `);
             }
             
-            // Contenido para Puntos de Acuerdo
+            // 5. PUNTOS DE ACUERDO
             if (categorias.puntosAcuerdo.length > 0) {
                 contentHtml.push(`
                     <div class="tab-pane fade" id="puntosAcuerdo" role="tabpanel">
                         <div class="alert alert-info mb-3">
                             <i class="fas fa-handshake"></i> 
-                            <strong>⚡ Los puntos de acuerdo con urgente y obvia resolución requieren votación</strong>
+                            <strong>⚡ Puntos de Acuerdo - Los marcados con urgente y obvia resolución requieren votación</strong>
                         </div>
-                        ${renderizarIniciativasConInciso(categorias.puntosAcuerdo, 'I')}
+                        ${renderizarIniciativas(categorias.puntosAcuerdo)}
                     </div>
                 `);
             }
             
-            // Contenido para Dictámenes
-            if (categorias.dictamenes.length > 0) {
-                contentHtml.push(`
-                    <div class="tab-pane fade" id="dictamenes" role="tabpanel">
-                        <div class="alert alert-success mb-3">
-                            <i class="fas fa-vote-yea"></i> 
-                            <strong>⚡ Dictámenes para votación</strong>
-                        </div>
-                        ${renderizarIniciativas(categorias.dictamenes)}
-                    </div>
-                `);
-            }
-            
-            // Contenido para Urgente y Obvia Resolución
-            if (categorias.urgente.length > 0) {
-                contentHtml.push(`
-                    <div class="tab-pane fade" id="urgente" role="tabpanel">
-                        <div class="alert alert-danger mb-3">
-                            <i class="fas fa-exclamation-triangle"></i> 
-                            <strong>🚨 DE URGENTE Y OBVIA RESOLUCIÓN - Requieren votación inmediata</strong>
-                        </div>
-                        ${renderizarIniciativas(categorias.urgente)}
-                    </div>
-                `);
-            }
-            
-            // Contenido para Incisos
-            if (categorias.incisos.length > 0) {
-                contentHtml.push(`
-                    <div class="tab-pane fade" id="incisos" role="tabpanel">
-                        <div class="alert alert-secondary mb-3">
-                            <i class="fas fa-list-ol"></i> 
-                            <strong>Estructura de incisos del documento</strong>
-                        </div>
-                        ${renderizarIniciativas(categorias.incisos)}
-                    </div>
-                `);
-            }
-            
-            // Contenido para Documento Original
+            // 6. DOCUMENTO ORIGINAL
             if (categorias.textoOriginal) {
                 contentHtml.push(`
                     <div class="tab-pane fade" id="documentoOriginal" role="tabpanel">
@@ -2554,6 +2677,66 @@
                                 <pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.9rem; max-height: 600px; overflow-y: auto;" id="textoOriginalContent">${escapeHtml(categorias.textoOriginal)}</pre>
                             </div>
                         </div>
+                    </div>
+                `);
+            }
+            
+            // Otras categorías adicionales (solo si existen)
+            
+            // Dictámenes adicionales (si hay dictámenes que no están en segunda lectura)
+            if (categorias.dictamenes.length > 0) {
+                const dictamenesUnicos = categorias.dictamenes.filter(d => 
+                    !categorias.segundaLectura.some(s => s.descripcion === d.descripcion)
+                );
+                if (dictamenesUnicos.length > 0) {
+                    contentHtml.push(`
+                        <div class="tab-pane fade" id="dictamenes" role="tabpanel">
+                            <div class="alert alert-success mb-3">
+                                <i class="fas fa-vote-yea"></i> 
+                                <strong>⚡ Dictámenes adicionales para votación</strong>
+                            </div>
+                            ${renderizarIniciativas(dictamenesUnicos)}
+                        </div>
+                    `);
+                }
+            }
+            
+            // Urgente y Obvia Resolución
+            if (categorias.urgente.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="urgente" role="tabpanel">
+                        <div class="alert alert-danger mb-3">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>🚨 DE URGENTE Y OBVIA RESOLUCIÓN - Requieren votación inmediata</strong>
+                        </div>
+                        ${renderizarIniciativas(categorias.urgente)}
+                    </div>
+                `);
+            }
+            
+            // Procedimientos (si existen)
+            if (categorias.procedimientos.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="procedimientos" role="tabpanel">
+                        <div class="alert alert-dark mb-3">
+                            <i class="fas fa-clipboard-list"></i> 
+                            <strong>Estructura completa del Orden del Día</strong>
+                            ${renderizarEstructuraCompleta(categorias)}
+                        </div>
+                        ${renderizarIniciativas(categorias.procedimientos)}
+                    </div>
+                `);
+            }
+            
+            // Incisos
+            if (categorias.incisos.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="incisos" role="tabpanel">
+                        <div class="alert alert-secondary mb-3">
+                            <i class="fas fa-list-ol"></i> 
+                            <strong>Estructura de incisos del documento</strong>
+                        </div>
+                        ${renderizarIniciativas(categorias.incisos)}
                     </div>
                 `);
             }
@@ -2671,16 +2854,18 @@
                 const requiereVotacion = init.requiere_votacion || 
                     (init.tipo_votacion && !init.tipo_votacion.toLowerCase().includes('comisión'));
                 
-                // Clase para resaltar si requiere votación
+                // Clase para resaltar si requiere votación (borde verde)
                 const borderClass = requiereVotacion ? 'border-success border-3' : '';
+                const bgClass = requiereVotacion ? 'bg-light-green' : '';
                 
                 return `
                 <div class="card mb-2 initiative-card ${init.activa ? 'active' : ''} ${init.tipo_iniciativa === 'extraordinaria' ? 'extraordinary' : ''} ${borderClass}" 
+                     style="${requiereVotacion ? 'background-color: #f0fdf4;' : ''}" 
                      data-id="${init.id}">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="d-flex align-items-start">
-                                ${!init.activa && !init.cerrada ? `
+                                ${!init.activa ? `
                                     <div class="form-check me-3">
                                         <input class="form-check-input initiative-checkbox" type="checkbox" 
                                                value="${init.id}" onchange="updateSelectedCount()">
@@ -2689,9 +2874,8 @@
                                 <div>
                                     <h6 class="mb-1">
                                         ${requiereVotacion ? '<i class="fas fa-vote-yea text-success me-2" title="Requiere votación"></i>' : ''}
-                                        ${init.numero_orden_dia ? `${init.numero}/${init.numero_orden_dia}` : init.numero}. ${init.titulo || init.descripcion || 'Sin descripción'}
+                                        <strong>${init.numero_orden_dia ? `${init.numero}/${init.numero_orden_dia}` : init.numero}.</strong> ${init.descripcion || init.titulo || 'Sin descripción'}
                                         ${init.tipo_iniciativa === 'extraordinaria' ? '<span class="badge badge-extraordinary ms-2">⚡ EXTRAORDINARIA</span>' : ''}
-                                        ${init.incisos && init.incisos.length > 0 ? `<small class="text-muted ms-2">(${init.incisos.length} incisos)</small>` : ''}
                                     </h6>
                                     ${init.presentador ? `
                                         <div class="small mb-1">
@@ -2803,9 +2987,29 @@
             const checked = document.querySelectorAll('.initiative-checkbox:checked');
             const ids = Array.from(checked).map(cb => cb.value);
             
-            if (ids.length === 0) return;
+            if (ids.length === 0) {
+                alert('No hay iniciativas seleccionadas para eliminar');
+                return;
+            }
             
-            if (!confirm(`¿Eliminar ${ids.length} iniciativa(s) seleccionada(s)?\n\nEsta acción no se puede deshacer.`)) {
+            // Obtener información sobre las iniciativas a eliminar
+            const iniciativasAEliminar = [];
+            checked.forEach(checkbox => {
+                const card = checkbox.closest('.initiative-card');
+                if (card) {
+                    const titulo = card.querySelector('h6')?.textContent || 'Sin título';
+                    iniciativasAEliminar.push(titulo.substring(0, 50));
+                }
+            });
+            
+            const mensaje = `¿Eliminar ${ids.length} iniciativa(s) seleccionada(s)?\n\n` +
+                          (iniciativasAEliminar.length > 0 ? 
+                           `Incluye:\n${iniciativasAEliminar.slice(0, 5).join('\n')}` +
+                           (iniciativasAEliminar.length > 5 ? `\n... y ${iniciativasAEliminar.length - 5} más` : '') +
+                           '\n\n' : '') +
+                          'Esta acción NO se puede deshacer.';
+            
+            if (!confirm(mensaje)) {
                 return;
             }
             
@@ -3086,8 +3290,8 @@
                 numero: parseInt(document.getElementById('editNumero').value),
                 descripcion: document.getElementById('editDescripcion').value,
                 presentador: document.getElementById('editPresentador').value,
-                partido_presentador: document.getElementById('editPartidoPresentador').value
-                // tipo_mayoria no se envía porque el operador no puede editarlo
+                partido_presentador: document.getElementById('editPartidoPresentador').value,
+                tipo_mayoria: document.getElementById('editTipoMayoria').value
             };
             
             try {
@@ -4568,11 +4772,11 @@
                     return;
                 }
                 
-                // Verificar si hay votaciones activas o cerradas
-                const votacionesActivas = data.iniciativas.filter(i => i.activa || i.cerrada);
+                // Verificar si hay votaciones activas (NO cerradas, solo activas)
+                const votacionesActivas = data.iniciativas.filter(i => i.activa);
                 if (votacionesActivas.length > 0) {
-                    alert('No se puede limpiar la sesión porque hay votaciones activas o cerradas.\n\n' +
-                          'Por favor, finalice todas las votaciones primero.');
+                    alert('No se puede limpiar la sesión porque hay votaciones activas.\n\n' +
+                          'Por favor, finalice todas las votaciones activas primero.');
                     return;
                 }
                 
@@ -4612,8 +4816,10 @@
                     
                     setTimeout(() => alertDiv.remove(), 5000);
                     
-                    // Recargar la sesión activa
-                    loadActiveSession();
+                    // Recargar completamente la página para limpiar todo el estado
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 } else {
                     const error = await deleteResponse.json();
                     alert('Error al limpiar la sesión: ' + (error.error || 'Error desconocido'));
@@ -4626,8 +4832,10 @@
         
         // El formulario ya no necesita un event listener porque usamos onclick en el botón
         
-        // Manejar formulario de PDF
-        document.getElementById('extraordinariaPdfForm').addEventListener('submit', async function(e) {
+        // Manejar formulario de PDF (si existe)
+        const extraordinariaPdfForm = document.getElementById('extraordinariaPdfForm');
+        if (extraordinariaPdfForm) {
+            extraordinariaPdfForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const fileInput = document.getElementById('extPdfFile');
@@ -4685,6 +4893,7 @@
                 statusDiv.innerHTML = '<div class="alert alert-danger">Error al procesar el PDF</div>';
             }
         });
+        } // Cierre del if (extraordinariaPdfForm)
         
         // Actualizar lista de iniciativas extraordinarias
         function actualizarListaExtraordinarias() {
@@ -4929,91 +5138,207 @@
         verificarSesionesPrecargadas();
     </script>
     
-    <!-- Modal de Validación Estilo Apple/iOS -->
-    <div id="modalValidacionApple" style="display: none;">
+    <!-- Modal de Validación Estilo Apple/iOS Completo -->
+    <div id="modalValidacionApple" style="display: none; opacity: 0; transition: opacity 0.3s ease;">
         <!-- Overlay con blur estilo iOS -->
-        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 9998;" onclick="cerrarModalApple()"></div>
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 9998;"></div>
         
         <!-- Modal con estilo Apple -->
-        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 1100px; max-height: 85vh; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.5) inset; z-index: 9999; overflow: hidden; display: flex; flex-direction: column;">
+        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 95%; max-width: 1400px; height: 90vh; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.5) inset; z-index: 9999; overflow: hidden; display: flex; flex-direction: column;">
             
-            <!-- Header estilo iOS -->
+            <!-- Header estilo iOS con botón PDF -->
             <div style="background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(248,248,248,1) 100%); border-bottom: 1px solid rgba(0,0,0,0.1); padding: 20px 30px; display: flex; align-items: center; justify-content: space-between;">
-                <div style="flex: 1;">
-                    <h2 style="margin: 0; font-size: 22px; font-weight: 600; color: #1c1c1e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Validación de Iniciativas</h2>
-                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #8e8e93; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Revisa y confirma las iniciativas a importar</p>
+                <div style="display: flex; align-items: center; gap: 20px; flex: 1;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 22px; font-weight: 600; color: #1c1c1e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                            <i class="fas fa-check-circle" style="color: #34c759; margin-right: 8px;"></i>Validación de Iniciativas
+                        </h2>
+                        <p style="margin: 5px 0 0 0; font-size: 14px; color: #8e8e93; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Revisa y confirma las iniciativas a importar</p>
+                    </div>
+                    <button type="button" onclick="toggleVisorPDFApple()" style="
+                        background: #007aff;
+                        color: white;
+                        border: none;
+                        padding: 8px 16px;
+                        border-radius: 8px;
+                        font-size: 14px;
+                        cursor: pointer;
+                        font-weight: 500;
+                        transition: all 0.2s;
+                    " title="Ver PDF Original">
+                        <i class="fas fa-file-pdf"></i> Ver PDF Original
+                    </button>
                 </div>
                 <button onclick="cerrarModalApple()" style="width: 30px; height: 30px; border-radius: 50%; background: #e5e5e7; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #8e8e93; transition: all 0.2s;" onmouseover="this.style.background='#d1d1d3'" onmouseout="this.style.background='#e5e5e7'">
                     ✕
                 </button>
             </div>
             
-            <!-- Body con scroll suave iOS -->
-            <div style="flex: 1; overflow-y: auto; padding: 30px; background: #f2f2f7; -webkit-overflow-scrolling: touch;" id="modalBodyApple">
-                <!-- Contenido dinámico aquí -->
-                <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                    <p style="color: #1c1c1e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Cargando iniciativas...</p>
+            <!-- Body con contenido dividido -->
+            <div style="flex: 1; display: flex; overflow: hidden;">
+                <!-- Visor de PDF (inicialmente oculto) -->
+                <div id="visorPDFContainerApple" style="width: 50%; border-right: 1px solid rgba(0,0,0,0.1); background: #f5f5f7; display: none; flex-direction: column;">
+                    <div style="padding: 15px; background: linear-gradient(180deg, #fafafa 0%, #f0f0f0 100%); border-bottom: 1px solid rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600; color: #1c1c1e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                            <i class="fas fa-file-pdf" style="color: #dc3545;"></i> Documento Original
+                        </span>
+                        <button onclick="cerrarVisorPDFApple()" style="background: rgba(220, 53, 69, 0.1); border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">
+                            <i class="fas fa-times" style="color: #dc3545;"></i>
+                        </button>
+                    </div>
+                    <iframe id="pdfViewerApple" src="" style="flex: 1; width: 100%; border: none;"></iframe>
+                </div>
+                
+                <!-- Contenedor principal de validación -->
+                <div id="validacionContainerApple" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; width: 100%;">
+                    <div style="flex: 1; overflow-y: auto; padding: 20px; background: #f2f2f7; -webkit-overflow-scrolling: touch;">
+                        
+                        <!-- Estadísticas con diseño Apple -->
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                            <div onclick="filtrarIniciativas('todas')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                <div style="color: white; text-align: center;">
+                                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Total Iniciativas</div>
+                                    <div id="totalIniciativas" style="font-size: 28px; font-weight: bold;">0</div>
+                                </div>
+                            </div>
+                            <div onclick="filtrarIniciativas('votacion')" style="background: linear-gradient(135deg, #34c759 0%, #30d158 100%); padding: 15px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                <div style="color: white; text-align: center;">
+                                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Requieren Votación</div>
+                                    <div id="requierenVotacion" style="font-size: 28px; font-weight: bold;">0</div>
+                                </div>
+                            </div>
+                            <div onclick="filtrarIniciativas('comisiones')" style="background: linear-gradient(135deg, #ff9500 0%, #ffcc00 100%); padding: 15px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(255, 149, 0, 0.3);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                <div style="color: white; text-align: center;">
+                                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">A Comisiones</div>
+                                    <div id="aComisiones" style="font-size: 28px; font-weight: bold;">0</div>
+                                </div>
+                            </div>
+                            <div onclick="filtrarIniciativas('otros')" style="background: linear-gradient(135deg, #8e8e93 0%, #636366 100%); padding: 15px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(142, 142, 147, 0.3);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                <div style="color: white; text-align: center;">
+                                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Otros</div>
+                                    <div id="otros" style="font-size: 28px; font-weight: bold;">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Filtro activo -->
+                        <div id="filtroActivo" style="display: none; background: linear-gradient(135deg, #007aff 0%, #5856d6 100%); color: white; padding: 12px 20px; border-radius: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <span><i class="fas fa-filter"></i> Filtro activo: <strong id="textoFiltro">Todas</strong></span>
+                            <button onclick="filtrarIniciativas('todas')" style="background: rgba(255, 255, 255, 0.2); border: none; color: white; padding: 5px 12px; border-radius: 5px; cursor: pointer;">
+                                <i class="fas fa-times"></i> Limpiar
+                            </button>
+                        </div>
+                        
+                        <!-- Tipo de Carga -->
+                        <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                            <label style="font-weight: 600; color: #1c1c1e; margin-bottom: 15px; display: block;">Tipo de Carga:</label>
+                            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="tipoCargaValidacion" id="cargaInmediataVal" value="inmediata" checked style="margin-right: 8px;">
+                                    <span><i class="fas fa-play" style="color: #34c759;"></i> Sesión Inmediata</span>
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="tipoCargaValidacion" id="cargaProgramadaVal" value="programada" style="margin-right: 8px;">
+                                    <span><i class="fas fa-calendar" style="color: #007aff;"></i> Sesión Programada</span>
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="tipoCargaValidacion" id="cargaIndefinidaVal" value="indefinida" style="margin-right: 8px;">
+                                    <span><i class="fas fa-question" style="color: #8e8e93;"></i> Fecha Indefinida</span>
+                                </label>
+                            </div>
+                            <div id="fechaProgramadaVal" style="display: none; margin-top: 15px;">
+                                <label for="fechaSesionVal" style="display: block; margin-bottom: 5px; font-weight: 500;">Fecha y Hora de la Sesión:</label>
+                                <input type="datetime-local" id="fechaSesionVal" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d1d6; border-radius: 8px; font-size: 16px;">
+                            </div>
+                        </div>
+                        
+                        <!-- Modo de Importación IMPORTANTE -->
+                        <div style="background: linear-gradient(135deg, #ff9500 0%, #ff6200 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(255, 149, 0, 0.3);">
+                            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                <input type="checkbox" id="importarTodasSwitch" checked style="width: 20px; height: 20px; margin-right: 12px; cursor: pointer;">
+                                <label for="importarTodasSwitch" style="font-weight: 600; font-size: 16px; cursor: pointer;">
+                                    <i class="fas fa-database"></i> Importar TODAS las iniciativas del documento
+                                </label>
+                            </div>
+                            <div style="background: rgba(255, 255, 255, 0.2); padding: 10px; border-radius: 8px; font-size: 14px;">
+                                ⚠️ <strong>Activado:</strong> Se importarán TODAS las iniciativas y las seleccionadas se marcarán para votación.<br>
+                                <strong>Desactivado:</strong> Solo se importarán las iniciativas que selecciones.
+                            </div>
+                        </div>
+                        
+                        <!-- Controles de selección -->
+                        <div style="background: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="seleccionarRecomendadas()" style="background: linear-gradient(135deg, #34c759 0%, #30d158 100%); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                                    <i class="fas fa-robot"></i> Usar Recomendaciones
+                                </button>
+                                <button onclick="seleccionarTodasVotables()" style="background: white; color: #34c759; border: 1px solid #34c759; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                                    <i class="fas fa-check-square"></i> Votables
+                                </button>
+                                <button onclick="seleccionarTodas()" style="background: white; color: #8e8e93; border: 1px solid #8e8e93; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                                    <i class="fas fa-check-double"></i> Todas
+                                </button>
+                                <button onclick="deseleccionarTodas()" style="background: white; color: #ff9500; border: 1px solid #ff9500; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                                    <i class="fas fa-times"></i> Ninguna
+                                </button>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <span style="background: linear-gradient(135deg, #007aff 0%, #5856d6 100%); color: white; padding: 6px 12px; border-radius: 20px; font-weight: 500;">
+                                    <span id="contadorSeleccionadas">0</span> seleccionadas
+                                </span>
+                                <span style="background: #8e8e93; color: white; padding: 6px 12px; border-radius: 20px; font-weight: 500;">
+                                    <span id="contadorTotal">0</span> total
+                                </span>
+                                <span id="contadorRecomendadas" style="display: none; background: linear-gradient(135deg, #34c759 0%, #30d158 100%); color: white; padding: 6px 12px; border-radius: 20px; font-weight: 500;">
+                                    <span id="numRecomendadas">0</span> recomendadas
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Tabla de Iniciativas -->
+                        <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                            <div style="max-height: 400px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead style="background: linear-gradient(180deg, #f5f5f7 0%, #e5e5ea 100%); position: sticky; top: 0; z-index: 10;">
+                                        <tr>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #1c1c1e; width: 40px;">
+                                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" title="Seleccionar todas">
+                                            </th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #1c1c1e; width: 60px;">Núm.</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #1c1c1e; width: 60px;">Orden</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #1c1c1e;">Descripción / Contenido</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #1c1c1e; width: 120px;">Tipo</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #1c1c1e; width: 100px;">Categoría</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #1c1c1e; width: 80px;">Mayoría</th>
+                                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #1c1c1e; width: 80px;">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tablaValidacion" style="background: white;">
+                                        <!-- Se llenará dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <!-- Footer con botones estilo iOS -->
-            <div style="background: linear-gradient(180deg, rgba(248,248,248,1) 0%, rgba(255,255,255,1) 100%); border-top: 1px solid rgba(0,0,0,0.1); padding: 20px 30px; display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-size: 14px; color: #8e8e93; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                    <span id="contadorApple">0 iniciativas seleccionadas</span>
-                </div>
-                <div style="display: flex; gap: 12px;">
-                    <!-- Botón Cancelar -->
-                    <button onclick="cerrarModalApple()" style="
-                        padding: 12px 24px;
-                        background: #f2f2f7;
-                        color: #3c3c43;
-                        border: none;
-                        border-radius: 12px;
-                        cursor: pointer;
-                        font-size: 15px;
-                        font-weight: 500;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                        transition: all 0.2s;
-                        min-width: 100px;
-                    " onmouseover="this.style.background='#e5e5ea'" onmouseout="this.style.background='#f2f2f7'">
-                        Cancelar
-                    </button>
-                    
-                    <!-- Botón Vista Previa -->
-                    <button onclick="vistaPreviewApple()" style="
-                        padding: 12px 24px;
-                        background: #FF1493;
-                        color: white;
-                        border: none;
-                        border-radius: 12px;
-                        cursor: pointer;
-                        font-size: 15px;
-                        font-weight: 500;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                        transition: all 0.2s;
-                        min-width: 120px;
-                    " onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 15px rgba(255,20,147,0.3)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
-                        Vista Previa
-                    </button>
-                    
-                    <!-- Botón Confirmar -->
-                    <button onclick="confirmarCargaApple()" style="
-                        padding: 12px 30px;
-                        background: linear-gradient(135deg, #FF8C00 0%, #FFA500 100%);
-                        color: white;
-                        border: none;
-                        border-radius: 12px;
-                        cursor: pointer;
-                        font-size: 15px;
-                        font-weight: 600;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                        transition: all 0.2s;
-                        min-width: 180px;
-                        box-shadow: 0 2px 10px rgba(255,140,0,0.3);
-                    " onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 20px rgba(255,140,0,0.4)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 10px rgba(255,140,0,0.3)'">
-                        Confirmar y Cargar
-                    </button>
-                </div>
+            <div style="background: linear-gradient(180deg, rgba(248,248,248,1) 0%, rgba(255,255,255,1) 100%); border-top: 1px solid rgba(0,0,0,0.1); padding: 20px 30px; display: flex; justify-content: flex-end; gap: 12px;">
+                <!-- Botón Cancelar -->
+                <button onclick="cancelarValidacion()" style="padding: 12px 24px; background: #f2f2f7; color: #3c3c43; border: none; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; transition: all 0.2s; min-width: 100px;" onmouseover="this.style.background='#e5e5ea'" onmouseout="this.style.background='#f2f2f7'">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                
+                <!-- Botón Vista Previa -->
+                <button onclick="mostrarVistaPrevia()" style="padding: 12px 24px; background: #FF1493; color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; transition: all 0.2s; min-width: 120px;" onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 15px rgba(255,20,147,0.3)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">
+                    <i class="fas fa-eye"></i> Vista Previa
+                </button>
+                
+                <!-- Botón Confirmar -->
+                <button id="btnGuardarValidacionApple" onclick="guardarIniciativasSeleccionadas()" style="padding: 12px 30px; background: linear-gradient(135deg, #FF8C00 0%, #FFA500 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; transition: all 0.2s; min-width: 180px; box-shadow: 0 2px 10px rgba(255,140,0,0.3);" onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 20px rgba(255,140,0,0.4)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 10px rgba(255,140,0,0.3)'">
+                    <i class="fas fa-save"></i> CONFIRMAR Y CARGAR
+                </button>
             </div>
         </div>
     </div>
@@ -5209,9 +5534,9 @@
         </div>
     </div>
     
-    <!-- Modal de Edición de Iniciativa -->
-    <div class="modal fade" id="modalEditarIniciativa" tabindex="-1">
-        <div class="modal-dialog">
+    <!-- Modal de Edición de Iniciativa con z-index alto -->
+    <div class="modal fade" id="modalEditarIniciativa" tabindex="-1" style="z-index: 10000 !important;">
+        <div class="modal-dialog" style="z-index: 10001 !important;">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Editar Iniciativa</h5>
@@ -5227,13 +5552,8 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="editTitulo" class="form-label">Título:</label>
-                            <textarea class="form-control" id="editTitulo" rows="2" required></textarea>
-                        </div>
-                        
-                        <div class="mb-3">
                             <label for="editDescripcionModal" class="form-label">Descripción:</label>
-                            <textarea class="form-control" id="editDescripcionModal" rows="3"></textarea>
+                            <textarea class="form-control" id="editDescripcionModal" rows="5" required></textarea>
                         </div>
                         
                         <div class="mb-3">
@@ -5355,9 +5675,13 @@
             renderizarTablaValidacion(iniciativasValidacion);
         }
         
-        // Modificar la función de guardar para usar solo las seleccionadas
+        // Función para guardar las iniciativas seleccionadas
         async function guardarIniciativasSeleccionadas() {
+            console.log('=== GUARDAR INICIATIVAS SELECCIONADAS ===');
+            console.log('Iniciativas en validación:', iniciativasValidacion.length);
+            
             const iniciativasSeleccionadas = iniciativasValidacion.filter(i => i.seleccionada);
+            console.log('Iniciativas seleccionadas:', iniciativasSeleccionadas.length);
             
             if (iniciativasSeleccionadas.length === 0) {
                 alert('Por favor selecciona al menos una iniciativa para importar');
@@ -5366,15 +5690,133 @@
             
             // Marcar las iniciativas votables para que se muestren con el icono verde
             iniciativasSeleccionadas.forEach(init => {
-                if (init.requiere_votacion) {
-                    init.es_votable = true;
+                if (init.categoria === 'segunda_lectura' || 
+                    init.categoria === 'dictamenes' ||
+                    init.categoria === 'puntos_acuerdo') {
+                    init.requiere_votacion = true;
                 }
             });
             
-            // Aquí continúa el código de guardado con solo las iniciativas seleccionadas
             console.log('Iniciativas a importar:', iniciativasSeleccionadas);
             
-            // El resto del código de guardado...
+            // CONFIRMACIÓN EXPLÍCITA con el número correcto de iniciativas seleccionadas
+            if (!confirm(`¿Confirmar la carga de ${iniciativasSeleccionadas.length} iniciativas seleccionadas?\n\nTotal disponibles: ${iniciativasValidacion.length}\nSeleccionadas: ${iniciativasSeleccionadas.length}\n\nEsta acción NO se puede deshacer.`)) {
+                return;
+            }
+            
+            console.log('SessionID actual:', sessionIdActual);
+            if (!sessionIdActual) {
+                alert('Error: No hay una sesión de validación activa. Por favor, vuelve a cargar el PDF.');
+                return;
+            }
+            
+            const tipoCargaElement = document.querySelector('input[name="tipoCargaValidacion"]:checked');
+            if (!tipoCargaElement) {
+                alert('Por favor selecciona un tipo de carga (Inmediata, Programada o Indefinida)');
+                return;
+            }
+            const tipoCarga = tipoCargaElement.value;
+            console.log('Tipo de carga seleccionado:', tipoCarga);
+            
+            let fechaProgramada = null;
+            
+            if (tipoCarga === 'programada') {
+                fechaProgramada = document.getElementById('fechaSesionVal').value;
+                if (!fechaProgramada) {
+                    alert('Por favor selecciona una fecha para la sesión programada');
+                    return;
+                }
+            }
+            
+            // Obtener referencia al botón
+            const btnGuardar = document.getElementById('btnGuardarValidacionApple');
+            if (btnGuardar) {
+                btnGuardar.disabled = true;
+                btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            }
+            
+            try {
+                const url = `/api/validacion/validar-sesion/${sessionIdActual}`;
+                const bodyData = {
+                    tipoCarga: tipoCarga,
+                    fechaProgramada: fechaProgramada,
+                    iniciativasSeleccionadas: iniciativasSeleccionadas
+                };
+                
+                console.log('Enviando request a:', url);
+                console.log('Datos a enviar:', {
+                    tipoCarga,
+                    fechaProgramada,
+                    cantidadIniciativas: iniciativasSeleccionadas.length
+                });
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+                
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (response.ok && data.success) {
+                    // Cerrar modal Apple
+                    cerrarModalApple();
+                    
+                    // Limpiar PDF y datos
+                    pdfActual = null;
+                    cerrarVisorPDF();
+                    
+                    // Mostrar mensaje de éxito
+                    const statusDiv = document.getElementById('uploadStatus');
+                    let mensaje = '';
+                    if (tipoCarga === 'inmediata') {
+                        mensaje = 'Las iniciativas están listas para que el presidente inicie la sesión';
+                    } else if (tipoCarga === 'programada') {
+                        mensaje = `Sesión programada para ${new Date(fechaProgramada).toLocaleString('es-MX')}`;
+                    } else if (tipoCarga === 'indefinida') {
+                        mensaje = 'Sesión guardada con fecha indefinida. Se podrá activar cuando se decida';
+                    }
+                    
+                    statusDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            ✅ Sesión validada y guardada correctamente<br>
+                            ${data.iniciativas_guardadas} iniciativas guardadas<br>
+                            <small class="text-muted">${mensaje}</small>
+                        </div>
+                    `;
+                    
+                    // Limpiar formulario
+                    document.getElementById('pdfFile').value = '';
+                    
+                    // Solo recargar si es carga inmediata
+                    if (tipoCarga === 'inmediata') {
+                        loadActiveSession();
+                    } else {
+                        // Para carga programada o indefinida, solo actualizar
+                        console.log('Sesión guardada como programada/indefinida');
+                    }
+                } else {
+                    // Mostrar error más detallado
+                    let mensajeError = data.error || 'Error desconocido';
+                    if (data.detalles) {
+                        console.error('Detalles del error:', data.detalles);
+                    }
+                    alert('Error al guardar la sesión: ' + mensajeError + '\n\nPor favor, intente nuevamente.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al guardar la sesión: ' + error.message);
+            } finally {
+                if (btnGuardar) {
+                    btnGuardar.disabled = false;
+                    btnGuardar.innerHTML = '<i class="fas fa-save"></i> CONFIRMAR Y CARGAR';
+                }
+            }
         }
         
         // Configurar eventos de tipo de carga en modal de validación
@@ -5402,11 +5844,10 @@
             
             document.getElementById('editNumeroSistema').value = init.numero_sistema;
             document.getElementById('editNumeroOrden').value = init.numero_orden_dia;
-            document.getElementById('editTitulo').value = init.titulo;
-            document.getElementById('editDescripcionModal').value = init.descripcion;
-            document.getElementById('editPresentadorModal').value = init.presentador;
-            document.getElementById('editPartidoModal').value = init.partido;
-            document.getElementById('editTipoMayoriaModal').value = init.tipo_mayoria;
+            document.getElementById('editDescripcionModal').value = init.descripcion || '';
+            document.getElementById('editPresentadorModal').value = init.presentador || '';
+            document.getElementById('editPartidoModal').value = init.partido || '';
+            document.getElementById('editTipoMayoriaModal').value = init.tipo_mayoria || 'simple';
             
             const modalEdit = new bootstrap.Modal(document.getElementById('modalEditarIniciativa'));
             modalEdit.show();
@@ -5418,7 +5859,6 @@
             
             const datosActualizados = {
                 numero_orden_dia: parseInt(document.getElementById('editNumeroOrden').value),
-                titulo: document.getElementById('editTitulo').value,
                 descripcion: document.getElementById('editDescripcionModal').value,
                 presentador: document.getElementById('editPresentadorModal').value,
                 partido: document.getElementById('editPartidoModal').value,
@@ -5465,13 +5905,73 @@
         
         // Cancelar validación sin guardar
         function cancelarValidacion() {
-            if (confirm('¿Estas seguro de cancelar? Se perderán todos los cambios no guardados.')) {
-                // Limpiar todo y cerrar modal
+            if (confirm('¿Estás seguro de cancelar? Se perderán todos los cambios no guardados.')) {
+                console.log('Cancelando validación...');
+                
+                // Limpiar todo
                 iniciativasValidacion = [];
                 sessionIdActual = null;
                 pdfActual = null;
-                cerrarVisorPDF();
-                bootstrap.Modal.getInstance(document.getElementById('modalValidacion')).hide();
+                
+                // Intentar cerrar el modal Apple primero
+                const modalApple = document.getElementById('modalValidacionApple');
+                if (modalApple) {
+                    console.log('Cerrando modal Apple...');
+                    modalApple.style.opacity = '0';
+                    setTimeout(() => {
+                        modalApple.style.display = 'none';
+                    }, 300);
+                    
+                    // Limpiar el visor de PDF del modal Apple
+                    const pdfViewerApple = document.getElementById('pdfViewerApple');
+                    if (pdfViewerApple && pdfViewerApple.src) {
+                        URL.revokeObjectURL(pdfViewerApple.src);
+                        pdfViewerApple.src = '';
+                    }
+                }
+                
+                // También intentar cerrar el modal Bootstrap si existe
+                const modalBootstrap = document.getElementById('modalValidacion');
+                if (modalBootstrap) {
+                    console.log('Cerrando modal Bootstrap...');
+                    // Intentar con Bootstrap 5
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const modalInstance = bootstrap.Modal.getInstance(modalBootstrap);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        } else {
+                            // Si no hay instancia, ocultar directamente
+                            modalBootstrap.style.display = 'none';
+                            modalBootstrap.classList.remove('show');
+                            document.body.classList.remove('modal-open');
+                            // Remover backdrop si existe
+                            const backdrop = document.querySelector('.modal-backdrop');
+                            if (backdrop) {
+                                backdrop.remove();
+                            }
+                        }
+                    } else {
+                        // Sin Bootstrap, ocultar directamente
+                        modalBootstrap.style.display = 'none';
+                    }
+                    
+                    // Limpiar el visor de PDF del modal Bootstrap
+                    const pdfViewerBootstrap = document.getElementById('pdfViewer');
+                    if (pdfViewerBootstrap && pdfViewerBootstrap.src) {
+                        URL.revokeObjectURL(pdfViewerBootstrap.src);
+                        pdfViewerBootstrap.src = '';
+                    }
+                }
+                
+                console.log('Validación cancelada exitosamente');
+                
+                // Cerrar visor PDF si existe
+                if (typeof cerrarVisorPDF === 'function') {
+                    cerrarVisorPDF();
+                }
+                if (typeof cerrarVisorPDFApple === 'function') {
+                    cerrarVisorPDFApple();
+                }
             }
         }
         
@@ -5481,8 +5981,9 @@
         }
         
         // ============ FUNCIONES PARA INICIATIVAS EXTRAORDINARIAS ============
-        let iniciativasExtraordinariasTemp = [];
-        let listaDiputados = [];
+        // Variables ya declaradas arriba, no redeclarar
+        // let iniciativasExtraordinariasTemp = [];
+        // let listaDiputados = [];
         
         // NOTA: Las funciones mostrarModalExtraordinarias, cargarListaDiputados y cargarNumerosDisponibles
         // ya están definidas arriba en el código. Estas eran duplicadas y han sido eliminadas.
@@ -5604,103 +6105,7 @@
         }
         
         // Guardar iniciativas validadas CON CONFIRMACIÓN
-        // NOTA: Este event listener está comentado porque el botón ya tiene onclick="guardarIniciativasSeleccionadas()"
-        /* document.getElementById('btnGuardarValidacion').addEventListener('click', async function() {
-            // Filtrar solo las iniciativas seleccionadas
-            const iniciativasSeleccionadas = iniciativasValidacion.filter(i => i.seleccionada === true);
-            
-            // Verificar que hay iniciativas seleccionadas
-            if (iniciativasSeleccionadas.length === 0) {
-                alert('⚠️ Por favor selecciona al menos una iniciativa para importar');
-                return;
-            }
-            
-            // CONFIRMACIÓN EXPLÍCITA con el número correcto de iniciativas seleccionadas
-            if (!confirm(`¿Confirmar la carga de ${iniciativasSeleccionadas.length} iniciativas seleccionadas?\n\nTotal disponibles: ${iniciativasValidacion.length}\nSeleccionadas: ${iniciativasSeleccionadas.length}\n\nEsta acción NO se puede deshacer.`)) {
-                return;
-            }
-            
-            const tipoCarga = document.querySelector('input[name="tipoCargaValidacion"]:checked').value;
-            let fechaProgramada = null;
-            
-            if (tipoCarga === 'programada') {
-                fechaProgramada = document.getElementById('fechaSesionVal').value;
-                if (!fechaProgramada) {
-                    alert('Por favor selecciona una fecha para la sesión programada');
-                    return;
-                }
-            }
-            
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-            
-            try {
-                const response = await fetch(`/api/validacion/validar-sesion/${sessionIdActual}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        tipoCarga: tipoCarga,
-                        fechaProgramada: fechaProgramada,
-                        iniciativasSeleccionadas: iniciativasSeleccionadas  // Enviar solo las seleccionadas
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
-                    // Cerrar modal y limpiar PDF
-                    pdfActual = null;
-                    cerrarVisorPDF();
-                    bootstrap.Modal.getInstance(document.getElementById('modalValidacion')).hide();
-                    
-                    // Mostrar mensaje de éxito
-                    const statusDiv = document.getElementById('uploadStatus');
-                    let mensaje = '';
-                    if (tipoCarga === 'inmediata') {
-                        mensaje = 'Las iniciativas están listas para que el presidente inicie la sesión';
-                    } else if (tipoCarga === 'programada') {
-                        mensaje = `Sesión programada para ${new Date(fechaProgramada).toLocaleString('es-MX')}`;
-                    } else if (tipoCarga === 'indefinida') {
-                        mensaje = 'Sesión guardada con fecha indefinida. Se podrá activar cuando se decida';
-                    }
-                    
-                    statusDiv.innerHTML = `
-                        <div class="alert alert-success">
-                            ✅ Sesión validada y guardada correctamente<br>
-                            ${data.iniciativas_guardadas} iniciativas guardadas<br>
-                            <small class="text-muted">${mensaje}</small>
-                        </div>
-                    `;
-                    
-                    // Limpiar formulario
-                    document.getElementById('pdfFile').value = '';
-                    
-                    // Solo recargar si es carga inmediata
-                    if (tipoCarga === 'inmediata') {
-                        loadActiveSession();
-                    } else {
-                        // Para carga programada o indefinida, solo actualizar sesiones pendientes
-                        cargarSesionesPendientes();
-                    }
-                } else {
-                    // Mostrar error más detallado
-                    let mensajeError = data.error || 'Error desconocido';
-                    if (data.detalles) {
-                        console.error('Detalles del error:', data.detalles);
-                    }
-                    alert('Error al guardar la sesión: ' + mensajeError + '\n\nPor favor, intente nuevamente.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error al guardar la sesión');
-            } finally {
-                this.disabled = false;
-                this.innerHTML = '<i class="fas fa-save"></i> Guardar Iniciativas Validadas';
-            }
-        }); */
+        // NOTA: El botón usa onclick="guardarIniciativasSeleccionadas()"
         
     </script>
     

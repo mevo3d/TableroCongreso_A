@@ -55,6 +55,7 @@ db.serialize(() => {
             numero_orden_dia INTEGER,
             titulo TEXT NOT NULL,
             descripcion TEXT,
+            categoria TEXT,
             tipo_mayoria TEXT DEFAULT 'simple',
             presentador TEXT,
             partido_presentador TEXT,

@@ -959,14 +959,14 @@ router.delete('/iniciativa/:id', (req, res) => {
     const { id } = req.params;
     const db = req.db;
     
-    // Verificar que no esté activa o cerrada
+    // Verificar que no esté activa (se permite eliminar cerradas)
     db.get('SELECT activa, cerrada FROM iniciativas WHERE id = ?', [id], (err, iniciativa) => {
         if (err || !iniciativa) {
             return res.status(404).json({ error: 'Iniciativa no encontrada' });
         }
         
-        if (iniciativa.activa || iniciativa.cerrada) {
-            return res.status(400).json({ error: 'No se puede eliminar una iniciativa activa o cerrada' });
+        if (iniciativa.activa) {
+            return res.status(400).json({ error: 'No se puede eliminar una iniciativa activa' });
         }
         
         // Eliminar votos asociados primero
@@ -1917,9 +1917,9 @@ router.delete('/limpiar-sesion/:id', (req, res) => {
             return res.status(404).json({ error: 'Sesión no encontrada o no está activa' });
         }
         
-        // Verificar que no hay votaciones activas
+        // Verificar que no hay votaciones activas (solo activas, no cerradas)
         db.get(
-            'SELECT COUNT(*) as activas FROM iniciativas WHERE sesion_id = ? AND (activa = 1 OR cerrada = 1)',
+            'SELECT COUNT(*) as activas FROM iniciativas WHERE sesion_id = ? AND activa = 1',
             [id],
             (err, row) => {
                 if (err) {
@@ -1928,7 +1928,7 @@ router.delete('/limpiar-sesion/:id', (req, res) => {
                 
                 if (row.activas > 0) {
                     return res.status(400).json({ 
-                        error: 'No se puede limpiar la sesión con votaciones activas o cerradas' 
+                        error: 'No se puede limpiar la sesión con votaciones activas' 
                     });
                 }
                 

@@ -37,7 +37,9 @@
       "Bash(ssh:*)",
       "Bash(scp:*)",
       "Bash(\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" \"http://localhost:3333/autologin/operador\")",
-      "Bash(del create-documentos-originales-table.js)"
+      "Bash(del create-documentos-originales-table.js)",
+      "Bash(find:*)",
+      "Bash(del add-categoria-column.js fix-categorias-dictamenes.js)"
     ],
     "deny": [],
     "ask": [],

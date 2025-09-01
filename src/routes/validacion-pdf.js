@@ -30,6 +30,13 @@ router.post('/preview-pdf', upload.single('file'), async (req, res) => {
         // Extraer iniciativas del PDF
         const resultado = await pdfExtractor.extraerIniciativasDefinitivo(req.file.buffer);
         
+        console.log('Resultado del extractor:', {
+            esArray: Array.isArray(resultado),
+            tieneElementos: resultado && resultado.elementos,
+            cantidadElementos: resultado?.elementos?.length,
+            cantidadDirecta: Array.isArray(resultado) ? resultado.length : 0
+        });
+        
         let iniciativasArray = [];
         let estadisticas = {};
         
@@ -40,18 +47,26 @@ router.post('/preview-pdf', upload.single('file'), async (req, res) => {
             estadisticas = resultado.estadisticas || {};
         }
         
+        console.log(`Iniciativas a procesar: ${iniciativasArray.length}`);
+        
         // Asignar números consecutivos del sistema
         const iniciativasConNumeros = iniciativasArray.map((init, index) => ({
             numero_sistema: index + 1,
-            numero_orden_dia: init.numero || index + 1,
-            titulo: init.titulo || `Iniciativa ${index + 1}`,
-            descripcion: init.descripcion || '',
+            numero_orden_dia: init.numero || init.numero_general || index + 1,
+            numero_seccion: init.numero_seccion || null,
+            titulo: init.titulo || init.descripcion || `Elemento ${index + 1}`,
+            descripcion: init.descripcion || init.contenido || '',
             presentador: init.presentador || '',
             partido: init.partido || '',
             tipo_mayoria: init.tipo_mayoria || 'simple',
-            requiere_votacion: init.requiere_votacion || false,
+            requiere_votacion: init.requiere_votacion === true,
             tipo_votacion: init.tipo_votacion || '',
-            editable: true // Marca que se puede editar
+            categoria: init.categoria || 'otras',
+            inciso_principal: init.inciso_principal || null,
+            titulo_seccion: init.titulo_seccion || null,
+            editable: true, // Marca que se puede editar
+            seleccionada: true, // Por defecto todas seleccionadas
+            marcada_para_votacion: init.requiere_votacion === true
         }));
         
         // Generar ID temporal para esta sesión
@@ -69,11 +84,15 @@ router.post('/preview-pdf', upload.single('file'), async (req, res) => {
         // Limpiar sesiones antiguas (más de 1 hora)
         limpiarSesionesAntiguas();
         
+        console.log(`Enviando al frontend: ${iniciativasConNumeros.length} iniciativas`);
+        console.log(`Categorías enviadas: ${[...new Set(iniciativasConNumeros.map(i => i.categoria))].join(', ')}`);
+        
         res.json({
             success: true,
             sessionId: sessionId,
             iniciativas: iniciativasConNumeros,
             estadisticas: estadisticas,
+            totalElementos: iniciativasArray.length,
             mensaje: 'Vista previa generada. Revise y valide antes de guardar.'
         });
         
@@ -104,7 +123,7 @@ router.put('/preview-pdf/:sessionId/iniciativa/:numero', (req, res) => {
     
     // Actualizar campos permitidos
     const camposPermitidos = [
-        'numero_orden_dia', 'titulo', 'descripcion', 
+        'numero_orden_dia', 'descripcion', 
         'presentador', 'partido', 'tipo_mayoria'
     ];
     
@@ -138,6 +157,14 @@ router.post('/validar-sesion/:sessionId', async (req, res) => {
     const iniciativasAGuardar = iniciativasSeleccionadas && iniciativasSeleccionadas.length > 0 
         ? iniciativasSeleccionadas 
         : sesionPendiente.iniciativas;
+    
+    // Verificar que estamos recibiendo las descripciones completas
+    if (iniciativasAGuardar.length > 0) {
+        console.log('Verificación de descripciones recibidas:');
+        console.log('Primera iniciativa:');
+        console.log('- Longitud descripción:', iniciativasAGuardar[0].descripcion?.length || 0);
+        console.log('- Primeros 200 caracteres:', iniciativasAGuardar[0].descripcion?.substring(0, 200));
+    }
     
     try {
         // Preparar datos de la sesión
@@ -202,9 +229,17 @@ router.post('/validar-sesion/:sessionId', async (req, res) => {
                 
                 const sesionId = this.lastID;
                 
-                // Si es inmediata, desactivar otras sesiones
+                // Si es inmediata, desactivar otras sesiones y activar esta
                 if (tipoCarga === 'inmediata') {
-                    db.run('UPDATE sesiones SET activa = 0 WHERE id != ?', [sesionId]);
+                    // Primero desactivar todas
+                    db.run('UPDATE sesiones SET activa = 0', (err) => {
+                        if (err) console.error('Error desactivando sesiones:', err);
+                        // Luego activar solo la nueva
+                        db.run('UPDATE sesiones SET activa = 1 WHERE id = ?', [sesionId], (err) => {
+                            if (err) console.error('Error activando sesión nueva:', err);
+                            else console.log(`Sesión ${sesionId} marcada como activa`);
+                        });
+                    });
                 }
                 
                 // Guardar el texto original del PDF si existe
@@ -241,13 +276,29 @@ router.post('/validar-sesion/:sessionId', async (req, res) => {
                 
                 // Insertar manteniendo el número original del documento
                 iniciativas.forEach((iniciativa, index) => {
+                    // Verificar descripción antes de insertar
+                    if (index === 0) {
+                        console.log(`Insertando en BD - Primera iniciativa:`);
+                        console.log(`- Longitud descripción: ${iniciativa.descripcion?.length || 0}`);
+                        console.log(`- Primeros 100 caracteres: ${iniciativa.descripcion?.substring(0, 100)}`);
+                    }
+                    
                     // numero: orden secuencial interno (1, 2, 3...)
                     // numero_orden_dia: número original del documento PDF (puede ser 15, 27, 45, etc.)
+                    
+                    // Log para verificar qué se está insertando
+                    console.log(`Insertando iniciativa ${index + 1}/${iniciativas.length}:`, {
+                        sesion_id: sesionId,
+                        numero: index + 1,
+                        titulo: iniciativa.titulo?.substring(0, 50),
+                        categoria: iniciativa.categoria
+                    });
+                    
                     db.run(
                         `INSERT INTO iniciativas (
                             sesion_id, numero, numero_orden_dia, titulo, descripcion, 
-                            presentador, partido_presentador, tipo_mayoria
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                            presentador, partido_presentador, tipo_mayoria, categoria
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                         [
                             sesionId, 
                             index + 1,  // Número secuencial interno
@@ -256,11 +307,12 @@ router.post('/validar-sesion/:sessionId', async (req, res) => {
                             iniciativa.descripcion,
                             iniciativa.presentador,
                             iniciativa.partido,
-                            iniciativa.tipo_mayoria
+                            iniciativa.tipo_mayoria,
+                            iniciativa.categoria || 'otras'  // Guardar la categoría del extractor
                         ],
                         (err) => {
                             if (err) {
-                                console.error(`Error insertando iniciativa:`, err);
+                                console.error(`Error insertando iniciativa ${index + 1}:`, err);
                                 errores++;
                             } else {
                                 insertadas++;
