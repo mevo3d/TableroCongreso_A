@@ -16,6 +16,16 @@
             background-color: var(--bg-primary);
             color: var(--text-primary);
         }
+        
+        /* Estilos personalizados para los botones del modal de validación */
+        #btnGuardarValidacion {
+            cursor: pointer !important;
+            user-select: none !important;
+        }
+        
+        #btnGuardarValidacion:active {
+            transform: scale(0.95) !important;
+        }
         .navbar { 
             background: var(--navbar-bg) !important;
             border-bottom: 1px solid var(--border-color);
@@ -1857,6 +1867,40 @@
                 "'": '&#039;'
             };
             return text.replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        // Función simple y directa para ejecutar el guardado
+        function ejecutarGuardado() {
+            console.log('\n\n=== EJECUTAR GUARDADO LLAMADO ===');
+            console.log('Fecha/Hora:', new Date().toISOString());
+            
+            // Verificación básica
+            if (!iniciativasValidacion || iniciativasValidacion.length === 0) {
+                alert('No hay iniciativas cargadas. Por favor, importa un PDF primero.');
+                return;
+            }
+            
+            // Contar seleccionadas
+            const seleccionadas = iniciativasValidacion.filter(i => i.seleccionada).length;
+            const total = iniciativasValidacion.length;
+            
+            // Confirmación simple
+            const mensaje = `\u00bfConfirmar importación?\n\nTotal: ${total} iniciativas\nSeleccionadas para votación: ${seleccionadas}`;
+            
+            if (!confirm(mensaje)) {
+                console.log('Cancelado por el usuario');
+                return;
+            }
+            
+            console.log('Confirmado, procediendo con el guardado...');
+            
+            // Llamar a la función principal
+            try {
+                guardarIniciativasSeleccionadas();
+            } catch (error) {
+                console.error('ERROR AL LLAMAR guardarIniciativasSeleccionadas:', error);
+                alert('Error: ' + error.message);
+            }
         }
         
         // Función para mostrar notificaciones
@@ -4903,11 +4947,11 @@
                     <button type="button" class="btn btn-secondary" onclick="cancelarValidacion()">
                         <i class="fas fa-times"></i> Cancelar
                     </button>
-                    <button type="button" class="btn btn-warning" onclick="mostrarVistaPrevia()">
+                    <button type="button" class="btn" style="background-color: #FF1493; color: white; border: 2px solid #FF1493;" onclick="mostrarVistaPrevia()" onmouseover="this.style.backgroundColor='#FF69B4'" onmouseout="this.style.backgroundColor='#FF1493'">
                         <i class="fas fa-eye"></i> Vista Previa
                     </button>
-                    <button type="button" class="btn btn-primary" id="btnGuardarValidacion" onclick="console.log('Onclick inline ejecutado'); guardarIniciativasSeleccionadas(); return false;">
-                        <i class="fas fa-save"></i> Confirmar y Cargar Iniciativas
+                    <button type="button" class="btn" style="background-color: #FF8C00; color: white; border: 2px solid #FF8C00; font-weight: bold;" id="btnGuardarValidacion" onclick="ejecutarGuardado()" onmouseover="this.style.backgroundColor='#FFA500'" onmouseout="this.style.backgroundColor='#FF8C00'">
+                        <i class="fas fa-save"></i> CONFIRMAR Y CARGAR
                     </button>
                 </div>
             </div>
