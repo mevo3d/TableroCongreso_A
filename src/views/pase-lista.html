@@ -328,6 +328,26 @@
             100% { box-shadow: 0 0 20px rgba(40, 167, 69, 0.6); }
         }
         
+        /* Efecto pulse para cuando un diputado confirma asistencia */
+        @keyframes pulseOnce {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 20px 10px rgba(40, 167, 69, 0);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+            }
+        }
+        
+        .pulse-once {
+            animation: pulseOnce 1s ease-in-out;
+        }
+        
         .btn-absent.active {
             background-color: #bd2130 !important;
             box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.5);
@@ -1092,6 +1112,45 @@
             document.getElementById('absentCount').textContent = absent;
         }
         
+        // Función para actualizar un botón específico de diputado
+        function updateDeputyButton(button, status) {
+            // Remover todas las clases de estado
+            button.classList.remove('btn-success', 'btn-danger', 'btn-outline-secondary');
+            
+            // Aplicar la clase según el estado
+            if (status === 'presente') {
+                button.classList.add('btn-success');
+                const icon = button.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-check-circle';
+                }
+                const statusText = button.querySelector('small');
+                if (statusText) {
+                    statusText.textContent = 'PRESENTE';
+                }
+            } else if (status === 'ausente') {
+                button.classList.add('btn-danger');
+                const icon = button.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-times-circle';
+                }
+                const statusText = button.querySelector('small');
+                if (statusText) {
+                    statusText.textContent = 'AUSENTE';
+                }
+            } else {
+                button.classList.add('btn-outline-secondary');
+                const icon = button.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-user';
+                }
+                const statusText = button.querySelector('small');
+                if (statusText) {
+                    statusText.textContent = 'SIN MARCAR';
+                }
+            }
+        }
+        
         // Cargar estado actual
         async function loadCurrentAttendance() {
             try {
@@ -1235,13 +1294,72 @@
         
         // Eventos de socket
         socket.on('asistencia-marcada', (data) => {
+            console.log('Asistencia marcada manualmente:', data);
             attendanceData[data.diputado_id] = data.asistencia;
-            loadDeputies();
+            
+            // Actualizar el botón específico del diputado
+            const deputyBtn = document.querySelector(`[data-deputy-id="${data.diputado_id}"]`);
+            if (deputyBtn) {
+                updateDeputyButton(deputyBtn, data.asistencia);
+            }
+            
+            updateStats();
+        });
+        
+        // Escuchar cuando un diputado confirma su propia asistencia
+        socket.on('asistencia-confirmada', (data) => {
+            console.log('Diputado confirmó asistencia:', data);
+            
+            // Marcar como presente
+            attendanceData[data.diputado_id] = 'presente';
+            
+            // Actualizar el botón específico del diputado
+            const deputyBtn = document.querySelector(`[data-deputy-id="${data.diputado_id}"]`);
+            if (deputyBtn) {
+                updateDeputyButton(deputyBtn, 'presente');
+                
+                // Agregar efecto visual de confirmación
+                deputyBtn.classList.add('pulse-once');
+                setTimeout(() => {
+                    deputyBtn.classList.remove('pulse-once');
+                }, 1000);
+            }
+            
+            updateStats();
+            
+            // Mostrar notificación
+            showNotification('success', `✅ ${data.nombre} confirmó su asistencia`);
         });
         
         socket.on('pase-lista-confirmado', () => {
             document.getElementById('attendanceStatus').textContent = 'Confirmado - Editable';
             // NO bloquear edición
+        });
+        
+        // Escuchar cuando se reinicia el pase de lista
+        socket.on('pase-lista-reiniciado', (data) => {
+            console.log('Pase de lista reiniciado:', data);
+            
+            // Limpiar todas las asistencias
+            attendanceData = {};
+            
+            // Recargar la vista
+            loadDeputies();
+            updateStats();
+            
+            // Mostrar notificación
+            showNotification('warning', `🔄 ${data.mensaje}`);
+        });
+        
+        // Escuchar cuando se reabre el pase de lista
+        socket.on('pase-lista-reabierto', (data) => {
+            console.log('Pase de lista reabierto:', data);
+            
+            // Mostrar notificación
+            showNotification('info', `📋 ${data.mensaje}`);
+            
+            // Recargar para obtener el estado actual
+            loadCurrentAttendance();
         });
         
         socket.on('pase-lista-en-pantalla', (data) => {

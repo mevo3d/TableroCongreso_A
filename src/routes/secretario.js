@@ -115,8 +115,17 @@ router.get('/estado-pase-lista', (req, res) => {
     
     db.get('SELECT id, pase_lista_activo, fecha_inicio FROM sesiones WHERE activa = 1', (err, sesion) => {
         if (err) {
+            console.error('Error al consultar sesión:', err);
             return res.status(500).json({ error: 'Error verificando estado' });
         }
+        
+        console.log('Estado de sesión consultado:', {
+            sesion_existe: !!sesion,
+            sesion_id: sesion?.id,
+            fecha_inicio: sesion?.fecha_inicio,
+            pase_lista_activo: sesion?.pase_lista_activo,
+            fecha_inicio_tipo: typeof sesion?.fecha_inicio
+        });
         
         if (!sesion) {
             return res.json({ 
@@ -128,6 +137,7 @@ router.get('/estado-pase-lista', (req, res) => {
         
         // Verificar que la sesión esté iniciada
         if (!sesion.fecha_inicio) {
+            console.log('⚠️ Sesión sin fecha_inicio, devolviendo no iniciada');
             return res.json({ 
                 pase_lista_activo: false,
                 sesion_activa: true,
@@ -136,6 +146,7 @@ router.get('/estado-pase-lista', (req, res) => {
             });
         }
         
+        console.log('✅ Sesión iniciada correctamente, devolviendo estado completo');
         res.json({ 
             pase_lista_activo: sesion.pase_lista_activo === 1,
             sesion_activa: true,

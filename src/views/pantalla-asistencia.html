@@ -518,11 +518,10 @@
         // Escuchar activación del pase de lista
         socket.on('pase-lista-activado', (data) => {
             console.log('Pase de lista activado:', data);
-            if (data.activo) {
-                paseListaActivo = true;
-                cargarDiputados();
-                document.getElementById('statsContainer').style.display = 'flex';
-            }
+            // Activar siempre que se reciba este evento
+            paseListaActivo = true;
+            cargarDiputados();
+            document.getElementById('statsContainer').style.display = 'flex';
         });
         
         // Escuchar actualizaciones de asistencia
@@ -530,6 +529,15 @@
             console.log('Asistencia marcada:', data);
             if (paseListaActivo && data.diputado_id) {
                 actualizarAsistencia(data.diputado_id, data.asistencia || data.estado);
+            }
+        });
+        
+        // Escuchar cuando un diputado confirma su propia asistencia
+        socket.on('asistencia-confirmada', (data) => {
+            console.log('Asistencia confirmada por diputado:', data);
+            if (paseListaActivo && data.diputado_id) {
+                // Marcar como presente cuando el diputado confirma
+                actualizarAsistencia(data.diputado_id, 'presente');
             }
         });
         
@@ -546,20 +554,46 @@
             mostrarResumenFinal(data);
         });
         
+        // Escuchar cuando se reabre el pase de lista (sin borrar asistencias)
+        socket.on('pase-lista-reabierto', (data) => {
+            console.log('Pase de lista reabierto:', data);
+            // Mantener el pase de lista activo y recargar datos
+            paseListaActivo = true;
+            cargarDiputados();
+        });
+        
         // Escuchar cuando se reinicia el pase de lista
         socket.on('pase-lista-reiniciado', async (data) => {
             console.log('Pase de lista reiniciado:', data);
             
-            // Limpiar todos los datos de asistencia
+            // Limpiar COMPLETAMENTE todos los datos de asistencia
             asistenciaData = {};
             previousAttendance = {};
             
-            // Limpiar visualmente todas las asistencias
-            if (diputadosData && diputadosData.length > 0) {
-                diputadosData.forEach(diputado => {
-                    delete asistenciaData[diputado.id];
-                });
-            }
+            // El pase de lista sigue activo pero sin asistencias
+            paseListaActivo = true;
+            
+            // Renderizar inmediatamente con todos sin marcar
+            renderizarDiputados();
+            
+            // Actualizar estadísticas a cero
+            document.getElementById('presentCount').textContent = '0';
+            document.getElementById('absentCount').textContent = '0';
+            document.getElementById('unmarkedCount').textContent = diputadosData ? diputadosData.length : '20';
+            
+            // Mostrar mensaje de reinicio
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'alert alert-warning position-fixed';
+            messageDiv.style.cssText = 'top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 400px; text-align: center;';
+            messageDiv.innerHTML = `
+                <i class="fas fa-redo"></i> <strong>Pase de Lista Reiniciado</strong>
+                <br>Todas las asistencias han sido borradas
+            `;
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
             
             // Recargar datos desde el servidor para asegurar sincronización
             try {
@@ -713,20 +747,36 @@
         // Cargar lista de diputados
         async function cargarDiputados() {
             try {
+                // Primero cargar los diputados reales si no están cargados
+                if (!diputadosData || diputadosData.length === 0) {
+                    await cargarDiputadosReales();
+                }
+                
+                // Luego cargar el estado actual del pase de lista
                 const response = await fetch('/api/pase-lista/pantalla');
                 const data = await response.json();
                 
-                // SIEMPRE usar el mapeo fijo con IDs correctos
-                diputadosData = DIPUTADOS_DEFAULT;
-                console.log('Usando mapeo fijo de diputados en cargarDiputados');
+                console.log('Datos de pase de lista recibidos:', data);
+                
+                // Usar los diputados reales cargados
+                if (!diputadosData || diputadosData.length === 0) {
+                    diputadosData = DIPUTADOS_DEFAULT;
+                    console.log('Usando mapeo por defecto de diputados');
+                } else {
+                    console.log('Usando diputados reales cargados');
+                }
                 
                 asistenciaData = data.asistencias || {};
+                console.log('Asistencias actuales:', asistenciaData);
+                
                 renderizarDiputados();
                 actualizarEstadisticas();
             } catch (error) {
                 console.error('Error cargando diputados:', error);
                 // En caso de error, usar el mapeo fijo
-                diputadosData = DIPUTADOS_DEFAULT;
+                if (!diputadosData || diputadosData.length === 0) {
+                    diputadosData = DIPUTADOS_DEFAULT;
+                }
                 renderizarDiputados();
                 actualizarEstadisticas();
             }

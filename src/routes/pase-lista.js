@@ -348,7 +348,7 @@ router.post('/finalizar', (req, res) => {
     return router.handle(req, res);
 });
 
-// Auto iniciar pase de lista - marca a todos como presentes
+// Auto iniciar pase de lista - activa el pase de lista para que los diputados confirmen su asistencia
 router.post('/auto-iniciar', (req, res) => {
     const db = req.db;
     const io = req.io;
@@ -382,10 +382,18 @@ router.post('/auto-iniciar', (req, res) => {
             }
             
             if (!sesion) {
-                return res.status(400).json({ error: 'No hay sesión activa. Debe iniciar una sesión primero.' });
+                return res.status(400).json({ error: 'No hay sesión activa. El presidente debe crear una sesión primero.' });
             }
             
-            console.log('Sesión activa encontrada:', sesion.id);
+            // Verificar que la sesión esté INICIADA (no solo creada)
+            if (!sesion.fecha_inicio) {
+                return res.status(400).json({ 
+                    error: 'La sesión no ha sido iniciada', 
+                    mensaje: 'El presidente debe iniciar la sesión antes de realizar el pase de lista' 
+                });
+            }
+            
+            console.log('Sesión iniciada encontrada:', sesion.id);
             
             // Crear o obtener pase de lista actual
             db.get(`
@@ -399,70 +407,298 @@ router.post('/auto-iniciar', (req, res) => {
                     return res.status(500).json({ error: 'Error verificando pase de lista existente' });
                 }
                 
-                const crearAsistenciasAutomaticas = (paseListaId) => {
-                    console.log('Creando asistencias automáticas para pase de lista:', paseListaId);
+                const activarPaseLista = (paseListaId) => {
+                    console.log('Activando pase de lista:', paseListaId);
                     
-                    // Primero, limpiar asistencias existentes
-                    db.run('DELETE FROM asistencias WHERE pase_lista_id = ?', [paseListaId], (err) => {
+                    // Emitir evento para activar el pase de lista en los paneles de diputados
+                    io.emit('pase-lista-activado', {
+                        pase_lista_id: paseListaId,
+                        activado_por: userId,
+                        mensaje: 'Pase de lista activado. Los diputados pueden confirmar su asistencia.'
+                    });
+                    
+                    res.json({
+                        success: true,
+                        pase_lista_id: paseListaId,
+                        mensaje: 'Pase de lista activado. Los diputados pueden confirmar su asistencia.'
+                    });
+                };
+                
+                if (paseListaExistente) {
+                    console.log('Usando pase de lista existente:', paseListaExistente.id);
+                    // Si ya existe un pase de lista, actualizar el campo realizado_por si es la primera vez
+                    if (!paseListaExistente.realizado_por) {
+                        db.run(`
+                            UPDATE pase_lista 
+                            SET realizado_por = ?
+                            WHERE id = ?
+                        `, [userId, paseListaExistente.id], (err) => {
+                            if (err) {
+                                console.error('Error actualizando realizado_por:', err);
+                            }
+                        });
+                    }
+                    activarPaseLista(paseListaExistente.id);
+                } else {
+                    console.log('Creando nuevo pase de lista');
+                    // Crear nuevo pase de lista
+                    db.run(`
+                        INSERT INTO pase_lista (sesion_id, fecha, realizado_por, finalizado)
+                        VALUES (?, datetime('now', 'localtime'), ?, 0)
+                    `, [sesion.id, userId], function(err) {
                         if (err) {
-                            console.error('Error limpiando asistencias:', err);
+                            console.error('Error creando pase de lista:', err);
+                            return res.status(500).json({ error: 'Error creando pase de lista' });
                         }
                         
-                        // Obtener todos los diputados
-                        db.all(`
-                            SELECT id, nombre_completo FROM usuarios 
-                            WHERE role = 'diputado'
-                        `, (err, diputados) => {
-                            if (err) {
-                                console.error('Error obteniendo diputados:', err);
-                                return res.status(500).json({ error: 'Error obteniendo diputados' });
-                            }
-                            
-                            console.log(`Marcando ${diputados.length} diputados como presentes`);
-                            
-                            // Usar transacción para insertar todas las asistencias
-                            db.run('BEGIN TRANSACTION');
-                            
-                            const stmt = db.prepare(`
-                                INSERT INTO asistencias (pase_lista_id, diputado_id, asistencia, hora)
-                                VALUES (?, ?, 'presente', datetime('now', 'localtime'))
-                            `);
-                            
-                            diputados.forEach(diputado => {
-                                stmt.run(paseListaId, diputado.id, (err) => {
-                                    if (err) {
-                                        console.error(`Error marcando asistencia para ${diputado.nombre_completo}:`, err);
-                                    }
-                                });
+                        console.log('Nuevo pase de lista creado con ID:', this.lastID);
+                        activarPaseLista(this.lastID);
+                    });
+                }
+            });
+        });
+    });
+});
+
+// Reabrir pase de lista - permite agregar diputados que llegaron tarde sin borrar asistencias previas
+router.post('/reabrir', (req, res) => {
+    const db = req.db;
+    const io = req.io;
+    const userId = req.user.id;
+    
+    console.log('Reabrir pase de lista solicitado por usuario:', userId);
+    
+    // Verificar permisos
+    db.get('SELECT cargo_mesa_directiva, role, nombre_completo FROM usuarios WHERE id = ?', [userId], (err, userData) => {
+        if (err) {
+            console.error('Error verificando permisos:', err);
+            return res.status(500).json({ error: 'Error verificando permisos' });
+        }
+        
+        // Verificar que sea secretario1, secretario2 o secretario legislativo
+        const esSecretarioMesa = userData.cargo_mesa_directiva === 'secretario1' || 
+                                  userData.cargo_mesa_directiva === 'secretario2' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 1' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 2';
+        const esSecretarioLegislativo = userData.role === 'secretario';
+        
+        if (!esSecretarioMesa && !esSecretarioLegislativo) {
+            return res.status(403).json({ error: 'No tienes permisos para reabrir el pase de lista' });
+        }
+        
+        // Verificar que haya sesión activa
+        db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
+            if (err) {
+                console.error('Error verificando sesión:', err);
+                return res.status(500).json({ error: 'Error verificando sesión' });
+            }
+            
+            if (!sesion) {
+                return res.status(400).json({ error: 'No hay sesión activa' });
+            }
+            
+            // Buscar pase de lista actual
+            db.get(`
+                SELECT * FROM pase_lista 
+                WHERE sesion_id = ?
+                ORDER BY fecha DESC
+                LIMIT 1
+            `, [sesion.id], (err, paseListaActual) => {
+                if (err) {
+                    console.error('Error obteniendo pase de lista:', err);
+                    return res.status(500).json({ error: 'Error obteniendo pase de lista' });
+                }
+                
+                if (!paseListaActual) {
+                    return res.status(400).json({ error: 'No hay pase de lista para reabrir' });
+                }
+                
+                // Simplemente marcar como no finalizado para permitir modificaciones
+                db.run(`
+                    UPDATE pase_lista 
+                    SET finalizado = 0
+                    WHERE id = ?
+                `, [paseListaActual.id], (err) => {
+                    if (err) {
+                        console.error('Error reabriendo pase de lista:', err);
+                        return res.status(500).json({ error: 'Error reabriendo pase de lista' });
+                    }
+                    
+                    console.log('Pase de lista reabierto exitosamente');
+                    
+                    // Emitir actualización
+                    io.emit('pase-lista-reabierto', {
+                        pase_lista_id: paseListaActual.id,
+                        reabierto_por: userData.nombre_completo,
+                        mensaje: 'El pase de lista ha sido reabierto para modificaciones'
+                    });
+                    
+                    // También reactivar el pase de lista para los diputados
+                    io.emit('pase-lista-activado', {
+                        pase_lista_id: paseListaActual.id,
+                        activado_por: userId,
+                        mensaje: 'Pase de lista reactivado para ajustes'
+                    });
+                    
+                    res.json({
+                        success: true,
+                        pase_lista_id: paseListaActual.id,
+                        reabierto_por: userData.nombre_completo,
+                        mensaje: 'Pase de lista reabierto exitosamente'
+                    });
+                });
+            });
+        });
+    });
+});
+
+// Reiniciar pase de lista - permite a los secretarios reiniciar completamente el pase de lista (BORRA TODO)
+router.post('/reiniciar', (req, res) => {
+    const db = req.db;
+    const io = req.io;
+    const userId = req.user.id;
+    
+    console.log('Reiniciar pase de lista solicitado por usuario:', userId);
+    
+    // Verificar permisos
+    db.get('SELECT cargo_mesa_directiva, role, nombre_completo FROM usuarios WHERE id = ?', [userId], (err, userData) => {
+        if (err) {
+            console.error('Error verificando permisos:', err);
+            return res.status(500).json({ error: 'Error verificando permisos' });
+        }
+        
+        // Verificar que sea secretario1, secretario2 o secretario legislativo
+        const esSecretarioMesa = userData.cargo_mesa_directiva === 'secretario1' || 
+                                  userData.cargo_mesa_directiva === 'secretario2' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 1' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 2';
+        const esSecretarioLegislativo = userData.role === 'secretario';
+        
+        if (!esSecretarioMesa && !esSecretarioLegislativo) {
+            return res.status(403).json({ error: 'No tienes permisos para reiniciar el pase de lista' });
+        }
+        
+        // Verificar que haya sesión activa
+        db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
+            if (err) {
+                console.error('Error verificando sesión:', err);
+                return res.status(500).json({ error: 'Error verificando sesión' });
+            }
+            
+            if (!sesion) {
+                return res.status(400).json({ error: 'No hay sesión activa. El presidente debe crear una sesión primero.' });
+            }
+            
+            // Verificar que la sesión esté INICIADA (no solo creada)
+            if (!sesion.fecha_inicio) {
+                return res.status(400).json({ 
+                    error: 'La sesión no ha sido iniciada', 
+                    mensaje: 'El presidente debe iniciar la sesión antes de realizar el pase de lista' 
+                });
+            }
+            
+            console.log('Sesión iniciada encontrada:', sesion.id);
+            
+            // Buscar pase de lista actual
+            db.get(`
+                SELECT * FROM pase_lista 
+                WHERE sesion_id = ? AND finalizado = 0
+                ORDER BY fecha DESC
+                LIMIT 1
+            `, [sesion.id], (err, paseListaActual) => {
+                if (err) {
+                    console.error('Error obteniendo pase de lista actual:', err);
+                    return res.status(500).json({ error: 'Error obteniendo pase de lista actual' });
+                }
+                
+                const reiniciarPaseLista = () => {
+                    // Iniciar transacción
+                    db.run('BEGIN TRANSACTION', (err) => {
+                        if (err) {
+                            console.error('Error iniciando transacción:', err);
+                            return res.status(500).json({ error: 'Error iniciando transacción' });
+                        }
+                        
+                        // Si existe un pase de lista, marcarlo como cancelado y borrar sus asistencias
+                        if (paseListaActual) {
+                            // Primero borrar todas las asistencias del pase de lista actual
+                            db.run(`
+                                DELETE FROM asistencias 
+                                WHERE pase_lista_id = ?
+                            `, [paseListaActual.id], (err) => {
+                                if (err) {
+                                    console.error('Error borrando asistencias:', err);
+                                } else {
+                                    console.log('Asistencias borradas del pase de lista anterior');
+                                }
                             });
                             
-                            stmt.finalize((err) => {
+                            // Luego marcar el pase de lista como cancelado
+                            db.run(`
+                                UPDATE pase_lista 
+                                SET finalizado = 2, 
+                                    reiniciado_por = ?,
+                                    fecha_reinicio = datetime('now', 'localtime')
+                                WHERE id = ?
+                            `, [userId, paseListaActual.id], (err) => {
                                 if (err) {
-                                    console.error('Error finalizando statement:', err);
-                                    db.run('ROLLBACK');
-                                    return res.status(500).json({ error: 'Error marcando asistencias' });
+                                    console.error('Error marcando pase de lista como cancelado:', err);
+                                }
+                            });
+                        }
+                        
+                        // Crear nuevo pase de lista
+                        db.run(`
+                            INSERT INTO pase_lista (sesion_id, fecha, realizado_por, finalizado)
+                            VALUES (?, datetime('now', 'localtime'), ?, 0)
+                        `, [sesion.id, userId], function(err) {
+                            if (err) {
+                                console.error('Error creando nuevo pase de lista:', err);
+                                db.run('ROLLBACK');
+                                return res.status(500).json({ error: 'Error creando nuevo pase de lista' });
+                            }
+                            
+                            const nuevoPaseListaId = this.lastID;
+                            console.log('Nuevo pase de lista creado con ID:', nuevoPaseListaId);
+                            
+                            // Resetear el campo puede_votar de todos los diputados
+                            db.run(`
+                                UPDATE usuarios 
+                                SET puede_votar = 0 
+                                WHERE role = 'diputado'
+                            `, (err) => {
+                                if (err) {
+                                    console.error('Error reseteando puede_votar:', err);
                                 }
                                 
                                 db.run('COMMIT', (err) => {
                                     if (err) {
                                         console.error('Error en commit:', err);
-                                        return res.status(500).json({ error: 'Error confirmando asistencias' });
+                                        db.run('ROLLBACK');
+                                        return res.status(500).json({ error: 'Error confirmando reinicio' });
                                     }
                                     
-                                    console.log('Auto pase de lista completado exitosamente');
+                                    console.log('Pase de lista reiniciado exitosamente');
                                     
-                                    // Emitir actualización
-                                    io.emit('pase-lista-actualizado', {
-                                        pase_lista_id: paseListaId,
-                                        auto: true,
-                                        presentes: diputados.length
+                                    // Emitir actualización de reinicio
+                                    io.emit('pase-lista-reiniciado', {
+                                        pase_lista_id: nuevoPaseListaId,
+                                        reiniciado_por: userData.nombre_completo,
+                                        mensaje: 'El pase de lista ha sido reiniciado'
+                                    });
+                                    
+                                    // También activar el pase de lista para que aparezca el botón
+                                    io.emit('pase-lista-activado', {
+                                        pase_lista_id: nuevoPaseListaId,
+                                        activado_por: userId,
+                                        mensaje: 'Pase de lista reactivado después del reinicio'
                                     });
                                     
                                     res.json({
                                         success: true,
-                                        pase_lista_id: paseListaId,
-                                        presentes: diputados.length,
-                                        mensaje: `Auto pase de lista completado. ${diputados.length} diputados marcados como presentes.`
+                                        pase_lista_id: nuevoPaseListaId,
+                                        reiniciado_por: userData.nombre_completo,
+                                        mensaje: 'Pase de lista reiniciado exitosamente'
                                     });
                                 });
                             });
@@ -470,25 +706,87 @@ router.post('/auto-iniciar', (req, res) => {
                     });
                 };
                 
-                if (paseListaExistente) {
-                    console.log('Usando pase de lista existente:', paseListaExistente.id);
-                    crearAsistenciasAutomaticas(paseListaExistente.id);
-                } else {
-                    console.log('Creando nuevo pase de lista');
-                    // Crear nuevo pase de lista
-                    db.run(`
-                        INSERT INTO pase_lista (sesion_id, fecha, finalizado)
-                        VALUES (?, datetime('now', 'localtime'), 0)
-                    `, [sesion.id], function(err) {
-                        if (err) {
-                            console.error('Error creando pase de lista:', err);
-                            return res.status(500).json({ error: 'Error creando pase de lista' });
-                        }
-                        
-                        console.log('Nuevo pase de lista creado con ID:', this.lastID);
-                        crearAsistenciasAutomaticas(this.lastID);
-                    });
+                reiniciarPaseLista();
+            });
+        });
+    });
+});
+
+// Endpoint para que los diputados confirmen su propia asistencia
+router.post('/confirmar-asistencia', (req, res) => {
+    const db = req.db;
+    const io = req.io;
+    const userId = req.user.id;
+    
+    console.log('Diputado confirmando asistencia:', userId);
+    
+    // Verificar que sea un diputado
+    db.get('SELECT role, nombre_completo, genero FROM usuarios WHERE id = ?', [userId], (err, userData) => {
+        if (err) {
+            console.error('Error verificando usuario:', err);
+            return res.status(500).json({ error: 'Error verificando usuario' });
+        }
+        
+        if (userData.role !== 'diputado') {
+            return res.status(403).json({ error: 'Solo los diputados pueden confirmar su asistencia' });
+        }
+        
+        // Verificar que haya un pase de lista activo
+        db.get(`
+            SELECT pl.* 
+            FROM pase_lista pl
+            JOIN sesiones s ON pl.sesion_id = s.id
+            WHERE s.activa = 1 AND pl.finalizado = 0
+            ORDER BY pl.fecha DESC
+            LIMIT 1
+        `, (err, paseLista) => {
+            if (err) {
+                console.error('Error obteniendo pase de lista:', err);
+                return res.status(500).json({ error: 'Error obteniendo pase de lista' });
+            }
+            
+            if (!paseLista) {
+                return res.status(400).json({ error: 'No hay pase de lista activo' });
+            }
+            
+            // Registrar asistencia
+            db.run(`
+                INSERT OR REPLACE INTO asistencias (pase_lista_id, diputado_id, asistencia, hora)
+                VALUES (?, ?, 'presente', datetime('now', 'localtime'))
+            `, [paseLista.id, userId], (err) => {
+                if (err) {
+                    console.error('Error registrando asistencia:', err);
+                    return res.status(500).json({ error: 'Error registrando asistencia' });
                 }
+                
+                // Actualizar puede_votar
+                db.run(`
+                    UPDATE usuarios 
+                    SET puede_votar = 1 
+                    WHERE id = ? AND role = 'diputado'
+                `, [userId], (err) => {
+                    if (err) {
+                        console.error('Error actualizando puede_votar:', err);
+                    }
+                    
+                    // Emitir evento
+                    io.emit('asistencia-confirmada', {
+                        diputado_id: userId,
+                        nombre: userData.nombre_completo,
+                        asistencia: 'presente'
+                    });
+                    
+                    // Generar mensaje con género correcto
+                    const titulo = userData.genero === 'F' ? 'Diputada' : 'Diputado';
+                    const mensaje = `Asistencia registrada correctamente. Gracias ${titulo} ${userData.nombre_completo}`;
+                    
+                    res.json({
+                        success: true,
+                        mensaje: mensaje,
+                        nombre: userData.nombre_completo,
+                        genero: userData.genero
+                    });
+                });
             });
         });
     });

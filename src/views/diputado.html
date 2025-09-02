@@ -1023,14 +1023,14 @@
             </button>
             <div id="dividerAsistencia" class="menu-divider" style="display: none;"></div>
             
-            <!-- Botón EN VIVO solo para mesa directiva -->
-            <a href="#" class="menu-item" id="btnStreamingLive" onclick="abrirStreamingLive()" style="display: none; background: linear-gradient(135deg, #dc2626, #ef4444); color: white;">
+            <!-- Botón EN VIVO solo para mesa directiva - DESHABILITADO porque ya tenemos PWA -->
+            <!-- <a href="#" class="menu-item" id="btnStreamingLive" onclick="abrirStreamingLive()" style="display: none; background: linear-gradient(135deg, #dc2626, #ef4444); color: white;">
                 <i class="fas fa-video" style="color: white;"></i>
                 <div>
                     <div style="font-weight: bold;">EN VIVO</div>
                     <small style="color: rgba(255,255,255,0.9);">Ver transmisión de la sesión</small>
                 </div>
-            </a>
+            </a> -->
             
             <a href="#" class="menu-item" onclick="verTableroSimplificado()">
                 <i class="fas fa-th"></i>
@@ -1103,13 +1103,13 @@
         </div>
     </div>
 
-    <!-- Botón EN VIVO flotante -->
-    <div class="live-button-container" id="liveButtonContainer" style="display: none;">
+    <!-- Botón EN VIVO flotante - DESHABILITADO porque ya tenemos PWA -->
+    <!-- <div class="live-button-container" id="liveButtonContainer" style="display: none;">
         <button class="btn-live" onclick="toggleLiveStream()">
             <span class="live-dot"></span>
             <span>EN VIVO</span>
         </button>
-    </div>
+    </div> -->
     
     <!-- Botón flotante para consultar PDF -->
     <button class="floating-pdf-btn" id="floatingPdfBtn" onclick="consultarDocumentoOriginal()" title="Ver documento PDF de la sesión">
@@ -1217,6 +1217,20 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Botón de Confirmar Asistencia -->
+        <div class="vote-card" id="btnConfirmarAsistenciaContainer" style="display: none;">
+            <h4 class="text-center mb-4">
+                <i class="fas fa-clipboard-check"></i> Pase de Lista Activo
+            </h4>
+            <button class="btn btn-success attendance-btn btn-presente" id="btnConfirmarAsistencia" onclick="confirmarMiAsistencia()">
+                <i class="fas fa-user-check"></i>
+                <span>CONFIRMAR MI ASISTENCIA</span>
+            </button>
+            <div class="text-center mt-3 text-muted">
+                <small>Presione el botón para confirmar que está presente en la sesión</small>
             </div>
         </div>
         
@@ -1892,6 +1906,31 @@
         
         // Mostrar panel de votación
         function showVotingPanel(initiative, alreadyVoted, myVote) {
+            // Verificar si el diputado pasó lista antes de permitir votar
+            if (!yaConfirmeAsistencia) {
+                // Mostrar advertencia de que debe pasar lista
+                document.getElementById('noVotingPanel').style.display = 'block';
+                document.getElementById('votingPanel').style.display = 'none';
+                
+                // Cambiar el mensaje del panel
+                document.getElementById('noVotingMessage').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <h3>No puede votar</h3>
+                        <p class="lead">Debe confirmar su asistencia primero</p>
+                        <p>Por favor confirme su asistencia usando el botón verde antes de poder votar</p>
+                        <button class="btn btn-warning mt-3" onclick="location.reload()">
+                            <i class="fas fa-sync"></i> Actualizar
+                        </button>
+                    </div>
+                `;
+                
+                // Mostrar notificación
+                showNotification('⚠️ Debe pasar lista primero', 'warning');
+                showNotification('No puede votar sin confirmar su asistencia', 'error');
+                return;
+            }
+            
             document.getElementById('noVotingPanel').style.display = 'none';
             document.getElementById('votingPanel').style.display = 'block';
             
@@ -1981,6 +2020,77 @@
         // Funciones de panel de asistencia removidas
         // Los diputados solo pueden ver su estado, no modificarlo
         
+        // Función para mostrar botón gris de presente temporalmente
+        function mostrarBotonPresente() {
+            const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
+            if (containerAsistencia) {
+                containerAsistencia.innerHTML = `
+                    <h4 class="text-center mb-4">
+                        <i class="fas fa-check-circle text-success"></i> Asistencia Registrada
+                    </h4>
+                    <button class="btn btn-secondary attendance-btn disabled" disabled>
+                        <i class="fas fa-check"></i>
+                        <span>PRESENTE</span>
+                    </button>
+                    <div class="text-center mt-3 text-success">
+                        <small>Su asistencia ya fue confirmada</small>
+                    </div>
+                `;
+                containerAsistencia.style.display = 'block';
+                
+                // Ocultar después de 5 segundos
+                setTimeout(() => {
+                    containerAsistencia.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // Función para confirmar mi propia asistencia
+        async function confirmarMiAsistencia() {
+            try {
+                const response = await fetch('/api/pase-lista/confirmar-asistencia', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Marcar que ya confirmé asistencia
+                    yaConfirmeAsistencia = true;
+                    
+                    // Ocultar el botón de confirmar asistencia
+                    const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
+                    if (containerAsistencia) {
+                        containerAsistencia.style.display = 'none';
+                    }
+                    
+                    // Mostrar botón gris de presente temporalmente
+                    mostrarBotonPresente();
+                    
+                    // Mostrar notificación de éxito con el mensaje del servidor
+                    if (data.mensaje) {
+                        showNotification(data.mensaje, 'success');
+                    } else {
+                        showNotification('✅ Asistencia registrada correctamente', 'success');
+                    }
+                    
+                    // Actualizar el indicador de asistencia
+                    updateAttendanceStatus('presente');
+                } else {
+                    const error = await response.json();
+                    showNotification('❌ Error al confirmar asistencia', 'error');
+                    showNotification(error.error || 'No se pudo confirmar su asistencia', 'warning');
+                }
+            } catch (error) {
+                console.error('Error confirmando asistencia:', error);
+                showNotification('❌ Error de conexión', 'error');
+            }
+        }
+        
         // Verificar mi asistencia actual
         async function checkMyAttendance() {
             try {
@@ -1992,13 +2102,22 @@
                 
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.asistencia) {
+                    if (data.asistencia === 'presente') {
                         hasMarkedAttendance = true;
                         myAttendanceStatus = data.asistencia;
+                        yaConfirmeAsistencia = true;
                         
                         // Actualizar indicador visual de asistencia
                         mostrarEstadoAsistencia(data.asistencia);
                         showAttendanceRegistered(data.asistencia);
+                        
+                        // No mostrar el botón verde si ya confirmó
+                        const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
+                        if (containerAsistencia) {
+                            containerAsistencia.style.display = 'none';
+                        }
+                    } else {
+                        yaConfirmeAsistencia = false;
                     }
                 }
             } catch (error) {
@@ -2552,15 +2671,89 @@
             showNoVoting();
         });
         
+        // Variable para rastrear si ya confirmé asistencia
+        let yaConfirmeAsistencia = false;
+        
         // Sincronización del pase de lista entre secretarios
-        socket.on('pase-lista-activado', (data) => {
+        socket.on('pase-lista-activado', async (data) => {
             console.log('Pase de lista activado:', data);
             
-            // Los diputados SOLO reciben notificación, NO pueden marcar asistencia
-            showNotification('📋 Pase de lista en curso', 'info');
-            showNotification('El secretario está tomando asistencia', 'warning');
+            // Primero verificar mi estado actual de asistencia
+            await checkMyAttendance();
             
-            // Verificar mi estado actual de asistencia
+            // Solo mostrar el botón si NO he confirmado asistencia todavía
+            if (!yaConfirmeAsistencia) {
+                const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
+                if (containerAsistencia) {
+                    containerAsistencia.style.display = 'block';
+                    const btnAsistencia = document.getElementById('btnConfirmarAsistencia');
+                    if (btnAsistencia) {
+                        btnAsistencia.classList.add('pulse-animation');
+                    }
+                }
+                
+                // Notificación para diputados que no han pasado lista
+                showNotification('📋 Pase de lista activado', 'success');
+                showNotification('Todo listo para marcar tu asistencia, da click en el botón verde', 'info');
+            } else {
+                // Si ya pasé lista, mostrar un botón gris temporalmente
+                mostrarBotonPresente();
+                console.log('Ya confirmé asistencia previamente, no muestro botón verde');
+            }
+        });
+        
+        // Escuchar cuando se confirma una asistencia (para actualizar en tiempo real)
+        socket.on('asistencia-confirmada', (data) => {
+            console.log('Asistencia confirmada:', data);
+            // Si es mi propia asistencia, ocultar el botón
+            if (data.diputado_id === user.id) {
+                const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
+                if (containerAsistencia) {
+                    containerAsistencia.style.display = 'none';
+                }
+                updateAttendanceStatus('presente');
+            }
+        });
+        
+        // Escuchar cuando se reinicia el pase de lista
+        socket.on('pase-lista-reiniciado', (data) => {
+            console.log('Pase de lista reiniciado:', data);
+            
+            // Resetear la variable de asistencia confirmada
+            yaConfirmeAsistencia = false;
+            
+            // Mostrar notificación
+            showNotification('🔄 ' + data.mensaje, 'warning');
+            
+            // Limpiar estado de asistencia
+            updateAttendanceStatus('');
+            
+            // Restaurar el botón original para cuando se reactive
+            const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
+            if (containerAsistencia) {
+                containerAsistencia.innerHTML = `
+                    <h4 class="text-center mb-4">
+                        <i class="fas fa-clipboard-check"></i> Pase de Lista Activo
+                    </h4>
+                    <button class="btn btn-success attendance-btn btn-presente" id="btnConfirmarAsistencia" onclick="confirmarMiAsistencia()">
+                        <i class="fas fa-user-check"></i>
+                        <span>CONFIRMAR MI ASISTENCIA</span>
+                    </button>
+                    <div class="text-center mt-3 text-muted">
+                        <small>Presione el botón para confirmar que está presente en la sesión</small>
+                    </div>
+                `;
+                containerAsistencia.style.display = 'none';
+            }
+        });
+        
+        // Escuchar cuando se reactiva el pase de lista después de reabrir
+        socket.on('pase-lista-reabierto', (data) => {
+            console.log('Pase de lista reabierto:', data);
+            showNotification('📋 Pase de lista reabierto para ajustes', 'info');
+            
+            // NO resetear yaConfirmeAsistencia aquí
+            // Solo verificar si ya confirmé asistencia
             checkMyAttendance();
         });
         
@@ -3027,20 +3220,20 @@
             console.log('Verificando cargo mesa directiva:', user.cargo_mesa_directiva);
             console.log('Usuario completo:', user);
             
-            // Verificar si es miembro de mesa directiva para mostrar botón EN VIVO
-            const cargoNormalizado = (user.cargo_mesa_directiva || '').toLowerCase();
-            const esMesaDirectiva = cargoNormalizado.includes('presidente') || 
-                                   cargoNormalizado.includes('vicepresidente') || 
-                                   cargoNormalizado.includes('secretario') || 
-                                   cargoNormalizado.includes('prosecretario');
+            // Verificar si es miembro de mesa directiva para mostrar botón EN VIVO - DESHABILITADO porque ya tenemos PWA
+            // const cargoNormalizado = (user.cargo_mesa_directiva || '').toLowerCase();
+            // const esMesaDirectiva = cargoNormalizado.includes('presidente') || 
+            //                        cargoNormalizado.includes('vicepresidente') || 
+            //                        cargoNormalizado.includes('secretario') || 
+            //                        cargoNormalizado.includes('prosecretario');
             
-            if (esMesaDirectiva) {
-                const btnStreaming = document.getElementById('btnStreamingLive');
-                if (btnStreaming) {
-                    btnStreaming.style.display = 'flex';
-                    console.log('Botón EN VIVO habilitado para mesa directiva');
-                }
-            }
+            // if (esMesaDirectiva) {
+            //     const btnStreaming = document.getElementById('btnStreamingLive');
+            //     if (btnStreaming) {
+            //         btnStreaming.style.display = 'flex';
+            //         console.log('Botón EN VIVO habilitado para mesa directiva');
+            //     }
+            // }
             
             // Mostrar menú de secretario en el panel lateral
             if (user.cargo_mesa_directiva === 'secretario1' || user.cargo_mesa_directiva === 'secretario2') {
@@ -3063,17 +3256,17 @@
             }
         }
         
-        // Función para abrir streaming en vivo
-        function abrirStreamingLive() {
-            toggleMenu();
-            
-            // Usar la página personalizada con fondo parallax y PWA
-            const currentHost = window.location.protocol + '//' + window.location.host;
-            window.open(currentHost + '/streaming-live', '_blank');
-            
-            // Opción alternativa: Abrir directamente LiveLAN de vMix (sin interfaz personalizada)
-            // window.open('http://192.168.150.71:8088/livelan', '_blank', 'width=1280,height=720,toolbar=no,menubar=no,location=no');
-        }
+        // Función para abrir streaming en vivo - DESHABILITADA porque ya tenemos PWA
+        // function abrirStreamingLive() {
+        //     toggleMenu();
+        //     
+        //     // Usar la página personalizada con fondo parallax y PWA
+        //     const currentHost = window.location.protocol + '//' + window.location.host;
+        //     window.open(currentHost + '/streaming-live', '_blank');
+        //     
+        //     // Opción alternativa: Abrir directamente LiveLAN de vMix (sin interfaz personalizada)
+        //     // window.open('http://192.168.150.71:8088/livelan', '_blank', 'width=1280,height=720,toolbar=no,menubar=no,location=no');
+        // }
         
         // Verificar autorización del vicepresidente
         async function verificarAutorizacionVicepresidente() {
