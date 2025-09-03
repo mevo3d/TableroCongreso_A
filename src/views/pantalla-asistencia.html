@@ -155,14 +155,14 @@
         /* Botón de asistencia */
         .attendance-btn {
             display: inline-block;
-            padding: 4px 12px;
+            padding: 6px 14px;
             border-radius: 6px;
-            font-size: 0.75em;
+            font-size: 0.72em;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
             color: white;
-            min-width: 80px;
+            min-width: 110px;
             text-align: center;
             transition: all 0.3s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
@@ -183,11 +183,20 @@
             opacity: 1 !important;
         }
         
-        /* Ausente */
+        /* Inasistencia */
         .attendance-absent {
             background-color: #DC3545 !important;
             border: 1px solid #bd2130 !important;
             box-shadow: 0 2px 6px rgba(220, 53, 69, 0.4) !important;
+            opacity: 1 !important;
+        }
+        
+        /* Justificado */
+        .attendance-justified {
+            background-color: #FFC107 !important;
+            border: 1px solid #e0a800 !important;
+            box-shadow: 0 2px 6px rgba(255, 193, 7, 0.4) !important;
+            color: #000 !important;
             opacity: 1 !important;
         }
         
@@ -258,6 +267,10 @@
         
         .result-circle-absent {
             background-color: #DC3545;
+        }
+        
+        .result-circle-justified {
+            background-color: #FFC107;
         }
         
         .result-circle-pending {
@@ -362,6 +375,56 @@
             opacity: 0.7;
             color: #aaa;
         }
+        
+        /* Modos para streaming con vMix/OBS */
+        
+        /* Fondo transparente real para vMix */
+        body.transparent-bg {
+            background: rgba(0, 0, 0, 0) !important;
+        }
+        
+        body.transparent-bg .main-container,
+        body.transparent-bg .content-wrapper-full,
+        body.transparent-bg .attendance-table-container-full {
+            background: rgba(0, 0, 0, 0) !important;
+            box-shadow: none !important;
+        }
+        
+        body.transparent-bg .attendance-column {
+            background: rgba(51, 51, 51, 0.9) !important;
+        }
+        
+        /* Modo chromakey - Verde puro para key */
+        body.chromakey-mode {
+            background: #00ff00 !important;
+        }
+        
+        body.chromakey-mode.chromakey-blue {
+            background: #0000ff !important;
+        }
+        
+        body.chromakey-mode .main-container,
+        body.chromakey-mode .content-wrapper-full,
+        body.chromakey-mode .attendance-table-container-full {
+            background: #00ff00 !important;
+            box-shadow: none !important;
+        }
+        
+        body.chromakey-mode.chromakey-blue .main-container,
+        body.chromakey-mode.chromakey-blue .content-wrapper-full,
+        body.chromakey-mode.chromakey-blue .attendance-table-container-full {
+            background: #0000ff !important;
+            box-shadow: none !important;
+        }
+        
+        /* Modo minimalista - sin header ni logos */
+        body.minimal-mode .header-section {
+            display: none !important;
+        }
+        
+        body.minimal-mode .attendance-table-container-full {
+            padding-top: 30px;
+        }
     </style>
     <link rel="stylesheet" href="/css/global-background.css">
 </head>
@@ -392,9 +455,14 @@
                             <span class="result-number" id="presentCount">00</span>
                         </div>
                         <div class="result-item">
-                            <span class="result-label">AUSENTES</span>
+                            <span class="result-label">INASISTENCIAS</span>
                             <span class="result-circle result-circle-absent"></span>
                             <span class="result-number" id="absentCount">00</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">JUSTIFICADOS</span>
+                            <span class="result-circle result-circle-justified"></span>
+                            <span class="result-number" id="justifiedCount">00</span>
                         </div>
                     </div>
                     <div class="logo-right" id="logoRight">
@@ -421,6 +489,40 @@
         let previousAttendance = {};
         let configuracionSistema = {};
         let partidosData = {};
+        
+        // Detectar parámetros de URL para modos especiales (vMix/OBS)
+        function applyStreamingModes() {
+            const params = new URLSearchParams(window.location.search);
+            
+            // Fondo transparente
+            if (params.get('transparent') === 'true' || params.get('bg') === 'transparent') {
+                document.body.classList.add('transparent-bg');
+            }
+            
+            // Modo chromakey
+            if (params.get('chromakey') === 'true' || params.get('greenscreen') === 'true') {
+                document.body.classList.add('chromakey-mode');
+                
+                // Chromakey azul si se especifica
+                if (params.get('chromakey') === 'blue') {
+                    document.body.classList.add('chromakey-blue');
+                }
+                
+                // Color chromakey personalizado
+                const chromaColor = params.get('chromacolor');
+                if (chromaColor) {
+                    document.body.style.backgroundColor = `#${chromaColor}`;
+                }
+            }
+            
+            // Modo minimalista
+            if (params.get('minimal') === 'true' || params.get('header') === 'false') {
+                document.body.classList.add('minimal-mode');
+            }
+        }
+        
+        // Aplicar modos al cargar
+        applyStreamingModes();
         
         // Lista predefinida de los 20 diputados - Con IDs REALES de la base de datos
         const DIPUTADOS_DEFAULT = [
@@ -853,7 +955,9 @@
                                             ${asistencia === 'presente' ? 
                                                 `<span class="attendance-btn attendance-present ${isNewAttendance ? 'attendance-animated' : ''}">Presente</span>` :
                                               asistencia === 'ausente' ?
-                                                `<span class="attendance-btn attendance-absent ${isNewAttendance ? 'attendance-animated' : ''}">Ausente</span>` :
+                                                `<span class="attendance-btn attendance-absent ${isNewAttendance ? 'attendance-animated' : ''}">Inasistencia</span>` :
+                                              asistencia === 'justificado' ?
+                                                `<span class="attendance-btn attendance-justified ${isNewAttendance ? 'attendance-animated' : ''}">Justificado</span>` :
                                                 `<span class="attendance-btn attendance-default">---</span>`
                                             }
                                         </td>
@@ -908,6 +1012,7 @@
         function actualizarEstadisticas() {
             let presentes = 0;
             let ausentes = 0;
+            let justificados = 0;
             let sinMarcar = 0;
             
             // Usar los diputados reales cargados
@@ -919,6 +1024,8 @@
                     presentes++;
                 } else if (asistencia === 'ausente') {
                     ausentes++;
+                } else if (asistencia === 'justificado') {
+                    justificados++;
                 } else {
                     sinMarcar++;
                 }
@@ -926,6 +1033,7 @@
             
             document.getElementById('presentCount').textContent = String(presentes).padStart(2, '0');
             document.getElementById('absentCount').textContent = String(ausentes).padStart(2, '0');
+            document.getElementById('justifiedCount').textContent = String(justificados).padStart(2, '0');
             document.getElementById('pendingCount').textContent = String(sinMarcar).padStart(2, '0');
             
             // Calcular y mostrar quórum (necesita 11 de 20 diputados = mayoría simple)
@@ -980,7 +1088,7 @@
                                         box-shadow: 0 8px 25px rgba(0,0,0,0.3); text-align: center;">
                                 <i class="fas fa-user-times" style="color: white; font-size: 3em; margin-bottom: 15px;"></i>
                                 <h1 style="color: white; font-size: 4em; margin: 10px 0; font-weight: bold;">${ausentes}</h1>
-                                <h4 style="color: white; text-transform: uppercase; letter-spacing: 2px; margin: 0;">Ausentes</h4>
+                                <h4 style="color: white; text-transform: uppercase; letter-spacing: 2px; margin: 0;">Inasistencias</h4>
                             </div>
                             
                             <!-- Card Total -->

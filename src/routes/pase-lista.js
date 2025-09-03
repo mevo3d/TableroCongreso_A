@@ -102,7 +102,7 @@ router.get('/actual', (req, res) => {
 
 // Marcar asistencia
 router.post('/marcar', (req, res) => {
-    const { diputado_id, asistencia } = req.body;
+    const { diputado_id, asistencia, justificacion_motivo } = req.body;
     const db = req.db;
     const io = req.io;
     const userId = req.user.id;
@@ -171,40 +171,114 @@ router.post('/marcar', (req, res) => {
         });
     
         function guardarAsistencia(paseListaId) {
-            // Insertar o actualizar asistencia
-            db.run(`
-                INSERT OR REPLACE INTO asistencias (pase_lista_id, diputado_id, asistencia, hora)
-                VALUES (?, ?, ?, datetime('now'))
-            `, [paseListaId, diputado_id, asistencia], (err) => {
+            // Primero verificar si ya hay un registro previo para detectar llegada tardía
+            db.get(`
+                SELECT asistencia, hora, hora_pase_lista_inicial
+                FROM asistencias a
+                JOIN pase_lista pl ON a.pase_lista_id = pl.id
+                WHERE a.pase_lista_id = ? AND a.diputado_id = ?
+            `, [paseListaId, diputado_id], (err, registroPrevio) => {
                 if (err) {
-                    return res.status(500).json({ error: 'Error guardando asistencia' });
+                    console.error('Error verificando registro previo:', err);
                 }
                 
-                // Si se marca como presente, habilitar votación
-                // Si se marca como ausente, deshabilitar votación
-                const puedeVotar = asistencia === 'presente' ? 1 : 0;
+                // Detectar si es llegada tardía (cambio de ausente a presente después del pase inicial)
+                const esLlegadaTardia = registroPrevio && 
+                                       registroPrevio.asistencia === 'ausente' && 
+                                       asistencia === 'presente';
                 
-                db.run(`
-                    UPDATE usuarios 
-                    SET puede_votar = ? 
-                    WHERE id = ? AND role = 'diputado'
-                `, [puedeVotar, diputado_id], (err) => {
-                    if (err) {
-                        console.error('Error actualizando puede_votar:', err);
+                // Verificar si ya existe un registro
+                if (registroPrevio) {
+                    // Actualizar registro existente
+                    let updateQuery = `UPDATE asistencias SET asistencia = ?, hora = datetime('now')`;
+                    let updateParams = [asistencia];
+                    
+                    if (asistencia === 'justificado') {
+                        updateQuery += `, justificacion_motivo = ?, justificado_por = ?, hora_justificacion = datetime('now')`;
+                        updateParams.push(justificacion_motivo || 'Justificada por secretario');
+                        updateParams.push(userId);
                     }
                     
-                    // Emitir evento
-                    io.emit('asistencia-marcada', {
-                        diputado_id,
-                        asistencia,
-                        puede_votar: puedeVotar
-                    });
+                    if (esLlegadaTardia) {
+                        updateQuery += `, llegada_tardia = 1, hora_llegada_tardia = datetime('now')`;
+                    }
                     
-                    res.json({ 
-                        message: 'Asistencia marcada correctamente',
-                        puede_votar: puedeVotar
+                    updateQuery += ` WHERE pase_lista_id = ? AND diputado_id = ?`;
+                    updateParams.push(paseListaId, diputado_id);
+                    
+                    db.run(updateQuery, updateParams, (err) => {
+                        if (err) {
+                            console.error('Error actualizando asistencia:', err);
+                            return res.status(500).json({ error: 'Error actualizando asistencia' });
+                        }
+                        procesarRespuesta();
                     });
-                });
+                } else {
+                    // Insertar nuevo registro
+                    let insertQuery = `INSERT INTO asistencias (pase_lista_id, diputado_id, asistencia, hora`;
+                    let insertFields = '';
+                    let insertValues = `VALUES (?, ?, ?, datetime('now')`;
+                    let insertParams = [paseListaId, diputado_id, asistencia];
+                    
+                    if (asistencia === 'justificado') {
+                        insertFields += ', justificacion_motivo, justificado_por, hora_justificacion';
+                        insertValues += ', ?, ?, datetime(\'now\')';
+                        insertParams.push(justificacion_motivo || 'Justificada por secretario');
+                        insertParams.push(userId);
+                    }
+                    
+                    if (esLlegadaTardia) {
+                        insertFields += ', llegada_tardia, hora_llegada_tardia';
+                        insertValues += ', 1, datetime(\'now\')';
+                    }
+                    
+                    insertQuery += insertFields + ') ' + insertValues + ')';
+                    
+                    db.run(insertQuery, insertParams, (err) => {
+                        if (err) {
+                            console.error('Error insertando asistencia:', err);
+                            return res.status(500).json({ error: 'Error guardando asistencia' });
+                        }
+                        procesarRespuesta();
+                    });
+                }
+                
+                function procesarRespuesta() {
+                    // Si se marca como presente o justificado, habilitar votación
+                    // Si se marca como ausente, deshabilitar votación
+                    const puedeVotar = (asistencia === 'presente' || asistencia === 'justificado') ? 1 : 0;
+                    
+                    db.run(`
+                        UPDATE usuarios 
+                        SET puede_votar = ? 
+                        WHERE id = ? AND role = 'diputado'
+                    `, [puedeVotar, diputado_id], (err) => {
+                        if (err) {
+                            console.error('Error actualizando puede_votar:', err);
+                        }
+                        
+                        // Obtener nombre del diputado para la notificación
+                        db.get('SELECT nombre_completo FROM usuarios WHERE id = ?', [diputado_id], (err, diputado) => {
+                            // Emitir evento con nombre del diputado
+                            io.emit('asistencia-marcada', {
+                                diputado_id,
+                                asistencia,
+                                puede_votar: puedeVotar,
+                                llegada_tardia: esLlegadaTardia,
+                                nombre_diputado: diputado ? diputado.nombre_completo : `Diputado ${diputado_id}`,
+                                marcado_por: 'secretario'
+                            });
+                        });
+                        
+                        res.json({ 
+                            message: esLlegadaTardia ? 
+                                    'Asistencia marcada como retardo' : 
+                                    'Asistencia marcada correctamente',
+                            llegada_tardia: esLlegadaTardia,
+                            puede_votar: puedeVotar
+                        });
+                    });
+                }
             });
         }
     });
@@ -1527,12 +1601,13 @@ router.post('/auto-registro', (req, res) => {
                                     (err, resultado) => {
                                         const totalPresentes = resultado ? resultado.total : 0;
                                         
-                                        // Emitir actualización a pantalla de asistencia
+                                        // Emitir actualización a pantalla de asistencia con nombre
                                         io.emit('asistencia-marcada', {
                                             diputado_id: diputado_id,
                                             asistencia: asistencia,
                                             auto_registro: true,
-                                            llegada_tardia: llegada_tardia
+                                            llegada_tardia: llegada_tardia,
+                                            nombre_diputado: req.user.nombre_completo
                                         });
                                         
                                         // Si es llegada tardía, notificar especialmente

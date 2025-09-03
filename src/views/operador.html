@@ -4232,18 +4232,24 @@
             if (tipo === 'asistencia') {
                 modos = [
                     { url: '/pantalla-asistencia', titulo: 'Modo Normal', desc: 'Vista completa de asistencia' },
-                    { url: '/pantalla-asistencia?obs=true&transparent=true', titulo: 'Fondo Transparente', desc: 'Para superponer sobre otros elementos' },
+                    { url: '/pantalla-asistencia?transparent=true', titulo: 'Fondo Transparente', desc: 'Para superponer sobre otros elementos' },
                     { url: '/pantalla-asistencia?chromakey=true', titulo: 'Chromakey (Verde)', desc: 'Fondo verde para eliminación por color' },
+                    { url: '/pantalla-asistencia?chromakey=blue', titulo: 'Chromakey (Azul)', desc: 'Fondo azul para eliminación por color' },
                     { url: '/pantalla-asistencia?minimal=true', titulo: 'Modo Minimalista', desc: 'Vista simplificada de asistencia' },
-                    { url: '/pantalla-asistencia?header=false', titulo: 'Sin Encabezado', desc: 'Oculta el título y encabezado' }
+                    { url: '/pantalla-asistencia?header=false', titulo: 'Sin Encabezado', desc: 'Oculta el título y encabezado' },
+                    { url: '/pantalla-asistencia?minimal=true&transparent=true', titulo: 'Minimalista Transparente', desc: 'Sin header y con fondo transparente' }
                 ];
             } else {
                 modos = [
                     { url: '/pantalla', titulo: 'Modo Normal', desc: 'Vista completa con todos los elementos' },
-                    { url: '/pantalla?obs=true&transparent=true', titulo: 'Fondo Transparente', desc: 'Para superponer sobre otros elementos' },
+                    { url: '/pantalla?transparent=true', titulo: 'Fondo Transparente', desc: 'Para superponer sobre otros elementos' },
                     { url: '/pantalla?chromakey=true', titulo: 'Chromakey (Verde)', desc: 'Fondo verde para eliminación por color' },
+                    { url: '/pantalla?chromakey=blue', titulo: 'Chromakey (Azul)', desc: 'Fondo azul para eliminación por color' },
                     { url: '/pantalla?voting-only=true', titulo: 'Solo Votación', desc: 'Muestra únicamente la tabla de votación' },
-                    { url: '/pantalla?results-only=true', titulo: 'Solo Resultados', desc: 'Panel de resumen únicamente' }
+                    { url: '/pantalla?results-only=true', titulo: 'Solo Resultados', desc: 'Panel de resumen únicamente' },
+                    { url: '/pantalla?initiative-only=true', titulo: 'Solo Iniciativa', desc: 'Muestra únicamente el texto de la iniciativa' },
+                    { url: '/pantalla?voting-only=true&transparent=true', titulo: 'Solo Votación (Transparente)', desc: 'Tabla con fondo transparente' },
+                    { url: '/pantalla?results-only=true&transparent=true', titulo: 'Solo Resultados (Transparente)', desc: 'Resumen con fondo transparente' }
                 ];
             }
             
@@ -4262,18 +4268,40 @@
             `).join('');
         }
         
-        // Copiar URL al portapapeles
+        // Copiar URL al portapapeles con feedback mejorado
         function copiarURL(path) {
             // Si el path contiene 'asistencia', usar la ruta correcta
             if (path.includes('asistencia') && !path.includes('pantalla-asistencia')) {
                 path = path.replace('/pantalla', '/pantalla-asistencia');
             }
-            const url = window.location.origin + path;
+            
+            // Usar IP real del servidor en lugar de localhost
+            const host = window.location.hostname;
+            const port = window.location.port;
+            const protocol = window.location.protocol;
+            const url = `${protocol}//${host}${port ? ':' + port : ''}${path}`;
+            
+            // Obtener el botón que se clickeó para feedback visual
+            const btn = event ? event.target.closest('button') : null;
             
             // Usar la API del portapapeles con manejo de errores
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(url).then(() => {
-                    showNotification('✅ URL copiada al portapapeles', 'success');
+                    showNotification(`✅ URL copiada: ${url}`, 'success');
+                    
+                    // Feedback visual en el botón
+                    if (btn) {
+                        const originalHTML = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                        btn.classList.remove('btn-outline-primary');
+                        btn.classList.add('btn-success');
+                        
+                        setTimeout(() => {
+                            btn.innerHTML = originalHTML;
+                            btn.classList.remove('btn-success');
+                            btn.classList.add('btn-outline-primary');
+                        }, 2000);
+                    }
                 }).catch(err => {
                     console.error('Error al copiar:', err);
                     // Fallback al método tradicional

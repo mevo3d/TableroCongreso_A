@@ -6,6 +6,62 @@ const path = require('path');
 
 const router = express.Router();
 
+// Función auxiliar para generar reporte de asistencias
+function generarReporteAsistencias(asistencias) {
+    const reporte = {
+        resumen: {
+            presentes: 0,
+            ausentes: 0,
+            justificados: 0,
+            retardos: 0,
+            total_diputados: 0
+        },
+        detalle: [],
+        hora_pase_lista: null
+    };
+    
+    if (!asistencias || asistencias.length === 0) {
+        return reporte;
+    }
+    
+    asistencias.forEach(a => {
+        reporte.total_diputados++;
+        
+        let estadoFinal = '';
+        if (a.asistencia === 'presente') {
+            if (a.llegada_tardia) {
+                estadoFinal = 'Asistencia con retardo';
+                reporte.resumen.retardos++;
+            } else {
+                estadoFinal = 'Presente';
+                reporte.resumen.presentes++;
+            }
+        } else if (a.asistencia === 'ausente') {
+            estadoFinal = 'Inasistencia';
+            reporte.resumen.ausentes++;
+        } else if (a.asistencia === 'justificado') {
+            estadoFinal = 'Inasistencia Justificada';
+            reporte.resumen.justificados++;
+        } else {
+            estadoFinal = 'Sin registro';
+        }
+        
+        reporte.detalle.push({
+            nombre: a.nombre_completo,
+            partido: a.partido,
+            estado: estadoFinal,
+            hora_registro: a.hora,
+            hora_llegada_tardia: a.hora_llegada_tardia,
+            justificacion_motivo: a.justificacion_motivo,
+            justificado_por: a.justificado_por_nombre
+        });
+    });
+    
+    reporte.resumen.total_diputados = asistencias.length;
+    
+    return reporte;
+}
+
 // Configuración de multer para subir logos y fotos
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -184,60 +240,98 @@ router.post('/cerrar-sesion', (req, res) => {
             return res.status(400).json({ error: 'No hay sesión activa' });
         }
         
-        // Cerrar todas las votaciones activas
-        db.run(
-            `UPDATE iniciativas 
-             SET activa = 0, cerrada = 1 
-             WHERE sesion_id = ? AND activa = 1`,
+        // Primero obtener datos de asistencia
+        db.all(
+            `SELECT 
+                u.nombre_completo,
+                u.partido,
+                a.asistencia,
+                a.hora,
+                a.llegada_tardia,
+                a.hora_llegada_tardia,
+                a.justificacion_motivo,
+                a.hora_justificacion,
+                uj.nombre_completo as justificado_por_nombre,
+                pl.fecha as fecha_pase_lista,
+                pl.hora_pase_lista_inicial
+            FROM usuarios u
+            LEFT JOIN pase_lista pl ON pl.sesion_id = ?
+            LEFT JOIN asistencias a ON u.id = a.diputado_id AND a.pase_lista_id = pl.id
+            LEFT JOIN usuarios uj ON a.justificado_por = uj.id
+            WHERE u.role = 'diputado'
+            ORDER BY u.nombre_completo`,
             [sesion.id],
-            (err) => {
+            (err, asistencias) => {
                 if (err) {
-                    return res.status(500).json({ error: 'Error cerrando votaciones' });
+                    console.error('Error obteniendo asistencias:', err);
                 }
                 
-                // Clausurar la sesión formalmente
-                const fechaClausura = new Date().toISOString();
+                // Cerrar todas las votaciones activas
                 db.run(
-                    `UPDATE sesiones 
-                     SET activa = 0, 
-                         fecha_clausura = ?,
-                         clausurada_por = ?,
-                         estado = 'clausurada'
-                     WHERE id = ?`,
-                    [fechaClausura, userId, sesion.id],
+                    `UPDATE iniciativas 
+                     SET activa = 0, cerrada = 1 
+                     WHERE sesion_id = ? AND activa = 1`,
+                    [sesion.id],
                     (err) => {
                         if (err) {
-                            return res.status(500).json({ error: 'Error clausurando sesión' });
+                            return res.status(500).json({ error: 'Error cerrando votaciones' });
                         }
                         
-                        // Obtener estadísticas finales
-                        db.get(
-                            `SELECT 
-                                COUNT(DISTINCT i.id) as total_iniciativas,
-                                COUNT(DISTINCT CASE WHEN i.resultado = 'aprobada' THEN i.id END) as aprobadas,
-                                COUNT(DISTINCT CASE WHEN i.resultado = 'rechazada' THEN i.id END) as rechazadas,
-                                COUNT(DISTINCT v.diputado_id) as participacion
-                            FROM iniciativas i
-                            LEFT JOIN votaciones v ON i.id = v.iniciativa_id
-                            WHERE i.sesion_id = ?`,
-                            [sesion.id],
-                            (err, stats) => {
+                        // Clausurar la sesión formalmente
+                        const fechaClausura = new Date().toISOString();
+                        db.run(
+                            `UPDATE sesiones 
+                             SET activa = 0, 
+                                 fecha_clausura = ?,
+                                 clausurada_por = ?,
+                                 estado = 'clausurada'
+                             WHERE id = ?`,
+                            [fechaClausura, userId, sesion.id],
+                            (err) => {
                                 if (err) {
-                                    console.error('Error obteniendo estadísticas:', err);
+                                    return res.status(500).json({ error: 'Error clausurando sesión' });
                                 }
                                 
-                                // Emitir evento de sesión clausurada
-                                io.emit('sesion-clausurada', {
-                                    sesion_id: sesion.id,
-                                    clausurada_por: 'Superadmin',
-                                    fecha_clausura: fechaClausura,
-                                    estadisticas: stats || {}
-                                });
-                                
-                                res.json({ 
-                                    message: 'Sesión clausurada correctamente',
-                                    estadisticas: stats || {}
-                                });
+                                // Obtener estadísticas finales
+                                db.get(
+                                    `SELECT 
+                                        COUNT(DISTINCT i.id) as total_iniciativas,
+                                        COUNT(DISTINCT CASE WHEN i.resultado = 'aprobada' THEN i.id END) as aprobadas,
+                                        COUNT(DISTINCT CASE WHEN i.resultado = 'rechazada' THEN i.id END) as rechazadas,
+                                        COUNT(DISTINCT v.diputado_id) as participacion
+                                    FROM iniciativas i
+                                    LEFT JOIN votaciones v ON i.id = v.iniciativa_id
+                                    WHERE i.sesion_id = ?`,
+                                    [sesion.id],
+                                    (err, stats) => {
+                                        if (err) {
+                                            console.error('Error obteniendo estadísticas:', err);
+                                        }
+                                        
+                                        // Generar reporte de asistencias
+                                        const reporteAsistencias = generarReporteAsistencias(asistencias);
+                                        
+                                        // Obtener timestamp del pase de lista
+                                        if (asistencias && asistencias.length > 0 && asistencias[0].hora_pase_lista_inicial) {
+                                            reporteAsistencias.hora_pase_lista = asistencias[0].hora_pase_lista_inicial;
+                                        }
+                                        
+                                        // Emitir evento de sesión clausurada
+                                        io.emit('sesion-clausurada', {
+                                            sesion_id: sesion.id,
+                                            clausurada_por: 'Superadmin',
+                                            fecha_clausura: fechaClausura,
+                                            estadisticas: stats || {},
+                                            reporte_asistencias: reporteAsistencias
+                                        });
+                                        
+                                        res.json({ 
+                                            message: 'Sesión clausurada correctamente',
+                                            estadisticas: stats || {},
+                                            reporte_asistencias: reporteAsistencias
+                                        });
+                                    }
+                                );
                             }
                         );
                     }

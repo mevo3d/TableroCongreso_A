@@ -198,6 +198,17 @@
             border: 1px solid rgba(255, 69, 58, 0.4);
         }
         
+        .deputy-card.justified {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 179, 0, 0.15));
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.15);
+        }
+        
+        [data-theme="dark"] .deputy-card.justified {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 179, 0, 0.2));
+            border: 1px solid rgba(255, 193, 7, 0.4);
+        }
+        
         .deputy-info {
             display: flex;
             align-items: center;
@@ -328,6 +339,17 @@
             100% { box-shadow: 0 0 20px rgba(40, 167, 69, 0.6); }
         }
         
+        @keyframes slideIn {
+            from {
+                transform: translateX(-50%) translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+        
         /* Efecto pulse para cuando un diputado confirma asistencia */
         @keyframes pulseOnce {
             0% {
@@ -351,6 +373,27 @@
         .btn-absent.active {
             background-color: #bd2130 !important;
             box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.5);
+        }
+        
+        .btn-justified {
+            background: linear-gradient(135deg, #ffc107, #ffb300);
+            color: #000;
+            border: none;
+            box-shadow: 0 2px 6px rgba(255, 193, 7, 0.2);
+        }
+        
+        .btn-justified:hover {
+            background: linear-gradient(135deg, #ffb300, #ffc107);
+            color: #000;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+        }
+        
+        .btn-justified.active {
+            background: linear-gradient(135deg, #ffa000, #ff8f00) !important;
+            color: #000 !important;
+            box-shadow: 0 0 20px rgba(255, 193, 7, 0.6);
+            transform: scale(1.05);
         }
         
         .control-panel {
@@ -493,7 +536,11 @@
                 </div>
                 <div class="stat-card absent">
                     <h3 id="absentCount">0</h3>
-                    <small>Ausentes</small>
+                    <small>Inasistencias</small>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 179, 0, 0.15)); border-color: #ffc107;">
+                    <h3 id="justifiedCount" style="color: #ffc107;">0</h3>
+                    <small>Justificados</small>
                 </div>
                 <div class="stat-card total">
                     <h3 id="totalCount">20</h3>
@@ -552,11 +599,13 @@
         
         // Verificar permisos y estado de sesión
         async function checkPermissions() {
+            console.log('=== checkPermissions iniciado ===');
             console.log('Usuario actual:', user);
             console.log('Nombre completo:', user.nombre_completo);
             console.log('Nombre:', user.nombre);
             console.log('Cargo:', user.cargo_mesa_directiva);
             console.log('Role:', user.role);
+            
             // Primero verificar si la sesión está iniciada
             try {
                 const sessionResponse = await fetch('/api/diputado/sesion-actual', {
@@ -570,17 +619,21 @@
                     
                     // Verificar si hay sesión activa e iniciada
                     if (!sessionData.sesion_activa) {
+                        console.error('No hay sesión activa');
                         alert('No hay sesión activa. El Operador debe preparar una sesión primero.');
                         goBack();
-                        return;
+                        return false;
                     }
                     
                     // Verificar si la sesión está iniciada (tiene fecha_inicio)
                     if (sessionData.sesion && !sessionData.sesion.fecha_inicio) {
+                        console.error('Sesión no iniciada por el presidente');
                         alert('La sesión debe ser iniciada por el Presidente antes de realizar el pase de lista.');
                         goBack();
-                        return;
+                        return false;
                     }
+                    
+                    console.log('Sesión activa e iniciada encontrada');
                 }
             } catch (error) {
                 console.error('Error verificando estado de sesión:', error);
@@ -611,34 +664,59 @@
                 document.getElementById('readonlyBadge').style.display = 'inline-block';
             } else {
                 // No tienen acceso
+                console.error('Usuario sin permisos:', user.role, user.cargo_mesa_directiva);
                 alert('No tienes permisos para acceder a esta sección');
                 goBack();
+                return false;
             }
+            
+            console.log('=== checkPermissions completado exitosamente ===');
+            return true;
         }
         
         // Cargar diputados
         async function loadDeputies() {
+            console.log('=== Iniciando loadDeputies ===');
+            console.log('Token disponible:', token ? 'Sí' : 'No');
+            
+            if (!token) {
+                console.error('No hay token disponible');
+                return;
+            }
+            
             try {
+                console.log('Haciendo fetch a /api/pase-lista/diputados');
                 const response = await fetch('/api/pase-lista/diputados', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
                 
+                console.log('Respuesta recibida:', response.status);
+                
                 if (response.ok) {
                     const deputies = await response.json();
+                    console.log('Diputados recibidos:', deputies.length);
                     displayDeputies(deputies);
                 } else {
-                    console.error('Error cargando diputados');
+                    const error = await response.text();
+                    console.error('Error cargando diputados:', response.status, error);
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error en loadDeputies:', error);
             }
         }
         
         // Mostrar diputados
         function displayDeputies(deputies) {
+            console.log('=== displayDeputies llamado con', deputies.length, 'diputados ===');
             const grid = document.getElementById('deputiesGrid');
+            
+            if (!grid) {
+                console.error('No se encontró el elemento deputiesGrid');
+                return;
+            }
+            
             grid.innerHTML = '';
             
             // Lista ordenada de diputados con sus IDs correctos
@@ -724,7 +802,12 @@
                         <button class="btn btn-absent ${attendance === 'ausente' ? 'active' : ''}" 
                                 onclick="markAttendance(${correctId}, 'ausente', this)"
                                 ${isReadonly ? 'disabled' : ''}>
-                            <i class="fas fa-times"></i> <span style="font-size: 0.85em;">AUSENTE</span>
+                            <i class="fas fa-times"></i> <span style="font-size: 0.85em;">INASISTENCIA</span>
+                        </button>
+                        <button class="btn btn-justified ${attendance === 'justificado' ? 'active' : ''}" 
+                                onclick="markAttendance(${correctId}, 'justificado', this)"
+                                ${isReadonly ? 'disabled' : ''}>
+                            <i class="fas fa-file-alt"></i> <span style="font-size: 0.85em;">JUSTIFICADO</span>
                         </button>
                     </div>
                 `;
@@ -768,21 +851,64 @@
             }
         }
         
-        // Función para mostrar notificaciones
-        function mostrarNotificacion(mensaje, tipo = 'info') {
+        // Sistema mejorado de notificaciones con desplazamiento
+        let notificacionesActivas = [];
+        
+        function mostrarNotificacion(mensaje, tipo = 'info', duracion = 3000) {
             // Crear elemento de notificación
             const notificacion = document.createElement('div');
-            notificacion.className = `alert alert-${tipo} position-fixed top-0 start-50 translate-middle-x mt-3`;
-            notificacion.style.zIndex = '9999';
-            notificacion.style.minWidth = '300px';
-            notificacion.textContent = mensaje;
+            notificacion.className = `alert alert-${tipo} position-fixed start-50 translate-middle-x shadow-lg`;
+            notificacion.style.cssText = `
+                z-index: 9999;
+                min-width: 300px;
+                max-width: 500px;
+                transition: all 0.3s ease;
+                animation: slideIn 0.3s ease;
+            `;
+            notificacion.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <span class="flex-grow-1">${mensaje}</span>
+                    <button type="button" class="btn-close btn-sm ms-2" onclick="this.parentElement.parentElement.remove()"></button>
+                </div>
+            `;
             
+            // Calcular posición basada en notificaciones existentes
+            const alturaNotificacion = 60;
+            const espacioEntre = 10;
+            const topInicial = 20;
+            
+            // Desplazar notificaciones existentes hacia abajo
+            notificacionesActivas.forEach((notif, index) => {
+                if (notif && notif.parentNode) {
+                    notif.style.top = `${topInicial + (index + 1) * (alturaNotificacion + espacioEntre)}px`;
+                }
+            });
+            
+            // Posicionar nueva notificación arriba
+            notificacion.style.top = `${topInicial}px`;
+            
+            // Agregar al DOM y al array de notificaciones activas
             document.body.appendChild(notificacion);
+            notificacionesActivas.unshift(notificacion);
             
-            // Remover después de 3 segundos
+            // Remover después del tiempo especificado
             setTimeout(() => {
-                notificacion.remove();
-            }, 3000);
+                notificacion.style.opacity = '0';
+                setTimeout(() => {
+                    const index = notificacionesActivas.indexOf(notificacion);
+                    if (index > -1) {
+                        notificacionesActivas.splice(index, 1);
+                    }
+                    notificacion.remove();
+                    
+                    // Reposicionar notificaciones restantes
+                    notificacionesActivas.forEach((notif, idx) => {
+                        if (notif && notif.parentNode) {
+                            notif.style.top = `${topInicial + idx * (alturaNotificacion + espacioEntre)}px`;
+                        }
+                    });
+                }, 300);
+            }, duracion);
         }
         
         // Marcar asistencia
@@ -801,11 +927,13 @@
                 buttonElement.classList.add('active');
                 
                 // Actualizar la tarjeta visualmente
-                card.classList.remove('present', 'absent');
+                card.classList.remove('present', 'absent', 'justified');
                 if (status === 'presente') {
                     card.classList.add('present');
                 } else if (status === 'ausente') {
                     card.classList.add('absent');
+                } else if (status === 'justificado') {
+                    card.classList.add('justified');
                 }
             }
             
@@ -876,7 +1004,7 @@
                     const mensaje = `✅ PASE DE LISTA CONFIRMADO\n\n` +
                                   `📊 Resumen:\n` +
                                   `• Presentes: ${data.presentes || 0}\n` +
-                                  `• Ausentes: ${data.ausentes || 0}\n` +
+                                  `• Inasistencias: ${data.ausentes || 0}\n` +
                                   `• Total: ${(data.presentes || 0) + (data.ausentes || 0)} diputados\n\n` +
                                   `Regresando al panel de diputado...`;
                     
@@ -1103,13 +1231,82 @@
             }
         }
         
+        // Función auxiliar para obtener el nombre del diputado por ID
+        function obtenerNombreDiputado(diputadoId) {
+            // Buscar el nombre en las tarjetas del grid
+            const cards = document.querySelectorAll('.deputy-card');
+            for (let card of cards) {
+                const buttons = card.querySelectorAll('.attendance-buttons button');
+                for (let btn of buttons) {
+                    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`markAttendance(${diputadoId},`)) {
+                        const nameElement = card.querySelector('.deputy-name');
+                        if (nameElement) {
+                            return nameElement.textContent.trim();
+                        }
+                        break;
+                    }
+                }
+            }
+            return `Diputado ${diputadoId}`;
+        }
+        
+        // Función para actualizar un diputado en el grid
+        function actualizarDiputadoEnGrid(diputadoId, estado) {
+            // Buscar la tarjeta del diputado
+            const cards = document.querySelectorAll('.deputy-card');
+            
+            cards.forEach(card => {
+                const buttons = card.querySelectorAll('.attendance-buttons button');
+                buttons.forEach(btn => {
+                    if (btn.onclick && btn.onclick.toString().includes(`markAttendance(${diputadoId}`)) {
+                        // Actualizar estado visual de la tarjeta
+                        card.classList.remove('present', 'absent', 'justified');
+                        
+                        // Remover estado activo de todos los botones
+                        const allButtons = card.querySelectorAll('.attendance-buttons button');
+                        allButtons.forEach(b => b.classList.remove('active'));
+                        
+                        // Activar el botón correspondiente y actualizar la tarjeta
+                        if (estado === 'presente') {
+                            card.classList.add('present');
+                            const presentBtn = card.querySelector('.btn-present');
+                            if (presentBtn) presentBtn.classList.add('active');
+                        } else if (estado === 'ausente') {
+                            card.classList.add('absent');
+                            const absentBtn = card.querySelector('.btn-absent');
+                            if (absentBtn) absentBtn.classList.add('active');
+                        } else if (estado === 'justificado') {
+                            card.classList.add('justified');
+                            const justifiedBtn = card.querySelector('.btn-justified');
+                            if (justifiedBtn) justifiedBtn.classList.add('active');
+                        }
+                        
+                        // Agregar efecto visual de actualización
+                        card.style.animation = 'pulseOnce 0.6s ease';
+                        setTimeout(() => {
+                            card.style.animation = '';
+                        }, 600);
+                        
+                        return;
+                    }
+                });
+            });
+        }
+        
         // Actualizar estadísticas
         function updateStats() {
             const present = Object.values(attendanceData).filter(a => a === 'presente').length;
             const absent = Object.values(attendanceData).filter(a => a === 'ausente').length;
+            const justified = Object.values(attendanceData).filter(a => a === 'justificado').length;
             
             document.getElementById('presentCount').textContent = present;
             document.getElementById('absentCount').textContent = absent;
+            
+            // Si existe el contador de justificados, actualizarlo
+            const justifiedCount = document.getElementById('justifiedCount');
+            if (justifiedCount) {
+                justifiedCount.textContent = justified;
+            }
         }
         
         // Función para actualizar un botón específico de diputado
@@ -1294,13 +1491,58 @@
         
         // Eventos de socket
         socket.on('asistencia-marcada', (data) => {
-            console.log('Asistencia marcada manualmente:', data);
+            console.log('Asistencia marcada:', data);
             attendanceData[data.diputado_id] = data.asistencia;
             
-            // Actualizar el botón específico del diputado
-            const deputyBtn = document.querySelector(`[data-deputy-id="${data.diputado_id}"]`);
-            if (deputyBtn) {
-                updateDeputyButton(deputyBtn, data.asistencia);
+            // Actualizar el grid visual del diputado
+            actualizarDiputadoEnGrid(data.diputado_id, data.asistencia);
+            
+            // Mostrar notificación según el tipo de registro
+            const nombreDiputado = data.nombre_diputado || obtenerNombreDiputado(data.diputado_id);
+            
+            if (data.auto_registro) {
+                // Auto-registro del diputado
+                let mensaje = '';
+                let tipo = 'info';
+                
+                if (data.llegada_tardia) {
+                    mensaje = `🕑 ${nombreDiputado} - Asistencia con retardo`;
+                    tipo = 'warning';
+                } else if (data.asistencia === 'presente') {
+                    mensaje = `✅ ${nombreDiputado} - Confirmó asistencia`;
+                    tipo = 'success';
+                } else if (data.asistencia === 'ausente') {
+                    mensaje = `❌ ${nombreDiputado} - Ausente`;
+                    tipo = 'danger';
+                }
+                
+                if (mensaje) {
+                    mostrarNotificacion(mensaje, tipo, 5000);
+                }
+            } else if (data.marcado_por === 'secretario') {
+                // Marcado manualmente por secretario
+                let mensaje = '';
+                let tipo = 'info';
+                
+                if (data.asistencia === 'presente') {
+                    mensaje = `✅ ${nombreDiputado} - Marcado presente`;
+                    tipo = 'success';
+                } else if (data.asistencia === 'ausente') {
+                    mensaje = `❌ ${nombreDiputado} - Marcado ausente`;
+                    tipo = 'danger';
+                } else if (data.asistencia === 'justificado') {
+                    mensaje = `📄 ${nombreDiputado} - Inasistencia justificada`;
+                    tipo = 'warning';
+                }
+                
+                if (mensaje && data.llegada_tardia) {
+                    mensaje = `🕑 ${nombreDiputado} - Asistencia con retardo (marcado por secretario)`;
+                    tipo = 'warning';
+                }
+                
+                if (mensaje) {
+                    mostrarNotificacion(mensaje, tipo, 4000);
+                }
             }
             
             updateStats();
@@ -1313,16 +1555,12 @@
             // Marcar como presente
             attendanceData[data.diputado_id] = 'presente';
             
-            // Actualizar el botón específico del diputado
-            const deputyBtn = document.querySelector(`[data-deputy-id="${data.diputado_id}"]`);
-            if (deputyBtn) {
-                updateDeputyButton(deputyBtn, 'presente');
-                
-                // Agregar efecto visual de confirmación
-                deputyBtn.classList.add('pulse-once');
-                setTimeout(() => {
-                    deputyBtn.classList.remove('pulse-once');
-                }, 1000);
+            // Actualizar el grid visual
+            actualizarDiputadoEnGrid(data.diputado_id, 'presente');
+            
+            // Mostrar notificación
+            const nombreDiputado = obtenerNombreDiputado(data.diputado_id);
+            mostrarNotificacion(`✅ ${nombreDiputado} confirmó asistencia`, 'success', 4000);
             }
             
             updateStats();
@@ -1490,10 +1728,46 @@
         }
         
         // Inicializar
-        checkPermissions();
-        loadCurrentAttendance();
-        activarPantallaAlCargar();
-        verificarPermisoConfirmacion();
+        async function inicializar() {
+            console.log('=== INICIANDO PASE-LISTA ===');
+            
+            // Verificar que tenemos token antes de continuar
+            if (!token) {
+                console.error('No hay token, redirigiendo al login');
+                window.location.href = '/';
+                return;
+            }
+            
+            console.log('Token encontrado, iniciando funciones...');
+            
+            try {
+                // Esperar a que checkPermissions termine
+                const permisosConcedidos = await checkPermissions();
+                console.log('checkPermissions result:', permisosConcedidos);
+                
+                if (permisosConcedidos === false) {
+                    console.log('Permisos denegados, deteniendo inicialización');
+                    return;
+                }
+                
+                loadCurrentAttendance();
+                console.log('loadCurrentAttendance completado');
+                
+                await loadDeputies();  // Cargar el grid de diputados
+                console.log('loadDeputies completado');
+                
+                activarPantallaAlCargar();
+                console.log('activarPantallaAlCargar completado');
+                
+                verificarPermisoConfirmacion();
+                console.log('verificarPermisoConfirmacion completado');
+            } catch (error) {
+                console.error('Error durante la inicialización:', error);
+            }
+        }
+        
+        // Llamar a la función de inicialización
+        inicializar();
     </script>
     
     <script src="/js/theme-switcher.js"></script>

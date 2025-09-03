@@ -584,15 +584,25 @@
             display: none !important;
         }
         
-        body.standalone-mode.transparent-bg {
-            background: transparent !important;
+        /* Transparencia real para vMix/OBS */
+        body.transparent-bg {
+            background: rgba(0, 0, 0, 0) !important;
         }
         
+        body.standalone-mode.transparent-bg {
+            background: rgba(0, 0, 0, 0) !important;
+        }
+        
+        body.transparent-bg .main-container,
+        body.transparent-bg .content-wrapper,
+        body.transparent-bg .voting-table-container,
+        body.transparent-bg .initiative-info,
         body.standalone-mode.transparent-bg .main-container,
         body.standalone-mode.transparent-bg .content-wrapper,
         body.standalone-mode.transparent-bg .voting-table-container,
         body.standalone-mode.transparent-bg .initiative-info {
-            background: transparent !important;
+            background: rgba(0, 0, 0, 0) !important;
+            box-shadow: none !important;
         }
         
         body.standalone-mode.transparent-bg .voting-table tr:nth-child(even) {
@@ -603,13 +613,29 @@
             background-color: rgba(42, 42, 42, 0.8);
         }
         
-        /* Modo chromakey */
+        /* Modo chromakey - Verde puro para key */
         body.chromakey-mode {
             background: #00ff00 !important;
         }
         
-        body.chromakey-mode .main-container {
+        body.chromakey-mode.chromakey-blue {
+            background: #0000ff !important;
+        }
+        
+        body.chromakey-mode .main-container,
+        body.chromakey-mode .content-wrapper,
+        body.chromakey-mode .header,
+        body.chromakey-mode .initiative-info {
             background: #00ff00 !important;
+            box-shadow: none !important;
+        }
+        
+        body.chromakey-mode.chromakey-blue .main-container,
+        body.chromakey-mode.chromakey-blue .content-wrapper,
+        body.chromakey-mode.chromakey-blue .header,
+        body.chromakey-mode.chromakey-blue .initiative-info {
+            background: #0000ff !important;
+            box-shadow: none !important;
         }
         
         /* Ajustes de resolución personalizados */
@@ -656,13 +682,17 @@
             display: block;
         }
         
-        /* Modo solo resultados */
-        body.results-only-mode .voting-table-container {
+        /* Modo solo resultados - Solo muestra panel de resumen */
+        body.results-only-mode .voting-table-container,
+        body.results-only-mode .header,
+        body.results-only-mode .initiative-info {
             display: none !important;
         }
         
         body.results-only-mode .content-wrapper {
             justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
         
         body.results-only-mode .summary-panel {
@@ -670,6 +700,47 @@
             border-left: none;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin: 0;
+        }
+        
+        /* Modo solo votación - Solo muestra tabla */
+        body.voting-only-mode .header,
+        body.voting-only-mode .initiative-info,
+        body.voting-only-mode .summary-panel {
+            display: none !important;
+        }
+        
+        body.voting-only-mode .content-wrapper {
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        body.voting-only-mode .voting-table-container {
+            margin: 0 auto;
+            max-width: 100%;
+        }
+        
+        /* Modo solo iniciativa - Solo muestra texto de iniciativa */
+        body.initiative-only-mode .header,
+        body.initiative-only-mode .voting-table-container,
+        body.initiative-only-mode .summary-panel {
+            display: none !important;
+        }
+        
+        body.initiative-only-mode .content-wrapper {
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 40px;
+        }
+        
+        body.initiative-only-mode .initiative-info {
+            max-height: none;
+            height: auto;
+            border: none;
+            background: rgba(34, 34, 34, 0.95);
+            border-radius: 10px;
+            padding: 30px;
         }
         
         /* Ajustes para streaming */
@@ -760,6 +831,13 @@
             if (params.get('chromakey') === 'true' || params.get('greenscreen') === 'true') {
                 document.body.classList.add('chromakey-mode');
                 obsConfig.chromakey = true;
+                
+                // Chromakey azul si se especifica
+                if (params.get('chromakey') === 'blue') {
+                    document.body.classList.add('chromakey-blue');
+                    obsConfig.chromakeyColor = 'blue';
+                }
+                
                 // Establecer color chromakey personalizado si se proporciona
                 const chromaColor = params.get('chromacolor');
                 if (chromaColor) {
@@ -804,7 +882,7 @@
             
             // Modo solo votación (sin header ni sidebar)
             if (params.get('voting-only') === 'true') {
-                document.body.classList.add('standalone-mode', 'hide-header', 'hide-sidebar');
+                document.body.classList.add('voting-only-mode');
                 obsConfig.mode = 'voting-only';
                 obsConfig.showHeader = false;
                 obsConfig.showSidebar = false;
@@ -814,6 +892,12 @@
             if (params.get('results-only') === 'true') {
                 document.body.classList.add('results-only-mode');
                 obsConfig.mode = 'results-only';
+            }
+            
+            // Modo solo iniciativa (solo texto de iniciativa)
+            if (params.get('initiative-only') === 'true') {
+                document.body.classList.add('initiative-only-mode');
+                obsConfig.mode = 'initiative-only';
             }
         }
         
