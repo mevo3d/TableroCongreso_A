@@ -215,29 +215,33 @@ router.post('/marcar', (req, res) => {
                     });
                 } else {
                     // Insertar nuevo registro
-                    let insertQuery = `INSERT INTO asistencias (pase_lista_id, diputado_id, asistencia, hora`;
-                    let insertFields = '';
-                    let insertValues = `VALUES (?, ?, ?, datetime('now')`;
+                    let insertFields = ['pase_lista_id', 'diputado_id', 'asistencia', 'hora'];
+                    let insertValues = ['?', '?', '?', "datetime('now')"];
                     let insertParams = [paseListaId, diputado_id, asistencia];
                     
                     if (asistencia === 'justificado') {
-                        insertFields += ', justificacion_motivo, justificado_por, hora_justificacion';
-                        insertValues += ', ?, ?, datetime(\'now\')';
+                        insertFields.push('justificacion_motivo', 'justificado_por', 'hora_justificacion');
+                        insertValues.push('?', '?', "datetime('now')");
                         insertParams.push(justificacion_motivo || 'Justificada por secretario');
                         insertParams.push(userId);
                     }
                     
                     if (esLlegadaTardia) {
-                        insertFields += ', llegada_tardia, hora_llegada_tardia';
-                        insertValues += ', 1, datetime(\'now\')';
+                        insertFields.push('llegada_tardia', 'hora_llegada_tardia');
+                        insertValues.push('1', "datetime('now')");
                     }
                     
-                    insertQuery += insertFields + ') ' + insertValues + ')';
+                    const insertQuery = `INSERT INTO asistencias (${insertFields.join(', ')}) VALUES (${insertValues.join(', ')})`;
+                    
+                    console.log('SQL Insert Query:', insertQuery);
+                    console.log('Insert Params:', insertParams);
                     
                     db.run(insertQuery, insertParams, (err) => {
                         if (err) {
                             console.error('Error insertando asistencia:', err);
-                            return res.status(500).json({ error: 'Error guardando asistencia' });
+                            console.error('Query:', insertQuery);
+                            console.error('Params:', insertParams);
+                            return res.status(500).json({ error: 'Error guardando asistencia', detail: err.message });
                         }
                         procesarRespuesta();
                     });

@@ -674,13 +674,49 @@
             return true;
         }
         
+        // Función para obtener lista de diputados por defecto
+        function obtenerDiputadosPorDefecto() {
+            console.log('Generando lista de diputados por defecto...');
+            return [
+                { id: 18, nombre_completo: 'Eduardo Abarca Peña', partido: 'MORENA', cargo_mesa_directiva: null },
+                { id: 12, nombre_completo: 'Andrea Domínguez Mandujano', partido: 'PAN', cargo_mesa_directiva: null },
+                { id: 17, nombre_completo: 'Luis Fernando Espinoza López', partido: 'PRI', cargo_mesa_directiva: null },
+                { id: 6, nombre_completo: 'Juan Carlos Gordillo Vega', partido: 'MC', cargo_mesa_directiva: 'Presidente' },
+                { id: 7, nombre_completo: 'Mónica Livera Chavarría', partido: 'MORENA', cargo_mesa_directiva: null },
+                { id: 22, nombre_completo: 'Roberto Martínez Gómez', partido: 'PT', cargo_mesa_directiva: null },
+                { id: 5, nombre_completo: 'Carlos Martínez Terrazas', partido: 'PAN', cargo_mesa_directiva: 'Vicepresidente' },
+                { id: 8, nombre_completo: 'Ana Patricia Maya Rendón', partido: 'PRI', cargo_mesa_directiva: null },
+                { id: 15, nombre_completo: 'Alejandra Montes de Oca', partido: 'MC', cargo_mesa_directiva: null },
+                { id: 21, nombre_completo: 'Miguel Pedrero González', partido: 'MORENA', cargo_mesa_directiva: null },
+                { id: 16, nombre_completo: 'Jorge Pimentel Mejía', partido: 'PT', cargo_mesa_directiva: null },
+                { id: 19, nombre_completo: 'Diana Quevedo Maldonado', partido: 'PAN', cargo_mesa_directiva: null },
+                { id: 10, nombre_completo: 'Alejandro Reyes Reyes', partido: 'PRI', cargo_mesa_directiva: 'Secretario' },
+                { id: 23, nombre_completo: 'Fernando Rodríguez López', partido: 'MC', cargo_mesa_directiva: null },
+                { id: 20, nombre_completo: 'Carmen Rodríguez Ruiz', partido: 'MORENA', cargo_mesa_directiva: null },
+                { id: 11, nombre_completo: 'José Luis Ruiz Rodríguez', partido: 'PT', cargo_mesa_directiva: 'Secretario' },
+                { id: 24, nombre_completo: 'Gabriela Sánchez Ortega', partido: 'PAN', cargo_mesa_directiva: null },
+                { id: 13, nombre_completo: 'Ricardo Sánchez Zavala', partido: 'PRI', cargo_mesa_directiva: null },
+                { id: 9, nombre_completo: 'María Elena Solano López', partido: 'MC', cargo_mesa_directiva: null },
+                { id: 14, nombre_completo: 'Claudia Sotelo Martínez', partido: 'MORENA', cargo_mesa_directiva: null }
+            ];
+        }
+        
         // Cargar diputados
         async function loadDeputies() {
             console.log('=== Iniciando loadDeputies ===');
             console.log('Token disponible:', token ? 'Sí' : 'No');
             
+            // Verificar que el grid existe
+            const grid = document.getElementById('deputiesGrid');
+            if (!grid) {
+                console.error('ERROR: No se encuentra el elemento deputiesGrid en el DOM');
+                return;
+            }
+            console.log('Grid encontrado:', grid);
+            
             if (!token) {
                 console.error('No hay token disponible');
+                grid.innerHTML = '<div class="alert alert-danger">Error: No hay token de autenticación</div>';
                 return;
             }
             
@@ -693,23 +729,73 @@
                 });
                 
                 console.log('Respuesta recibida:', response.status);
+                console.log('Respuesta OK:', response.ok);
                 
                 if (response.ok) {
                     const deputies = await response.json();
-                    console.log('Diputados recibidos:', deputies.length);
-                    displayDeputies(deputies);
+                    console.log('Diputados recibidos:', deputies);
+                    console.log('Cantidad de diputados:', deputies.length);
+                    console.log('Primer diputado:', deputies[0]); // Ver estructura del primer diputado
+                    
+                    if (!deputies || deputies.length === 0) {
+                        console.warn('ADVERTENCIA: La respuesta no contiene diputados');
+                        grid.innerHTML = '<div class="alert alert-warning">No se encontraron diputados en la base de datos</div>';
+                        
+                        // Intentar cargar desde la API alternativa
+                        console.log('Intentando cargar desde /api/secretario/diputados');
+                        const altResponse = await fetch('/api/secretario/diputados', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        
+                        if (altResponse.ok) {
+                            const altDeputies = await altResponse.json();
+                            console.log('Diputados desde API alternativa:', altDeputies.length);
+                            if (altDeputies.length > 0) {
+                                displayDeputies(altDeputies);
+                            } else {
+                                // Si tampoco hay diputados en la API alternativa, usar lista por defecto
+                                console.log('Usando lista de diputados por defecto');
+                                const defaultDeputies = obtenerDiputadosPorDefecto();
+                                displayDeputies(defaultDeputies);
+                            }
+                        } else {
+                            // Si la API alternativa falla, usar lista por defecto
+                            console.log('API alternativa falló, usando lista por defecto');
+                            const defaultDeputies = obtenerDiputadosPorDefecto();
+                            displayDeputies(defaultDeputies);
+                        }
+                    } else {
+                        displayDeputies(deputies);
+                    }
                 } else {
-                    const error = await response.text();
-                    console.error('Error cargando diputados:', response.status, error);
+                    const errorText = await response.text();
+                    console.error('Error cargando diputados:', response.status, errorText);
+                    console.log('Error en API principal, usando lista por defecto');
+                    
+                    // Usar lista por defecto cuando falla la API
+                    const defaultDeputies = obtenerDiputadosPorDefecto();
+                    displayDeputies(defaultDeputies);
+                    
+                    // Mostrar advertencia pero cargar los diputados
+                    mostrarNotificacion('⚠️ Usando lista de diputados por defecto', 'warning', 5000);
                 }
             } catch (error) {
                 console.error('Error en loadDeputies:', error);
+                console.log('Error de conexión, usando lista por defecto');
+                
+                // Usar lista por defecto cuando hay error de conexión
+                const defaultDeputies = obtenerDiputadosPorDefecto();
+                displayDeputies(defaultDeputies);
+                
+                mostrarNotificacion('⚠️ Error de conexión. Usando lista por defecto', 'warning', 5000);
             }
         }
         
         // Mostrar diputados
         function displayDeputies(deputies) {
-            console.log('=== displayDeputies llamado con', deputies.length, 'diputados ===');
+            console.log('=== displayDeputies llamado con', deputies ? deputies.length : 0, 'diputados ===');
             const grid = document.getElementById('deputiesGrid');
             
             if (!grid) {
@@ -718,6 +804,12 @@
             }
             
             grid.innerHTML = '';
+            
+            // Si no hay diputados, usar lista por defecto
+            if (!deputies || deputies.length === 0) {
+                console.warn('No hay diputados, usando lista por defecto');
+                deputies = obtenerDiputadosPorDefecto();
+            }
             
             // Lista ordenada de diputados con sus IDs correctos
             const DIPUTADOS_ORDEN = [
@@ -774,40 +866,58 @@
                 const attendance = attendanceData[correctId] || 'pending';
                 const card = document.createElement('div');
                 card.className = `deputy-card ${attendance === 'presente' ? 'present' : attendance === 'ausente' ? 'absent' : ''}`;
+                
+                // Crear el HTML de la foto o placeholder
+                let photoHtml = '';
+                if (deputy.foto_url) {
+                    photoHtml = `<img src="${deputy.foto_url}" class="deputy-photo" alt="${deputy.nombre_completo}">`;
+                } else {
+                    const partyColor = getPartyColor(deputy.partido);
+                    const initials = getInitials(deputy.nombre_completo);
+                    photoHtml = `<div class="deputy-photo-placeholder" style="background-color: ${partyColor}">${initials}</div>`;
+                }
+                
+                // Crear el badge del cargo si existe
+                let cargoHtml = '';
+                if (deputy.cargo_mesa_directiva) {
+                    const cargoShort = getCargoShort(deputy.cargo_mesa_directiva);
+                    cargoHtml = `<span class="badge bg-warning text-dark ms-1" style="font-size: 0.75em;">${cargoShort}</span>`;
+                }
+                
+                // Crear el HTML de los botones con estados
+                const presentClass = attendance === 'presente' ? 'active' : '';
+                const absentClass = attendance === 'ausente' ? 'active' : '';
+                const justifiedClass = attendance === 'justificado' ? 'active' : '';
+                const disabledAttr = isReadonly ? 'disabled' : '';
+                
                 card.innerHTML = `
                     <div class="deputy-info">
                         <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-                            ${deputy.foto_url ? 
-                                `<img src="${deputy.foto_url}" class="deputy-photo" alt="${deputy.nombre_completo}">` :
-                                `<div class="deputy-photo-placeholder" style="background-color: ${getPartyColor(deputy.partido)}">
-                                    ${getInitials(deputy.nombre_completo)}
-                                </div>`
-                            }
+                            ${photoHtml}
                             <div class="deputy-details" style="flex: 1; min-width: 0;">
                                 <div class="deputy-name" title="${deputy.nombre_completo}" style="font-size: 0.92em;">${formatNameLastNameFirst(deputy.nombre_completo)}</div>
                                 <div class="deputy-party" style="margin-top: 4px;">
                                     <span class="badge" style="background-color: ${getPartyColor(deputy.partido)}; font-size: 0.75em;">${deputy.partido || 'SP'}</span>
-                                    ${deputy.cargo_mesa_directiva ? 
-                                        `<span class="badge bg-warning text-dark ms-1" style="font-size: 0.75em;">${getCargoShort(deputy.cargo_mesa_directiva)}</span>` : ''}
+                                    ${cargoHtml}
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="attendance-buttons">
-                        <button class="btn btn-present ${attendance === 'presente' ? 'active' : ''}" 
+                        <button class="btn btn-present ${presentClass}" 
                                 onclick="markAttendance(${correctId}, 'presente', this)"
-                                ${isReadonly ? 'disabled' : ''}>
+                                ${disabledAttr}>
                             <i class="fas fa-check"></i> <span style="font-size: 0.85em;">PRESENTE</span>
                         </button>
-                        <button class="btn btn-absent ${attendance === 'ausente' ? 'active' : ''}" 
+                        <button class="btn btn-absent ${absentClass}" 
                                 onclick="markAttendance(${correctId}, 'ausente', this)"
-                                ${isReadonly ? 'disabled' : ''}>
+                                ${disabledAttr}>
                             <i class="fas fa-times"></i> <span style="font-size: 0.85em;">INASISTENCIA</span>
                         </button>
-                        <button class="btn btn-justified ${attendance === 'justificado' ? 'active' : ''}" 
+                        <button class="btn btn-justified ${justifiedClass}" 
                                 onclick="markAttendance(${correctId}, 'justificado', this)"
-                                ${isReadonly ? 'disabled' : ''}>
-                            <i class="fas fa-file-alt"></i> <span style="font-size: 0.85em;">JUSTIFICADO</span>
+                                ${disabledAttr}>
+                            <i class="fas fa-exclamation-triangle"></i> <span style="font-size: 0.85em;">JUSTIFICADO</span>
                         </button>
                     </div>
                 `;
@@ -1561,7 +1671,6 @@
             // Mostrar notificación
             const nombreDiputado = obtenerNombreDiputado(data.diputado_id);
             mostrarNotificacion(`✅ ${nombreDiputado} confirmó asistencia`, 'success', 4000);
-            }
             
             updateStats();
             

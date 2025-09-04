@@ -2315,6 +2315,95 @@
             }
         }
         
+        // Función para ver PDF desde Documento Original
+        async function verPDFDocumentoOriginal() {
+            if (!sessionData || !sessionData.id) {
+                mostrarNotificacion('No hay sesión activa', 'warning');
+                return;
+            }
+            
+            try {
+                // Obtener el PDF del servidor
+                const response = await fetch(`/api/sesiones/${sessionData.id}/orden-dia-pdf`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('No se pudo obtener el PDF');
+                }
+                
+                const blob = await response.blob();
+                const pdfURL = URL.createObjectURL(blob);
+                
+                // Abrir modal con el PDF
+                abrirModalPDF(pdfURL, 'Orden del Día - Documento Original');
+                
+            } catch (error) {
+                console.error('Error al obtener PDF:', error);
+                mostrarNotificacion('Error al cargar el PDF', 'danger');
+            }
+        }
+        
+        // Función genérica para abrir modal con PDF
+        function abrirModalPDF(pdfURL, titulo = 'Documento PDF') {
+            // Crear modal si no existe
+            let modal = document.getElementById('modalPDFViewer');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'modalPDFViewer';
+                modal.className = 'modal fade';
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-xl" style="max-width: 90%; height: 90vh;">
+                        <div class="modal-content" style="height: 100%;">
+                            <div class="modal-header">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-file-pdf text-danger"></i> 
+                                    <span id="modalPDFTitle">${titulo}</span>
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="cerrarModalPDF()"></button>
+                            </div>
+                            <div class="modal-body p-0" style="height: calc(100% - 60px);">
+                                <iframe id="modalPDFFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            } else {
+                // Actualizar título si el modal ya existe
+                document.getElementById('modalPDFTitle').textContent = titulo;
+            }
+            
+            // Establecer la URL del PDF
+            document.getElementById('modalPDFFrame').src = pdfURL;
+            
+            // Mostrar modal
+            const modalInstance = new bootstrap.Modal(modal);
+            modalInstance.show();
+        }
+        
+        // Función para cerrar modal PDF
+        function cerrarModalPDF() {
+            const modal = document.getElementById('modalPDFViewer');
+            if (modal) {
+                const modalInstance = bootstrap.Modal.getInstance(modal);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+                
+                // Limpiar iframe
+                const frame = document.getElementById('modalPDFFrame');
+                if (frame && frame.src) {
+                    if (frame.src.startsWith('blob:')) {
+                        URL.revokeObjectURL(frame.src);
+                    }
+                    frame.src = '';
+                }
+            }
+        }
+        
         // Variables para el visor de PDF
         let pdfActual = null;
         
@@ -2478,7 +2567,7 @@
             const tabsContainer = document.getElementById('initiativesTabs');
             const tabsHtml = [];
             
-            // ORDEN FIJO: TODAS, INICIATIVAS, PRIMERA LECTURA, SEGUNDA LECTURA, PUNTOS DE ACUERDO, DOCUMENTO ORIGINAL
+            // ORDEN FIJO: TODAS, ACTA, INICIATIVAS, PRIMERA LECTURA, SEGUNDA LECTURA, PUNTOS DE ACUERDO, DOCUMENTO ORIGINAL
             
             // 1. TODAS - Siempre mostrar
             tabsHtml.push(`
@@ -2491,7 +2580,26 @@
                 </li>
             `);
             
-            // 2. INICIATIVAS
+            // 2. ACTA - Aprobación del acta (manejable como cualquier iniciativa)
+            const actaItems = categorias.todas.filter(i => 
+                i.categoria === 'aprobacion_acta' || 
+                i.es_aprobacion_acta === true ||
+                (i.titulo && i.titulo.toLowerCase().includes('aprobación') && 
+                 (i.titulo.toLowerCase().includes('acta') || i.titulo.toLowerCase().includes('sesión')))
+            );
+            if (actaItems.length > 0) {
+                tabsHtml.push(`
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="acta-tab" data-bs-toggle="tab" 
+                                data-bs-target="#acta" type="button" role="tab">
+                            <i class="fas fa-check-circle"></i> ACTA
+                            <span class="badge bg-secondary ms-1">${actaItems.length}</span>
+                        </button>
+                    </li>
+                `);
+            }
+            
+            // 3. INICIATIVAS
             if (categorias.iniciativas.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
@@ -2504,33 +2612,33 @@
                 `);
             }
             
-            // 3. PRIMERA LECTURA
+            // 4. PRIMERA LECTURA
             if (categorias.primeraLectura.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="primeraLectura-tab" data-bs-toggle="tab" 
                                 data-bs-target="#primeraLectura" type="button" role="tab">
-                            <i class="fas fa-book-open"></i> DICTÁMENES 1era
+                            <i class="fas fa-book-open"></i> PRIMERA LECTURA
                             <span class="badge bg-info ms-1">${categorias.primeraLectura.length}</span>
                         </button>
                     </li>
                 `);
             }
             
-            // 4. SEGUNDA LECTURA
+            // 5. SEGUNDA LECTURA
             if (categorias.segundaLectura.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="segundaLectura-tab" data-bs-toggle="tab" 
                                 data-bs-target="#segundaLectura" type="button" role="tab">
-                            <i class="fas fa-book"></i> DICTÁMENES 2da ⚡
+                            <i class="fas fa-book"></i> SEGUNDA LECTURA ⚡
                             <span class="badge bg-success ms-1">${categorias.segundaLectura.length}</span>
                         </button>
                     </li>
                 `);
             }
             
-            // 5. PUNTOS DE ACUERDO
+            // 6. PUNTOS DE ACUERDO
             if (categorias.puntosAcuerdo.length > 0) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
@@ -2543,7 +2651,7 @@
                 `);
             }
             
-            // 6. DOCUMENTO ORIGINAL - Al final
+            // 7. DOCUMENTO ORIGINAL - Al final
             if (categorias.textoOriginal) {
                 tabsHtml.push(`
                     <li class="nav-item" role="presentation">
@@ -2599,7 +2707,7 @@
             const contentContainer = document.getElementById('initiativesTabContent');
             const contentHtml = [];
             
-            // ORDEN FIJO: TODAS, INICIATIVAS, PRIMERA LECTURA, SEGUNDA LECTURA, PUNTOS DE ACUERDO, DOCUMENTO ORIGINAL
+            // ORDEN FIJO: TODAS, ACTA, INICIATIVAS, PRIMERA LECTURA, SEGUNDA LECTURA, PUNTOS DE ACUERDO, DOCUMENTO ORIGINAL
             
             // 1. TODAS - Siempre mostrar
             contentHtml.push(`
@@ -2610,7 +2718,28 @@
                 </div>
             `);
             
-            // 2. INICIATIVAS
+            // 2. ACTA - Aprobación del acta (manejable como cualquier iniciativa)
+            const actaItemsContent = categorias.todas.filter(i => 
+                i.categoria === 'aprobacion_acta' || 
+                i.es_aprobacion_acta === true ||
+                (i.titulo && i.titulo.toLowerCase().includes('aprobación') && 
+                 (i.titulo.toLowerCase().includes('acta') || i.titulo.toLowerCase().includes('sesión')))
+            );
+            if (actaItemsContent.length > 0) {
+                contentHtml.push(`
+                    <div class="tab-pane fade" id="acta" role="tabpanel">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-check-circle"></i> 
+                            <strong>Aprobación del Acta</strong>
+                            <br>
+                            <small>Si el acta requiere votación, márquela y actívela cuando corresponda</small>
+                        </div>
+                        ${renderizarIniciativas(actaItemsContent)}
+                    </div>
+                `);
+            }
+            
+            // 3. INICIATIVAS
             if (categorias.iniciativas.length > 0) {
                 contentHtml.push(`
                     <div class="tab-pane fade" id="iniciativas" role="tabpanel">
@@ -2623,7 +2752,7 @@
                 `);
             }
             
-            // 3. PRIMERA LECTURA
+            // 4. PRIMERA LECTURA
             if (categorias.primeraLectura.length > 0) {
                 contentHtml.push(`
                     <div class="tab-pane fade" id="primeraLectura" role="tabpanel">
@@ -2666,12 +2795,19 @@
             if (categorias.textoOriginal) {
                 contentHtml.push(`
                     <div class="tab-pane fade" id="documentoOriginal" role="tabpanel">
-                        <div class="alert alert-secondary mb-3">
-                            <i class="fas fa-file-pdf"></i> 
-                            <strong>Documento Original del PDF Importado</strong>
-                            <button class="btn btn-sm btn-outline-secondary float-end" onclick="copiarTextoOriginal()">
-                                <i class="fas fa-copy"></i> Copiar texto
-                            </button>
+                        <div class="alert alert-secondary mb-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-file-pdf"></i> 
+                                <strong>Documento Original del PDF Importado</strong>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-primary me-2" onclick="verPDFDocumentoOriginal()">
+                                    <i class="fas fa-eye"></i> Ver PDF
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="copiarTextoOriginal()">
+                                    <i class="fas fa-copy"></i> Copiar texto
+                                </button>
+                            </div>
                         </div>
                         <div class="card">
                             <div class="card-body">

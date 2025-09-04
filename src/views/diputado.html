@@ -1168,6 +1168,7 @@
                         <div class="deputy-party">
                             <span class="party-badge" id="partyBadge"></span>
                             <img class="party-logo" id="partyLogo" style="display: none;">
+                            <span id="attendanceBadge" class="badge bg-secondary ms-2" style="display: none;">SIN REGISTRO</span>
                         </div>
                     </div>
                     <div class="congress-logos" id="congressLogos">
@@ -1214,6 +1215,263 @@
                         </div>
                         <div id="sessionStats" class="mt-3" style="display: none;">
                             <!-- Estadísticas de sesión -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pestañas del Orden del Día (Solo consulta) -->
+        <div class="orden-dia-tabs-container mt-3" id="ordenDiaTabs" style="display: none;">
+            <style>
+                .orden-dia-tabs-container {
+                    background: var(--bg-card);
+                    border-radius: 12px;
+                    box-shadow: var(--shadow-md);
+                    padding: 15px;
+                    margin-bottom: 20px;
+                }
+                
+                .nav-tabs-orden {
+                    display: flex;
+                    flex-wrap: nowrap;
+                    overflow-x: auto;
+                    gap: 5px;
+                    border-bottom: 2px solid var(--border-color);
+                    padding-bottom: 10px;
+                    -webkit-overflow-scrolling: touch;
+                }
+                
+                .nav-tabs-orden::-webkit-scrollbar {
+                    height: 6px;
+                }
+                
+                .nav-tabs-orden::-webkit-scrollbar-track {
+                    background: var(--bg-secondary);
+                    border-radius: 3px;
+                }
+                
+                .nav-tabs-orden::-webkit-scrollbar-thumb {
+                    background: var(--color-primary);
+                    border-radius: 3px;
+                }
+                
+                .tab-button-orden {
+                    flex-shrink: 0;
+                    padding: 8px 15px;
+                    background: var(--bg-secondary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px 8px 0 0;
+                    color: var(--text-primary);
+                    font-size: 0.9em;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    white-space: nowrap;
+                }
+                
+                .tab-button-orden:hover {
+                    background: var(--bg-hover);
+                    transform: translateY(-2px);
+                }
+                
+                .tab-button-orden.active {
+                    background: var(--color-primary);
+                    color: white;
+                    border-color: var(--color-primary);
+                }
+                
+                .tab-button-orden .badge {
+                    margin-left: 5px;
+                    font-size: 0.8em;
+                }
+                
+                .tab-content-orden {
+                    padding: 20px;
+                    max-height: 400px;
+                    overflow-y: auto;
+                    background: var(--bg-secondary);
+                    border-radius: 0 0 12px 12px;
+                }
+                
+                .tab-pane-orden {
+                    display: none;
+                }
+                
+                .tab-pane-orden.active {
+                    display: block;
+                    animation: fadeIn 0.3s;
+                }
+                
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                
+                .iniciativa-item {
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin-bottom: 10px;
+                    transition: all 0.3s;
+                }
+                
+                .iniciativa-item:hover {
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    transform: translateX(5px);
+                }
+                
+                .iniciativa-numero {
+                    display: inline-block;
+                    background: var(--color-primary);
+                    color: white;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    margin-right: 10px;
+                    font-size: 0.9em;
+                }
+                
+                .iniciativa-titulo {
+                    font-weight: 500;
+                    color: var(--text-primary);
+                    margin-bottom: 5px;
+                }
+                
+                .iniciativa-descripcion {
+                    font-size: 0.85em;
+                    color: var(--text-secondary);
+                    line-height: 1.4;
+                }
+                
+                .no-iniciativas {
+                    text-align: center;
+                    padding: 40px;
+                    color: var(--text-secondary);
+                }
+                
+                .categoria-header {
+                    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+                    color: white;
+                    padding: 10px 15px;
+                    border-radius: 8px;
+                    margin-bottom: 15px;
+                    font-weight: 600;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                @media (max-width: 768px) {
+                    .orden-dia-tabs-container {
+                        padding: 10px;
+                        margin: 10px -15px 20px -15px;
+                        border-radius: 0;
+                    }
+                    
+                    .tab-button-orden {
+                        font-size: 0.85em;
+                        padding: 6px 12px;
+                    }
+                    
+                    .tab-content-orden {
+                        padding: 15px;
+                        max-height: 300px;
+                    }
+                }
+            </style>
+            
+            <div class="nav-tabs-orden" id="ordenDiaTabsNav">
+                <button class="tab-button-orden active" onclick="cambiarTabOrden('od')">
+                    <i class="fas fa-list-ol"></i> OD
+                    <span class="badge bg-secondary" id="badgeOD">0</span>
+                </button>
+                <button class="tab-button-orden" onclick="cambiarTabOrden('iniciativas')">
+                    <i class="fas fa-file-alt"></i> INICIATIVAS
+                    <span class="badge bg-info" id="badgeIniciativas">0</span>
+                </button>
+                <button class="tab-button-orden" onclick="cambiarTabOrden('primera')">
+                    <i class="fas fa-book-reader"></i> PRIMERA LECTURA
+                    <span class="badge bg-warning" id="badgePrimera">0</span>
+                </button>
+                <button class="tab-button-orden" onclick="cambiarTabOrden('segunda')">
+                    <i class="fas fa-vote-yea"></i> SEGUNDA LECTURA
+                    <span class="badge bg-success" id="badgeSegunda">0</span>
+                </button>
+                <button class="tab-button-orden" onclick="cambiarTabOrden('puntos')">
+                    <i class="fas fa-handshake"></i> PUNTOS DE ACUERDO
+                    <span class="badge bg-primary" id="badgePuntos">0</span>
+                </button>
+            </div>
+            
+            <div class="tab-content-orden">
+                <!-- Tab OD (Orden del Día completo) -->
+                <div class="tab-pane-orden active" id="tabOD">
+                    <div class="categoria-header">
+                        <span><i class="fas fa-list-ol"></i> Orden del Día Completo</span>
+                        <span id="totalOD">0 elementos</span>
+                    </div>
+                    <div id="listaOD">
+                        <div class="no-iniciativas">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p>No hay elementos del orden del día disponibles</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab Iniciativas -->
+                <div class="tab-pane-orden" id="tabIniciativas">
+                    <div class="categoria-header">
+                        <span><i class="fas fa-file-alt"></i> Iniciativas</span>
+                        <span id="totalIniciativas">0 iniciativas</span>
+                    </div>
+                    <div id="listaIniciativas">
+                        <div class="no-iniciativas">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p>No hay iniciativas disponibles</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab Primera Lectura -->
+                <div class="tab-pane-orden" id="tabPrimera">
+                    <div class="categoria-header">
+                        <span><i class="fas fa-book-reader"></i> Dictámenes de Primera Lectura</span>
+                        <span id="totalPrimera">0 dictámenes</span>
+                    </div>
+                    <div id="listaPrimera">
+                        <div class="no-iniciativas">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p>No hay dictámenes de primera lectura</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab Segunda Lectura -->
+                <div class="tab-pane-orden" id="tabSegunda">
+                    <div class="categoria-header">
+                        <span><i class="fas fa-vote-yea"></i> Dictámenes de Segunda Lectura</span>
+                        <span id="totalSegunda">0 dictámenes</span>
+                    </div>
+                    <div id="listaSegunda">
+                        <div class="no-iniciativas">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p>No hay dictámenes de segunda lectura</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab Puntos de Acuerdo -->
+                <div class="tab-pane-orden" id="tabPuntos">
+                    <div class="categoria-header">
+                        <span><i class="fas fa-handshake"></i> Puntos de Acuerdo</span>
+                        <span id="totalPuntos">0 puntos</span>
+                    </div>
+                    <div id="listaPuntos">
+                        <div class="no-iniciativas">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p>No hay puntos de acuerdo disponibles</p>
                         </div>
                     </div>
                 </div>
@@ -2071,23 +2329,108 @@
                     // Mostrar botón gris de presente temporalmente
                     mostrarBotonPresente();
                     
-                    // Mostrar notificación de éxito con el mensaje del servidor
-                    if (data.mensaje) {
-                        showNotification(data.mensaje, 'success');
-                    } else {
-                        showNotification('✅ Asistencia registrada correctamente', 'success');
+                    // Obtener el género del usuario basado en su nombre o cargo
+                    const nombreCompleto = user.nombre || '';
+                    const cargo = user.cargo || '';
+                    
+                    // Detectar género por terminación del nombre o cargo
+                    let genero = 'neutro';
+                    
+                    // Lista de nombres femeninos comunes o terminaciones
+                    const terminacionesFemeninas = ['a', 'ela', 'ina', 'ana', 'ena', 'ona', 'ara', 'ira'];
+                    const nombresFemeninos = ['carmen', 'pilar', 'dolores', 'mercedes', 'angeles', 'luz', 'mar', 'sol', 'cruz'];
+                    
+                    const nombreLower = nombreCompleto.toLowerCase();
+                    const primerNombre = nombreLower.split(' ')[0];
+                    
+                    // Verificar si el cargo indica género
+                    if (cargo.toLowerCase().includes('diputada')) {
+                        genero = 'femenino';
+                    } else if (cargo.toLowerCase().includes('diputado')) {
+                        genero = 'masculino';
+                    } 
+                    // Si no hay cargo claro, verificar por nombre
+                    else if (nombresFemeninos.some(n => primerNombre.includes(n))) {
+                        genero = 'femenino';
+                    } else if (terminacionesFemeninas.some(term => primerNombre.endsWith(term))) {
+                        genero = 'femenino';
+                    } else if (primerNombre.endsWith('o') || primerNombre.endsWith('os') || 
+                              primerNombre.endsWith('el') || primerNombre.endsWith('or')) {
+                        genero = 'masculino';
                     }
+                    
+                    // Construir mensaje personalizado
+                    let mensajeExito = '';
+                    if (genero === 'femenino') {
+                        mensajeExito = '✅ Gracias Diputada, su asistencia ha quedado registrada';
+                    } else if (genero === 'masculino') {
+                        mensajeExito = '✅ Gracias Diputado, su asistencia ha quedado registrada';
+                    } else {
+                        mensajeExito = '✅ Gracias, su asistencia ha quedado registrada';
+                    }
+                    
+                    // Mostrar notificación de éxito personalizada
+                    mostrarNotificacionPersonalizada(mensajeExito, 'success');
                     
                     // Actualizar el indicador de asistencia
                     updateAttendanceStatus('presente');
                 } else {
                     const error = await response.json();
-                    showNotification('❌ Error al confirmar asistencia', 'error');
-                    showNotification(error.error || 'No se pudo confirmar su asistencia', 'warning');
+                    mostrarNotificacionPersonalizada('❌ Error al confirmar asistencia', 'error');
+                    if (error.error) {
+                        mostrarNotificacionPersonalizada(error.error, 'warning');
+                    }
                 }
             } catch (error) {
                 console.error('Error confirmando asistencia:', error);
-                showNotification('❌ Error de conexión', 'error');
+                mostrarNotificacionPersonalizada('❌ Error de conexión al confirmar asistencia', 'error');
+            }
+        }
+        
+        // Función mejorada para mostrar notificaciones
+        function mostrarNotificacionPersonalizada(mensaje, tipo) {
+            // Evitar mostrar "undefined"
+            if (!mensaje || mensaje === 'undefined' || mensaje === 'null') {
+                console.error('Intento de mostrar notificación vacía');
+                return;
+            }
+            
+            const claseAlerta = tipo === 'success' ? 'alert-success' : 
+                               tipo === 'error' ? 'alert-danger' : 
+                               tipo === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            const icono = tipo === 'success' ? 'fa-check-circle' : 
+                         tipo === 'error' ? 'fa-times-circle' : 
+                         tipo === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+            
+            // Crear elemento de notificación
+            const notification = document.createElement('div');
+            notification.className = `alert ${claseAlerta} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 80px; right: 20px; z-index: 10000; min-width: 350px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas ${icono} fa-lg me-3"></i>
+                    <div class="flex-grow-1">
+                        <strong>${mensaje}</strong>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            // Agregar al body
+            document.body.appendChild(notification);
+            
+            // Auto eliminar después de 5 segundos
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+            
+            // También intentar usar showNotification si existe y es diferente
+            if (typeof showNotification === 'function' && showNotification !== mostrarNotificacionPersonalizada) {
+                // Evitar pasar undefined
+                if (mensaje && mensaje !== 'undefined') {
+                    showNotification(mensaje, tipo);
+                }
             }
         }
         
@@ -2156,15 +2499,37 @@
                 if (response.ok) {
                     const data = await response.json();
                     
-                    if (data.sesion && data.sesion.archivo_pdf) {
-                        // Abrir el PDF en una nueva ventana
-                        window.open(`/documentos-sesion/${data.sesion.archivo_pdf}`, '_blank');
-                    } else if (data.sesion) {
-                        // Si no hay PDF pero hay iniciativas, mostrarlas
-                        if (data.iniciativas && data.iniciativas.length > 0) {
-                            mostrarModalIniciativas(data.iniciativas);
-                        } else {
-                            alert('No hay documento PDF disponible para esta sesión');
+                    if (data.sesion) {
+                        // Intentar obtener el PDF del orden del día
+                        try {
+                            const pdfResponse = await fetch(`/api/operador/sesiones/${data.sesion.id}/orden-dia-pdf`, {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            });
+                            
+                            if (pdfResponse.ok) {
+                                const blob = await pdfResponse.blob();
+                                const pdfURL = URL.createObjectURL(blob);
+                                
+                                // Crear modal para mostrar el PDF
+                                mostrarModalPDFOrdenDelDia(pdfURL, data.sesion.nombre || 'Orden del Día');
+                            } else {
+                                // Si no hay PDF pero hay iniciativas, mostrarlas
+                                if (data.iniciativas && data.iniciativas.length > 0) {
+                                    mostrarModalIniciativas(data.iniciativas);
+                                } else {
+                                    alert('No hay documento PDF disponible para esta sesión');
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error obteniendo PDF:', error);
+                            // Si falla obtener el PDF, mostrar iniciativas si existen
+                            if (data.iniciativas && data.iniciativas.length > 0) {
+                                mostrarModalIniciativas(data.iniciativas);
+                            } else {
+                                alert('Error al obtener el documento PDF');
+                            }
                         }
                     } else {
                         alert('No hay sesión activa en este momento');
@@ -2178,6 +2543,270 @@
                 console.error('Error consultando orden del día:', error);
                 alert('Error al consultar la orden del día');
             }
+        }
+        
+        // Función para mostrar el PDF del orden del día en un modal
+        function mostrarModalPDFOrdenDelDia(pdfURL, titulo) {
+            // Crear modal si no existe
+            let modal = document.getElementById('modalPDFOrdenDia');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'modalPDFOrdenDia';
+                modal.className = 'modal fade';
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-xl" style="max-width: 90%; height: 90vh;">
+                        <div class="modal-content" style="height: 100%;">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-file-pdf"></i> 
+                                    <span id="modalPDFTituloOrden">${titulo}</span>
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="cerrarModalPDFOrdenDelDia()"></button>
+                            </div>
+                            <div class="modal-body p-0" style="height: calc(100% - 60px);">
+                                <iframe id="modalPDFFrameOrden" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            } else {
+                // Actualizar título si el modal ya existe
+                document.getElementById('modalPDFTituloOrden').textContent = titulo;
+            }
+            
+            // Establecer la URL del PDF
+            document.getElementById('modalPDFFrameOrden').src = pdfURL;
+            
+            // Mostrar modal
+            const modalInstance = new bootstrap.Modal(modal);
+            modalInstance.show();
+        }
+        
+        // Función para cerrar el modal del PDF del orden del día
+        function cerrarModalPDFOrdenDelDia() {
+            const modal = document.getElementById('modalPDFOrdenDia');
+            if (modal) {
+                const modalInstance = bootstrap.Modal.getInstance(modal);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+                
+                // Limpiar iframe
+                const frame = document.getElementById('modalPDFFrameOrden');
+                if (frame && frame.src) {
+                    if (frame.src.startsWith('blob:')) {
+                        URL.revokeObjectURL(frame.src);
+                    }
+                    frame.src = '';
+                }
+            }
+        }
+        
+        // ================ FUNCIONES DE PESTAÑAS ORDEN DEL DÍA ================
+        
+        // Función para cambiar entre pestañas del orden del día
+        function cambiarTabOrden(tab) {
+            // Remover clase active de todos los botones y paneles
+            document.querySelectorAll('.tab-button-orden').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-pane-orden').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            
+            // Activar el botón y panel correspondiente
+            const button = document.querySelector(`.tab-button-orden[onclick="cambiarTabOrden('${tab}')"]`);
+            if (button) button.classList.add('active');
+            
+            const tabMap = {
+                'od': 'tabOD',
+                'iniciativas': 'tabIniciativas',
+                'primera': 'tabPrimera',
+                'segunda': 'tabSegunda',
+                'puntos': 'tabPuntos'
+            };
+            
+            const pane = document.getElementById(tabMap[tab]);
+            if (pane) pane.classList.add('active');
+        }
+        
+        // Función para cargar las iniciativas del orden del día
+        async function cargarOrdenDelDia() {
+            try {
+                const response = await fetch('/api/diputado/sesion-actual', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.log('No hay sesión activa');
+                    document.getElementById('ordenDiaTabs').style.display = 'none';
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.sesion && data.iniciativas && data.iniciativas.length > 0) {
+                    // Mostrar las pestañas
+                    document.getElementById('ordenDiaTabs').style.display = 'block';
+                    
+                    // Categorizar las iniciativas
+                    const categorias = {
+                        od: [],
+                        iniciativas: [],
+                        primera: [],
+                        segunda: [],
+                        puntos: []
+                    };
+                    
+                    // Procesar todas las iniciativas
+                    data.iniciativas.forEach((item, index) => {
+                        // Determinar categoría
+                        let categoria = 'od'; // Por defecto todo va a OD
+                        
+                        const titulo = (item.titulo || item.descripcion || '').toLowerCase();
+                        const tipo = (item.tipo || '').toLowerCase();
+                        const tipoDocumento = (item.tipo_documento || '').toLowerCase();
+                        
+                        // Clasificar por tipo
+                        if (titulo.includes('iniciativa') || tipo.includes('iniciativa') || tipoDocumento === 'iniciativa') {
+                            categoria = 'iniciativas';
+                        } else if (titulo.includes('primera lectura') || tipo.includes('primera') || tipoDocumento.includes('primera')) {
+                            categoria = 'primera';
+                        } else if (titulo.includes('segunda lectura') || tipo.includes('segunda') || tipoDocumento.includes('segunda')) {
+                            categoria = 'segunda';
+                        } else if (titulo.includes('punto') && titulo.includes('acuerdo') || tipo.includes('punto') || tipoDocumento.includes('punto')) {
+                            categoria = 'puntos';
+                        }
+                        
+                        // Crear el elemento con numeración
+                        const elemento = {
+                            ...item,
+                            numeroOrden: index + 1,
+                            categoria: categoria
+                        };
+                        
+                        // Agregar a OD (todo va aquí)
+                        categorias.od.push(elemento);
+                        
+                        // También agregar a su categoría específica
+                        if (categoria !== 'od') {
+                            categorias[categoria].push(elemento);
+                        }
+                    });
+                    
+                    // Renderizar cada categoría
+                    renderizarCategoria('od', categorias.od);
+                    renderizarCategoria('iniciativas', categorias.iniciativas);
+                    renderizarCategoria('primera', categorias.primera);
+                    renderizarCategoria('segunda', categorias.segunda);
+                    renderizarCategoria('puntos', categorias.puntos);
+                    
+                    // Actualizar badges con conteos
+                    document.getElementById('badgeOD').textContent = categorias.od.length;
+                    document.getElementById('badgeIniciativas').textContent = categorias.iniciativas.length;
+                    document.getElementById('badgePrimera').textContent = categorias.primera.length;
+                    document.getElementById('badgeSegunda').textContent = categorias.segunda.length;
+                    document.getElementById('badgePuntos').textContent = categorias.puntos.length;
+                    
+                    // Actualizar totales
+                    document.getElementById('totalOD').textContent = `${categorias.od.length} elementos`;
+                    document.getElementById('totalIniciativas').textContent = `${categorias.iniciativas.length} iniciativas`;
+                    document.getElementById('totalPrimera').textContent = `${categorias.primera.length} dictámenes`;
+                    document.getElementById('totalSegunda').textContent = `${categorias.segunda.length} dictámenes`;
+                    document.getElementById('totalPuntos').textContent = `${categorias.puntos.length} puntos`;
+                } else {
+                    document.getElementById('ordenDiaTabs').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error cargando orden del día:', error);
+                document.getElementById('ordenDiaTabs').style.display = 'none';
+            }
+        }
+        
+        // Función para renderizar una categoría
+        function renderizarCategoria(tipo, items) {
+            const contenedores = {
+                'od': 'listaOD',
+                'iniciativas': 'listaIniciativas',
+                'primera': 'listaPrimera',
+                'segunda': 'listaSegunda',
+                'puntos': 'listaPuntos'
+            };
+            
+            const contenedor = document.getElementById(contenedores[tipo]);
+            if (!contenedor) return;
+            
+            if (items.length === 0) {
+                contenedor.innerHTML = `
+                    <div class="no-iniciativas">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p>No hay elementos disponibles</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            items.forEach((item) => {
+                const numero = item.numero || item.numeroOrden || '';
+                const titulo = item.titulo || 'Sin título';
+                const descripcion = item.descripcion || '';
+                const presentador = item.presentador || '';
+                const partido = item.partido_presentador || '';
+                
+                html += `
+                    <div class="iniciativa-item">
+                        <div class="d-flex align-items-start">
+                            ${numero ? `<span class="iniciativa-numero">${numero}</span>` : ''}
+                            <div class="flex-grow-1">
+                                <div class="iniciativa-titulo">${titulo}</div>
+                                ${descripcion && descripcion !== titulo ? `
+                                    <div class="iniciativa-descripcion">${descripcion.substring(0, 200)}${descripcion.length > 200 ? '...' : ''}</div>
+                                ` : ''}
+                                ${presentador ? `
+                                    <small class="text-muted">
+                                        <i class="fas fa-user"></i> ${presentador} 
+                                        ${partido ? `(${partido})` : ''}
+                                    </small>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            contenedor.innerHTML = html;
+        }
+        
+        // Escuchar eventos del socket para actualizar el orden del día
+        socket.on('iniciativas-cargadas', () => {
+            console.log('Iniciativas cargadas, actualizando pestañas...');
+            cargarOrdenDelDia();
+        });
+        
+        socket.on('sesion-iniciada', () => {
+            console.log('Sesión iniciada, cargando orden del día...');
+            cargarOrdenDelDia();
+        });
+        
+        socket.on('iniciativa-agregada', () => {
+            console.log('Nueva iniciativa agregada, actualizando...');
+            cargarOrdenDelDia();
+        });
+        
+        socket.on('iniciativas-actualizadas', () => {
+            console.log('Iniciativas actualizadas, recargando...');
+            cargarOrdenDelDia();
+        });
+        
+        // Cargar orden del día al iniciar
+        if (user && token) {
+            setTimeout(() => {
+                cargarOrdenDelDia();
+            }, 1000);
         }
         
         // Prevenir zoom con pinch en toda la aplicación excepto PDFs
@@ -2235,6 +2864,37 @@
                 descElement.style.overflow = 'visible';
                 btnVerMas.innerHTML = '<i class="fas fa-chevron-up"></i> Ver menos';
                 descElement.setAttribute('data-expandido', 'true');
+            }
+        }
+        
+        // Función para actualizar el estado de asistencia (para compatibilidad)
+        function updateAttendanceStatus(estado) {
+            console.log('Actualizando estado de asistencia a:', estado);
+            // Actualizar algún indicador visual si existe
+            const badgeAsistencia = document.getElementById('attendanceBadge');
+            if (badgeAsistencia) {
+                badgeAsistencia.style.display = 'inline-block'; // Mostrar el badge
+                if (estado === 'presente') {
+                    badgeAsistencia.className = 'badge bg-success ms-2';
+                    badgeAsistencia.innerHTML = '<i class="fas fa-check-circle"></i> PRESENTE';
+                } else if (estado === 'ausente') {
+                    badgeAsistencia.className = 'badge bg-danger ms-2';
+                    badgeAsistencia.innerHTML = '<i class="fas fa-times-circle"></i> AUSENTE';
+                } else if (estado === 'justificado') {
+                    badgeAsistencia.className = 'badge bg-warning text-dark ms-2';
+                    badgeAsistencia.innerHTML = '<i class="fas fa-exclamation-circle"></i> JUSTIFICADO';
+                } else if (estado === '') {
+                    // Si el estado está vacío, ocultar el badge
+                    badgeAsistencia.style.display = 'none';
+                } else {
+                    badgeAsistencia.className = 'badge bg-secondary ms-2';
+                    badgeAsistencia.innerHTML = '<i class="fas fa-question-circle"></i> SIN REGISTRO';
+                }
+            }
+            
+            // También llamar a mostrarEstadoAsistencia si es necesario
+            if (typeof mostrarEstadoAsistencia === 'function') {
+                mostrarEstadoAsistencia(estado);
             }
         }
         
@@ -2608,10 +3268,10 @@
                 user.cargo_mesa_directiva === 'secretario1' || 
                 user.cargo_mesa_directiva === 'secretario2') {
                 
-                // Crear notificación visual
+                // Crear notificación visual (ajustada 30px más abajo para no chocar con menú)
                 const notification = document.createElement('div');
                 notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
-                notification.style.cssText = 'top: 100px; right: 20px; z-index: 9999; max-width: 400px;';
+                notification.style.cssText = 'top: 130px; right: 20px; z-index: 9999; max-width: 400px;';
                 notification.innerHTML = `
                     <h5 class="alert-heading">
                         <i class="fas fa-bell"></i> Sesión Lista para Iniciar
@@ -5740,18 +6400,42 @@
             }
             
             if (mostrarBoton) {
-                // Mostrar el botón de auto-registro
+                // Verificar si ya confirmé asistencia
+                if (yaConfirmeAsistencia) {
+                    console.log('Ya confirmé asistencia, ignorando auto-asistencia');
+                    return;
+                }
+                
+                // Usar el botón frontal grande en lugar del botón del menú
+                const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
+                if (containerAsistencia) {
+                    containerAsistencia.style.display = 'block';
+                    
+                    // Actualizar el título para indicar que es auto-asistencia
+                    const titulo = containerAsistencia.querySelector('h4');
+                    if (titulo) {
+                        titulo.innerHTML = '<i class="fas fa-clipboard-check"></i> Auto-Asistencia Habilitada';
+                    }
+                    
+                    // Agregar animación para llamar la atención
+                    const btnAsistencia = document.getElementById('btnConfirmarAsistencia');
+                    if (btnAsistencia) {
+                        btnAsistencia.classList.add('pulse-animation');
+                    }
+                }
+                
+                // OCULTAR el botón del menú hamburguesa (no lo necesitamos)
                 const btnRegistrar = document.getElementById('btnRegistrarAsistencia');
                 const divider = document.getElementById('dividerAsistencia');
                 if (btnRegistrar) {
-                    btnRegistrar.style.display = 'flex';
+                    btnRegistrar.style.display = 'none';
                 }
                 if (divider) {
-                    divider.style.display = 'block';
+                    divider.style.display = 'none';
                 }
                 
                 // Mostrar notificación
-                showNotification('info', 'Auto-Asistencia Habilitada', 'Ya puedes registrar tu asistencia desde el menú');
+                mostrarNotificacionPersonalizada('📋 Auto-Asistencia Habilitada - Puedes registrar tu asistencia ahora', 'info');
             }
         });
         
@@ -5771,25 +6455,69 @@
                 if (response.ok) {
                     const miAsistencia = await response.json();
                     
-                    // Si no ha marcado asistencia, mostrar el botón para llegada tardía
+                    // Si no ha marcado asistencia, mostrar el botón frontal para llegada tardía
                     if (!miAsistencia.asistencia || miAsistencia.asistencia === 'ausente') {
+                        // Usar el botón frontal grande
+                        const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
+                        if (containerAsistencia) {
+                            containerAsistencia.style.display = 'block';
+                            
+                            // Actualizar el título para indicar llegada tardía
+                            const titulo = containerAsistencia.querySelector('h4');
+                            if (titulo) {
+                                titulo.innerHTML = '<i class="fas fa-clock text-warning"></i> Llegada Tardía';
+                            }
+                            
+                            // Cambiar el estilo del botón para indicar tardanza
+                            const btnAsistencia = document.getElementById('btnConfirmarAsistencia');
+                            if (btnAsistencia) {
+                                btnAsistencia.className = 'btn btn-warning attendance-btn btn-presente';
+                                btnAsistencia.innerHTML = `
+                                    <i class="fas fa-clock"></i>
+                                    <span>MARCAR LLEGADA TARDÍA</span>
+                                `;
+                                btnAsistencia.classList.add('pulse-animation');
+                            }
+                            
+                            // Actualizar el mensaje informativo
+                            const mensaje = containerAsistencia.querySelector('.text-muted small');
+                            if (mensaje) {
+                                mensaje.textContent = 'Registra tu asistencia tardía a la sesión';
+                            }
+                        }
+                        
+                        // Ocultar el botón del menú hamburguesa
                         const btnRegistrar = document.getElementById('btnRegistrarAsistencia');
                         const divider = document.getElementById('dividerAsistencia');
-                        
                         if (btnRegistrar) {
-                            btnRegistrar.style.display = 'flex';
-                            btnRegistrar.style.background = 'linear-gradient(135deg, #ffc107, #ff9800)'; // Color naranja para tardío
-                            btnRegistrar.innerHTML = `
-                                <i class="fas fa-clock" style="color: white;"></i>
-                                <div>
-                                    <div style="font-weight: bold;">LLEGADA TARDÍA</div>
-                                    <small style="color: rgba(255,255,255,0.8);">Registrar mi asistencia</small>
-                                </div>
-                            `;
+                            btnRegistrar.style.display = 'none';
                         }
                         if (divider) {
-                            divider.style.display = 'block';
+                            divider.style.display = 'none';
                         }
+                    } else if (miAsistencia.asistencia === 'justificado') {
+                        // Si la inasistencia está justificada, NO mostrar botones
+                        // Solo actualizar el badge de estado
+                        updateAttendanceStatus('justificado');
+                        
+                        // Ocultar ambos botones (frontal y menú)
+                        const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
+                        if (containerAsistencia) {
+                            containerAsistencia.style.display = 'none';
+                        }
+                        
+                        const btnRegistrar = document.getElementById('btnRegistrarAsistencia');
+                        const divider = document.getElementById('dividerAsistencia');
+                        if (btnRegistrar) {
+                            btnRegistrar.style.display = 'none';
+                        }
+                        if (divider) {
+                            divider.style.display = 'none';
+                        }
+                        
+                        // Mostrar notificación informativa
+                        const motivo = miAsistencia.justificacion_motivo || 'Justificada por secretario';
+                        mostrarNotificacionPersonalizada(`ℹ️ Inasistencia justificada: ${motivo}`, 'info');
                     }
                 }
             } catch (error) {

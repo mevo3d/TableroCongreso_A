@@ -271,6 +271,7 @@ async function extraerIniciativasDefinitivo(pdfBuffer) {
         console.log(`\n✅ Extracción completada:`);
         console.log(`   - Total elementos: ${estadisticas.total}`);
         console.log(`   - Requieren votación: ${estadisticas.requierenVotacion}`);
+        console.log(`   - Aprobación del acta: ${resultado.elementos.some(e => e.es_aprobacion_acta) ? 'SÍ (detectada)' : 'No detectada'}`);
         console.log(`   - Tipo de sesión: ${tipoSesion}`);
         
         return resultado;
@@ -461,107 +462,322 @@ function extraerFecha(texto) {
 }
 
 /**
- * Extrae la estructura completa de incisos del documento
- * IMPORTANTE: Detecta secciones por CONTENIDO, no por letra fija
- * Patrón: [CUALQUIER_LETRA]) [TIPO] → 1. 2. 3. (numeración propia por sección)
+ * Extrae la estructura completa del documento
+ * Detecta tanto formato con incisos (A), B), etc.) como formato jerárquico (8. Iniciativas -> 1.2.3...)
  */
 function extraerEstructuraIncisos(texto) {
     const estructura = [];
     const lineas = texto.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     
-    console.log('\n🔍 === INICIANDO DETECCIÓN DE SECCIONES POR CONTENIDO ===');
+    console.log('\n🔍 === DETECTANDO ESTRUCTURA DEL DOCUMENTO ===');
     
+    // Detectar formato del documento
+    let formatoDetectado = 'desconocido';
+    let tieneIncisos = false;
+    let esJerarquico = false;
+    
+    // Buscar patrones característicos
     for (let i = 0; i < lineas.length; i++) {
         const linea = lineas[i];
         
-        // Detectar incisos principales con formato: CUALQUIER_LETRA) CONTENIDO
-        const matchIncisoPrincipal = linea.match(/^([A-Z])\)\s+(.+)/);
-        if (matchIncisoPrincipal) {
-            const letra = matchIncisoPrincipal[1];
-            const contenido = matchIncisoPrincipal[2];
-            const contenidoLower = contenido.toLowerCase();
-            
-            // Determinar categoría por CONTENIDO, no por letra
-            let tipoInciso = null;
-            let categoria = null;
-            let requiereVotacion = false;
-            let esProcedimiento = false;
-            
-            // DETECTAR POR PALABRAS CLAVE (orden de prioridad importante)
-            if (contenidoLower.match(/segunda\s+lectura|2a\.\s*lectura|2da\.\s*lectura/)) {
-                // SEGUNDA LECTURA - SIEMPRE SE VOTA
-                tipoInciso = 'DICTAMENES_SEGUNDA';
-                categoria = 'segunda_lectura';
-                requiereVotacion = true;
-                console.log(`✅ Inciso ${letra}) - SEGUNDA LECTURA detectada → SE VOTA`);
-                
-            } else if (contenidoLower.match(/primera\s+lectura|1a\.\s*lectura|1ra\.\s*lectura/)) {
-                // PRIMERA LECTURA - Solo se vota si es urgente
-                tipoInciso = 'DICTAMENES_PRIMERA';
-                categoria = 'primera_lectura';
-                requiereVotacion = contenidoLower.includes('urgente') || contenidoLower.includes('obvia');
-                console.log(`📋 Inciso ${letra}) - PRIMERA LECTURA detectada → ${requiereVotacion ? 'URGENTE (SE VOTA)' : 'Normal (próxima sesión)'}`);
-                
-            } else if (contenidoLower.match(/dict[aá]m[eé]n/i) && !contenidoLower.includes('lectura')) {
-                // DICTÁMENES (sin especificar lectura) - Generalmente se votan
-                tipoInciso = 'DICTAMENES';
-                categoria = 'dictamenes';
-                requiereVotacion = true;
-                console.log(`✅ Inciso ${letra}) - DICTÁMENES detectados → SE VOTAN`);
-                
-            } else if (contenidoLower.match(/punto.*acuerdo|proposici[oó]n.*punto/)) {
-                // PUNTOS DE ACUERDO - SE VOTAN
-                tipoInciso = 'PUNTOS_ACUERDO';
-                categoria = 'puntos_acuerdo';
-                requiereVotacion = true;
-                console.log(`✅ Inciso ${letra}) - PUNTOS DE ACUERDO detectados → SE VOTAN`);
-                
-            } else if (contenidoLower.match(/iniciativa/)) {
-                // INICIATIVAS - Solo turno a comisión
-                tipoInciso = 'INICIATIVAS';
-                categoria = 'iniciativas';
-                requiereVotacion = false;
-                console.log(`📄 Inciso ${letra}) - INICIATIVAS detectadas → Turno a comisión (NO se votan)`);
-                
-            } else if (contenidoLower.match(/comunicaci[oó]n/)) {
-                // COMUNICACIONES - Procedimiento
-                tipoInciso = 'COMUNICACIONES';
-                categoria = 'procedimiento';
-                esProcedimiento = true;
-                requiereVotacion = false;
-                console.log(`📨 Inciso ${letra}) - COMUNICACIONES detectadas → Procedimiento`);
-                
-            } else if (contenidoLower.match(/pase.*lista|quorum|qu[oó]rum|orden.*d[ií]a|acta/)) {
-                // PROCEDIMIENTOS
-                tipoInciso = 'PROCEDIMIENTO';
-                categoria = 'procedimiento';
-                esProcedimiento = true;
-                requiereVotacion = contenidoLower.includes('votación') || contenidoLower.includes('aprobación');
-                console.log(`⚙️ Inciso ${letra}) - PROCEDIMIENTO detectado`);
-                
-            } else {
-                // NO IDENTIFICADO - Marcar para revisión
-                categoria = 'otras';
-                console.log(`❓ Inciso ${letra}) - Tipo NO IDENTIFICADO: "${contenido}"`);
-            }
-            
-            estructura.push({
-                letra: letra,
-                contenido: contenido,
-                tipoInciso: tipoInciso,
-                categoria: categoria,
-                esProcedimiento: esProcedimiento,
-                requiereVotacion: requiereVotacion,
-                elementos: [], // Aquí se agregarán los elementos numerados
-                descripcion: obtenerDescripcionCategoria(categoria)
-            });
+        // Formato con incisos: A), B), C)
+        if (linea.match(/^[A-Z]\)\s+/)) {
+            tieneIncisos = true;
+            formatoDetectado = 'incisos';
+            console.log('✅ Formato CON INCISOS detectado (A), B), etc.)');
+            break;
+        }
+        
+        // Formato jerárquico: 8. Iniciativas, 9. Dictamenes Primera Lectura
+        if (linea.match(/^8\.\s*Iniciativa/i) || linea.match(/^9\.\s*Dict[aá]m.*Primera/i)) {
+            esJerarquico = true;
+            formatoDetectado = 'jerarquico';
+            console.log('📊 Formato JERÁRQUICO detectado (8. Iniciativas, 9. Primera Lectura, 10. Segunda Lectura)');
+            break;
         }
     }
     
-    console.log(`\n📊 Total de secciones detectadas: ${estructura.length}`);
+    console.log(`   Formato detectado: ${formatoDetectado}`);
+    
+    // Variables para rastrear secciones
+    let seccionActual = null;
+    let dentroDeSeccionPrincipal = false;
+    let numeroSeccionPrincipal = 0;
+    
+    for (let i = 0; i < lineas.length; i++) {
+        const linea = lineas[i];
+        const contenidoLower = linea.toLowerCase();
+        
+        // FORMATO JERÁRQUICO - detectar secciones principales (8, 9, 10)
+        if (esJerarquico) {
+            // Detectar sección 8: Iniciativas
+            if (linea.match(/^8\.\s*Iniciativa/i)) {
+                estructura.push({
+                    letra: '8',
+                    contenido: 'Iniciativas',
+                    tipoInciso: 'INICIATIVAS',
+                    categoria: 'iniciativas',
+                    esProcedimiento: false,
+                    requiereVotacion: false,
+                    elementos: [],
+                    descripcion: 'Iniciativas (se turnan a comisiones, no se votan)',
+                    numeroSeccion: 8,
+                    esSeccionPrincipal: true
+                });
+                dentroDeSeccionPrincipal = true;
+                numeroSeccionPrincipal = 8;
+                seccionActual = estructura[estructura.length - 1];
+                console.log('📄 Sección 8: INICIATIVAS detectada');
+                continue;
+            }
+            
+            // Detectar sección 9: Primera Lectura
+            if (linea.match(/^9\.\s*(Dict[aá]m.*Primera\s*Lectura|Primera\s*Lectura)/i)) {
+                estructura.push({
+                    letra: '9',
+                    contenido: 'Dictámenes de Primera Lectura',
+                    tipoInciso: 'DICTAMENES_PRIMERA',
+                    categoria: 'primera_lectura',
+                    esProcedimiento: false,
+                    requiereVotacion: false,
+                    elementos: [],
+                    descripcion: 'Dictámenes en primera lectura (se votan en próxima sesión)',
+                    numeroSeccion: 9,
+                    esSeccionPrincipal: true
+                });
+                dentroDeSeccionPrincipal = true;
+                numeroSeccionPrincipal = 9;
+                seccionActual = estructura[estructura.length - 1];
+                console.log('📋 Sección 9: PRIMERA LECTURA detectada');
+                continue;
+            }
+            
+            // Detectar sección 10: Segunda Lectura
+            if (linea.match(/^10\.\s*(Dict[aá]m.*Segunda\s*Lectura|Segunda\s*Lectura)/i)) {
+                estructura.push({
+                    letra: '10',
+                    contenido: 'Dictámenes de Segunda Lectura',
+                    tipoInciso: 'DICTAMENES_SEGUNDA',
+                    categoria: 'segunda_lectura',
+                    esProcedimiento: false,
+                    requiereVotacion: true,
+                    elementos: [],
+                    descripcion: 'Dictámenes en segunda lectura (SE VOTAN HOY)',
+                    numeroSeccion: 10,
+                    esSeccionPrincipal: true
+                });
+                dentroDeSeccionPrincipal = true;
+                numeroSeccionPrincipal = 10;
+                seccionActual = estructura[estructura.length - 1];
+                console.log('✅ Sección 10: SEGUNDA LECTURA detectada (SE VOTAN)');
+                continue;
+            }
+            
+            // Detectar fin de secciones principales (11. Correspondencia, etc.)
+            if (linea.match(/^11\./)) {
+                dentroDeSeccionPrincipal = false;
+                seccionActual = null;
+            }
+        }
+        
+        // FORMATO CON INCISOS - detectar letras con paréntesis
+        else if (tieneIncisos) {
+            const matchIncisoPrincipal = linea.match(/^([A-Z])\)\s+(.+)/);
+            if (matchIncisoPrincipal) {
+                const letra = matchIncisoPrincipal[1];
+                const contenido = matchIncisoPrincipal[2];
+                const contenidoIncisoLower = contenido.toLowerCase();
+                
+                // Determinar categoría por contenido
+                let categoria = 'otras';
+                let requiereVotacion = false;
+                let tipoInciso = 'GENERAL';
+                
+                if (contenidoIncisoLower.match(/segunda\s+lectura|2a\.\s*lectura|2da\.\s*lectura/)) {
+                    categoria = 'segunda_lectura';
+                    requiereVotacion = true;
+                    tipoInciso = 'DICTAMENES_SEGUNDA';
+                    console.log(`✅ Inciso ${letra}) SEGUNDA LECTURA → SE VOTA`);
+                } else if (contenidoIncisoLower.match(/primera\s+lectura|1a\.\s*lectura|1ra\.\s*lectura/)) {
+                    categoria = 'primera_lectura';
+                    requiereVotacion = contenidoIncisoLower.includes('urgente');
+                    tipoInciso = 'DICTAMENES_PRIMERA';
+                    console.log(`📋 Inciso ${letra}) PRIMERA LECTURA`);
+                } else if (contenidoIncisoLower.includes('iniciativa')) {
+                    categoria = 'iniciativas';
+                    requiereVotacion = false;
+                    tipoInciso = 'INICIATIVAS';
+                    console.log(`📄 Inciso ${letra}) INICIATIVAS`);
+                } else if (contenidoIncisoLower.match(/punto.*acuerdo/)) {
+                    categoria = 'puntos_acuerdo';
+                    requiereVotacion = true;
+                    tipoInciso = 'PUNTOS_ACUERDO';
+                    console.log(`✅ Inciso ${letra}) PUNTOS DE ACUERDO → SE VOTAN`);
+                } else if (contenidoIncisoLower.includes('dictamen') || contenidoIncisoLower.includes('dictámen')) {
+                    categoria = 'dictamenes';
+                    requiereVotacion = true;
+                    tipoInciso = 'DICTAMENES';
+                    console.log(`✅ Inciso ${letra}) DICTÁMENES → SE VOTAN`);
+                }
+                
+                estructura.push({
+                    letra: letra,
+                    contenido: contenido,
+                    tipoInciso: tipoInciso,
+                    categoria: categoria,
+                    esProcedimiento: false,
+                    requiereVotacion: requiereVotacion,
+                    elementos: [],
+                    descripcion: obtenerDescripcionCategoria(categoria)
+                });
+                continue;
+            }
+        }
+        
+        // FORMATO DIRECTO - detectar secciones por contenido
+        if (!tieneIncisos) {
+            // Buscar títulos de sección
+            if (contenidoLower.match(/^iniciativas?\s*$/i)) {
+                seccionActual = 'iniciativas';
+                estructura.push({
+                    letra: 'AUTO-INIT',
+                    contenido: 'Iniciativas',
+                    tipoInciso: 'INICIATIVAS',
+                    categoria: 'iniciativas',
+                    esProcedimiento: false,
+                    requiereVotacion: false,
+                    elementos: [],
+                    descripcion: 'Iniciativas (se turnan a comisiones, no se votan)'
+                });
+                console.log('📄 Sección INICIATIVAS detectada');
+                continue;
+            }
+            
+            if (contenidoLower.match(/primera\s+lectura/i)) {
+                seccionActual = 'primera_lectura';
+                estructura.push({
+                    letra: 'AUTO-PL',
+                    contenido: 'Primera Lectura',
+                    tipoInciso: 'DICTAMENES_PRIMERA',
+                    categoria: 'primera_lectura',
+                    esProcedimiento: false,
+                    requiereVotacion: false,
+                    elementos: [],
+                    descripcion: 'Dictámenes en primera lectura'
+                });
+                console.log('📋 Sección PRIMERA LECTURA detectada');
+                continue;
+            }
+            
+            if (contenidoLower.match(/segunda\s+lectura/i)) {
+                seccionActual = 'segunda_lectura';
+                estructura.push({
+                    letra: 'AUTO-SL',
+                    contenido: 'Segunda Lectura',
+                    tipoInciso: 'DICTAMENES_SEGUNDA',
+                    categoria: 'segunda_lectura',
+                    esProcedimiento: false,
+                    requiereVotacion: true,
+                    elementos: [],
+                    descripcion: 'Dictámenes en segunda lectura (SE VOTAN HOY)'
+                });
+                console.log('✅ Sección SEGUNDA LECTURA detectada');
+                continue;
+            }
+            
+            // Auto-detectar sección por contenido de elementos numerados
+            const matchNumero = linea.match(/^(\d+)\.\s+(.+)/);
+            if (matchNumero && !seccionActual) {
+                const contenido = matchNumero[2];
+                const contenidoElemLower = contenido.toLowerCase();
+                
+                // Auto-detectar sección basándose en el contenido
+                if (contenidoElemLower.includes('iniciativa')) {
+                    seccionActual = 'iniciativas';
+                    if (estructura.length === 0 || estructura[estructura.length - 1].categoria !== 'iniciativas') {
+                        estructura.push({
+                            letra: 'AUTO',
+                            contenido: 'Iniciativas (auto-detectadas)',
+                            tipoInciso: 'INICIATIVAS',
+                            categoria: 'iniciativas',
+                            esProcedimiento: false,
+                            requiereVotacion: false,
+                            elementos: [],
+                            descripcion: 'Iniciativas (se turnan a comisiones)'
+                        });
+                        console.log('📄 Sección INICIATIVAS auto-detectada');
+                    }
+                } else if (contenidoElemLower.includes('dictamen') && contenidoElemLower.includes('primera')) {
+                    seccionActual = 'primera_lectura';
+                    if (estructura.length === 0 || estructura[estructura.length - 1].categoria !== 'primera_lectura') {
+                        estructura.push({
+                            letra: 'AUTO',
+                            contenido: 'Primera Lectura (auto-detectada)',
+                            tipoInciso: 'DICTAMENES_PRIMERA',
+                            categoria: 'primera_lectura',
+                            esProcedimiento: false,
+                            requiereVotacion: false,
+                            elementos: [],
+                            descripcion: 'Dictámenes en primera lectura'
+                        });
+                        console.log('📋 Sección PRIMERA LECTURA auto-detectada');
+                    }
+                } else if (contenidoElemLower.includes('dictamen') && (contenidoElemLower.includes('segunda') || contenidoElemLower.includes('emanado'))) {
+                    seccionActual = 'segunda_lectura';
+                    if (estructura.length === 0 || estructura[estructura.length - 1].categoria !== 'segunda_lectura') {
+                        estructura.push({
+                            letra: 'AUTO',
+                            contenido: 'Segunda Lectura (auto-detectada)',
+                            tipoInciso: 'DICTAMENES_SEGUNDA',
+                            categoria: 'segunda_lectura',
+                            esProcedimiento: false,
+                            requiereVotacion: true,
+                            elementos: [],
+                            descripcion: 'Dictámenes en segunda lectura (SE VOTAN)'
+                        });
+                        console.log('✅ Sección SEGUNDA LECTURA auto-detectada');
+                    }
+                } else if (contenidoElemLower.match(/punto.*acuerdo/)) {
+                    seccionActual = 'puntos_acuerdo';
+                    if (estructura.length === 0 || estructura[estructura.length - 1].categoria !== 'puntos_acuerdo') {
+                        estructura.push({
+                            letra: 'AUTO',
+                            contenido: 'Puntos de Acuerdo (auto-detectados)',
+                            tipoInciso: 'PUNTOS_ACUERDO',
+                            categoria: 'puntos_acuerdo',
+                            esProcedimiento: false,
+                            requiereVotacion: true,
+                            elementos: [],
+                            descripcion: 'Puntos de Acuerdo (SE VOTAN)'
+                        });
+                        console.log('✅ Sección PUNTOS DE ACUERDO auto-detectada');
+                    }
+                }
+            }
+        }
+    }
+    
+    // Si no se detectaron secciones pero hay contenido, crear sección genérica
+    if (estructura.length === 0) {
+        console.log('⚠️ No se detectaron secciones claras, creando estructura genérica');
+        estructura.push({
+            letra: 'GEN',
+            contenido: 'Orden del Día',
+            tipoInciso: 'GENERAL',
+            categoria: 'otras',
+            esProcedimiento: false,
+            requiereVotacion: false,
+            elementos: [],
+            descripcion: 'Elementos del orden del día'
+        });
+    }
+    
+    console.log(`\n📊 Resumen de secciones detectadas: ${estructura.length}`);
     estructura.forEach(s => {
         console.log(`   ${s.letra}) ${s.categoria} - ${s.requiereVotacion ? '✅ SE VOTA' : '⏸️ NO se vota'}`);
     });
+    console.log(`   Formato: ${tieneIncisos ? 'CON INCISOS' : 'DIRECTO (sin incisos)'}`);
+    console.log('');
     
     return estructura;
 }
@@ -584,78 +800,233 @@ function obtenerDescripcionCategoria(categoria) {
 }
 
 /**
- * NUEVA FUNCIÓN: Extrae elementos respetando la estructura de incisos y numeración dual
+ * Extrae elementos respetando la estructura jerárquica del documento
  */
 function extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion) {
     const elementos = [];
     const lineas = texto.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     
-    let numeroGeneral = 0; // Contador general de todos los elementos
-    let seccionActual = null; // Sección actual (inciso)
-    let numeroEnSeccion = 0; // Contador dentro de cada sección
+    let numeroGeneral = 0; // Contador global consecutivo (1,2,3...hasta 238)
+    let seccionActual = null;
+    let numeroEnSeccion = 0; // Se reinicia en cada sección (1,2,3...)
+    let dentroDeSeccionPrincipal = false;
+    let numeroSeccionPrincipal = 0;
     
-    console.log('\n📋 === EXTRAYENDO ELEMENTOS CON CATEGORÍAS ===');
+    console.log('\n📋 === EXTRAYENDO ELEMENTOS DEL DOCUMENTO ===');
+    
+    // Detectar si es formato jerárquico
+    const esJerarquico = estructuraIncisos.some(e => e.esSeccionPrincipal);
     
     for (let i = 0; i < lineas.length; i++) {
         const linea = lineas[i];
+        const lineaLower = linea.toLowerCase();
         
-        // Detectar cambio de sección (inciso principal)
-        const matchInciso = linea.match(/^([A-Z])\)\s+(.+)/);
-        if (matchInciso) {
-            const letra = matchInciso[1];
-            // Buscar esta sección en la estructura
-            seccionActual = estructuraIncisos.find(e => e.letra === letra);
-            numeroEnSeccion = 0; // Reiniciar contador de sección
-            
-            if (seccionActual) {
-                console.log(`\n📂 Entrando a sección ${letra}) ${seccionActual.categoria}`);
+        // FORMATO JERÁRQUICO: Detectar secciones principales
+        if (esJerarquico) {
+            // Sección 8: Iniciativas
+            if (linea.match(/^8\.\s*Iniciativa/i)) {
+                seccionActual = estructuraIncisos.find(e => e.numeroSeccion === 8);
+                dentroDeSeccionPrincipal = true;
+                numeroSeccionPrincipal = 8;
+                numeroEnSeccion = 0; // Reinicia numeración interna
+                console.log('\n📂 Entrando a sección 8: INICIATIVAS');
+                console.log('   Próximo número global: ' + (numeroGeneral + 1));
+                continue;
             }
-            continue;
+            
+            // Sección 9: Primera Lectura  
+            if (linea.match(/^9\.\s*(Dict[aá]m.*Primera|Primera\s*Lectura)/i)) {
+                seccionActual = estructuraIncisos.find(e => e.numeroSeccion === 9);
+                dentroDeSeccionPrincipal = true;
+                numeroSeccionPrincipal = 9;
+                numeroEnSeccion = 0; // Reinicia numeración interna
+                console.log('\n📋 Entrando a sección 9: PRIMERA LECTURA');
+                console.log('   Próximo número global: ' + (numeroGeneral + 1));
+                continue;
+            }
+            
+            // Sección 10: Segunda Lectura
+            if (linea.match(/^10\.\s*(Dict[aá]m.*Segunda|Segunda\s*Lectura)/i)) {
+                seccionActual = estructuraIncisos.find(e => e.numeroSeccion === 10);
+                dentroDeSeccionPrincipal = true;
+                numeroSeccionPrincipal = 10;
+                numeroEnSeccion = 0; // Reinicia numeración interna
+                console.log('\n✅ Entrando a sección 10: SEGUNDA LECTURA');
+                console.log('   Próximo número global: ' + (numeroGeneral + 1));
+                continue;
+            }
+            
+            // Fin de secciones principales (solo cuando es 11. Correspondencia)
+            if (linea.match(/^11\./) && (lineaLower.includes('correspondencia') || lineaLower.includes('asuntos'))) {
+                dentroDeSeccionPrincipal = false;
+                seccionActual = null;
+                console.log('\n🎯 Fin de secciones principales');
+                continue;
+            }
+        }
+        // FORMATO DIRECTO: Detectar cambio de categoría por contenido
+        else {
+            if (lineaLower.match(/^iniciativas?\s*$/i) || lineaLower.includes('iniciativa con proyecto')) {
+                seccionActual = estructuraIncisos.find(e => e.categoria === 'iniciativas');
+                numeroEnSeccion = 0;
+                console.log('\n📂 Detectada sección: INICIATIVAS');
+                continue;
+            }
+            
+            if (lineaLower.includes('primera lectura')) {
+                seccionActual = estructuraIncisos.find(e => e.categoria === 'primera_lectura');
+                numeroEnSeccion = 0;
+                console.log('\n📂 Detectada sección: PRIMERA LECTURA');
+                continue;
+            }
+            
+            if (lineaLower.includes('segunda lectura') || lineaLower.includes('dictamen emanado')) {
+                seccionActual = estructuraIncisos.find(e => e.categoria === 'segunda_lectura');
+                numeroEnSeccion = 0;
+                console.log('\n📂 Detectada sección: SEGUNDA LECTURA');
+                continue;
+            }
         }
         
         // Detectar elementos numerados (1. 2. 3. etc)
         const matchNumero = linea.match(/^(\d+)\.\s+(.+)/);
-        if (matchNumero && seccionActual && !seccionActual.esProcedimiento) {
-            numeroGeneral++;
-            numeroEnSeccion++;
-            
+        if (matchNumero) {
             const numeroOriginal = parseInt(matchNumero[1]);
-            const contenido = matchNumero[2];
             
-            // Crear elemento con toda la información
-            const elemento = {
-                // Numeración dual
-                numero: numeroGeneral,
-                numero_orden_dia: numeroEnSeccion,
-                numero_original: numeroOriginal,
+            // En formato jerárquico, solo procesar números dentro de secciones principales
+            // o números menores a 8 (procedimientos iniciales)
+            if (esJerarquico) {
+                // Solo ignorar 8, 9, 10 si coinciden exactamente con secciones principales
+                if (!dentroDeSeccionPrincipal && numeroOriginal >= 8 && numeroOriginal <= 13) {
+                    // Verificar si es una sección principal revisando el contenido
+                    const contenidoTest = matchNumero[2].toLowerCase();
+                    if ((numeroOriginal === 8 && contenidoTest.includes('iniciativa')) ||
+                        (numeroOriginal === 9 && contenidoTest.includes('primera')) ||
+                        (numeroOriginal === 10 && contenidoTest.includes('segunda')) ||
+                        (numeroOriginal === 11 && contenidoTest.includes('correspondencia')) ||
+                        (numeroOriginal === 12 && contenidoTest.includes('asuntos')) ||
+                        (numeroOriginal === 13 && contenidoTest.includes('clausura'))) {
+                        continue; // Es una sección principal, ignorar
+                    }
+                }
+                if (!dentroDeSeccionPrincipal && numeroOriginal < 8) {
+                    // Son elementos de procedimiento inicial (1-7)
+                    numeroGeneral++;
+                    const contenido = matchNumero[2];
+                    
+                    // Detectar si es aprobación del acta (solo para categorización, no para auto-activar)
+                    const esAprobacionActa = contenido.toLowerCase().includes('aprobación') && 
+                                            (contenido.toLowerCase().includes('acta') || 
+                                             contenido.toLowerCase().includes('sesión'));
+                    
+                    elementos.push({
+                        numero: numeroGeneral, // Consecutivo global
+                        numero_orden_dia: numeroOriginal, // Número del PDF
+                        numero_original: numeroOriginal,
+                        titulo: contenido,
+                        descripcion: contenido,
+                        contenido_completo: contenido,
+                        categoria: esAprobacionActa ? 'aprobacion_acta' : 'procedimiento',
+                        tipo: esAprobacionActa ? 'APROBACION_ACTA' : 'PROCEDIMIENTO',
+                        tipo_documento: esAprobacionActa ? 'aprobacion_acta' : 'procedimiento',
+                        requiere_votacion: false, // NO marcar automáticamente para votar
+                        tipo_votacion: 'no_aplica',
+                        tipo_mayoria: 'simple',
+                        inciso_principal: null,
+                        titulo_seccion: 'Procedimientos iniciales',
+                        momento_votacion: 'no_aplica',
+                        recomendado_para_votacion: false, // NO recomendar automáticamente
+                        es_votable: true, // SÍ se puede votar si se activa manualmente
+                        marcada_para_votacion: false, // NO marcar automáticamente
+                        seleccionada: false, // NO seleccionar automáticamente
+                        es_aprobacion_acta: esAprobacionActa, // Solo para identificación
+                        orden_votacion: null // Sin prioridad automática
+                    });
+                    
+                    if (esAprobacionActa) {
+                        console.log(`   ✓ ${numeroGeneral}/${numeroOriginal} Aprobación del Acta: ${contenido.substring(0, 50)}...`);
+                    } else {
+                        console.log(`   ✓ ${numeroGeneral}/${numeroOriginal} Procedimiento: ${contenido.substring(0, 50)}...`);
+                    }
+                    continue;
+                }
+            }
+            
+            // Procesar elementos dentro de secciones o elementos sin sección clara
+            if ((dentroDeSeccionPrincipal && seccionActual) || (!esJerarquico && matchNumero)) {
+                // Solo procesar si estamos dentro de una sección o no es formato jerárquico
+                if (esJerarquico && !dentroDeSeccionPrincipal) {
+                    continue; // En formato jerárquico, ignorar si no estamos en sección
+                }
                 
-                // Contenido - NO TRUNCAR
-                titulo: contenido, // Mantener completo
-                descripcion: contenido,
-                contenido_completo: contenido,
+                numeroGeneral++; // Incrementar contador global
+                // NO incrementar numeroEnSeccion aquí, usar numeroOriginal del PDF
                 
-                // Categorización
-                categoria: seccionActual.categoria,
-                tipo: seccionActual.tipoInciso,
-                tipo_documento: seccionActual.categoria,
+                let contenido = matchNumero[2];
                 
-                // Votación
-                requiere_votacion: seccionActual.requiereVotacion,
-                tipo_votacion: seccionActual.requiereVotacion ? 
-                    (seccionActual.categoria === 'segunda_lectura' ? 'votacion_dictamen' :
-                     seccionActual.categoria === 'puntos_acuerdo' ? 'punto_acuerdo' :
-                     seccionActual.categoria === 'dictamenes' ? 'votacion_dictamen' :
-                     'votacion_general') : 'turno_comision',
-                tipo_mayoria: 'simple', // Por defecto
+                // Acumular líneas siguientes que no sean nuevos elementos
+                let textoCompleto = contenido;
+                let j = i + 1;
+                while (j < lineas.length && 
+                       !lineas[j].match(/^\d+\.\s+/) && 
+                       !lineas[j].match(/^(8|9|10|11)\./)) {
+                    if (lineas[j].length > 0) {
+                        textoCompleto += ' ' + lineas[j];
+                    }
+                    j++;
+                }
+                contenido = textoCompleto;
                 
-                // Metadatos
-                inciso_principal: seccionActual.letra,
-                titulo_seccion: seccionActual.contenido,
-                momento_votacion: seccionActual.requiereVotacion ? 'inmediato' : 'no_aplica',
+                // Usar categoría de la sección actual
+                const categoriaElemento = seccionActual.categoria;
+                
+                // Determinar si requiere votación según categoría
+                let requiereVotacion = seccionActual.requiereVotacion || false;
+                let tipoVotacion = 'turno_comision';
+                
+                if (categoriaElemento === 'segunda_lectura') {
+                    requiereVotacion = true;
+                    tipoVotacion = 'votacion_dictamen';
+                } else if (categoriaElemento === 'puntos_acuerdo') {
+                    requiereVotacion = true;
+                    tipoVotacion = 'punto_acuerdo';
+                } else if (contenido.toLowerCase().includes('urgente') && 
+                          contenido.toLowerCase().includes('obvia')) {
+                    requiereVotacion = true;
+                    tipoVotacion = 'urgente_obvia';
+                }
+                
+                // Crear elemento con toda la información
+                const elemento = {
+                    // Numeración correcta:
+                    numero: numeroGeneral, // Consecutivo global (1,2,3...238)
+                    numero_orden_dia: numeroOriginal, // Número del PDF (1,2,3... reinicia cada sección)
+                    numero_original: numeroOriginal, // Mismo que numero_orden_dia
+                    numero_seccion: numeroSeccionPrincipal, // 8, 9 o 10
+                    
+                    // Contenido completo
+                    titulo: contenido,
+                    descripcion: contenido,
+                    contenido_completo: contenido,
+                    
+                    // Categorización
+                    categoria: categoriaElemento,
+                    tipo: seccionActual.tipoInciso,
+                    tipo_documento: determinarTipoDocumento(contenido),
+                    
+                    // Votación
+                    requiere_votacion: requiereVotacion,
+                    tipo_votacion: tipoVotacion,
+                    tipo_mayoria: 'simple',
+                    
+                    // Metadatos
+                    inciso_principal: seccionActual.letra,
+                    titulo_seccion: seccionActual.contenido,
+                    momento_votacion: requiereVotacion ? 'inmediato' : 'no_aplica',
                 
                 // Para UI
-                recomendado_para_votacion: seccionActual.requiereVotacion,
-                es_votable: seccionActual.requiereVotacion,
+                recomendado_para_votacion: requiereVotacion,
+                es_votable: requiereVotacion,
                 marcada_para_votacion: false, // Se marcará en la UI
                 seleccionada: false // Para el checkbox en la UI
             };
@@ -675,8 +1046,13 @@ function extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion) {
             }
             
             elementos.push(elemento);
-            
-            console.log(`   ✓ ${numeroGeneral}/${numeroEnSeccion}. ${contenido.substring(0, 50)}... [${seccionActual.categoria}]`);
+                
+                // Mostrar: Global/Original
+                console.log(`   ✓ ${numeroGeneral}/${numeroOriginal} ${contenido.substring(0, 60)}... [${categoriaElemento}]`);
+                
+                // Avanzar el índice si acumulamos líneas
+                i = j - 1;
+            }
         }
     }
     

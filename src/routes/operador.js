@@ -2170,4 +2170,85 @@ router.get('/partidos', (req, res) => {
     });
 });
 
+// Obtener PDF del orden del día de una sesión
+router.get('/sesiones/:id/orden-dia-pdf', (req, res) => {
+    const { id } = req.params;
+    const db = req.db;
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Obtener información de la sesión
+    db.get('SELECT * FROM sesiones WHERE id = ?', [id], (err, sesion) => {
+        if (err) {
+            console.error('Error obteniendo sesión:', err);
+            return res.status(500).json({ error: 'Error al obtener sesión' });
+        }
+        
+        if (!sesion) {
+            return res.status(404).json({ error: 'Sesión no encontrada' });
+        }
+        
+        // Buscar el archivo PDF más reciente en la carpeta uploads
+        const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+        
+        // Primero buscar en la carpeta principal de uploads
+        let pdfPath = null;
+        
+        // Buscar archivos PDF que coincidan con el patrón del orden del día
+        if (fs.existsSync(uploadsDir)) {
+            const files = fs.readdirSync(uploadsDir);
+            
+            // Buscar archivos PDF ordenados por fecha de modificación
+            const pdfFiles = files
+                .filter(file => file.endsWith('.pdf'))
+                .map(file => ({
+                    name: file,
+                    path: path.join(uploadsDir, file),
+                    mtime: fs.statSync(path.join(uploadsDir, file)).mtime
+                }))
+                .sort((a, b) => b.mtime - a.mtime);
+            
+            if (pdfFiles.length > 0) {
+                pdfPath = pdfFiles[0].path;
+            }
+        }
+        
+        // Si no se encuentra el archivo, buscar en subcarpetas
+        if (!pdfPath) {
+            const sesionesDir = path.join(uploadsDir, 'sesiones');
+            if (fs.existsSync(sesionesDir)) {
+                const files = fs.readdirSync(sesionesDir);
+                const pdfFiles = files
+                    .filter(file => file.endsWith('.pdf'))
+                    .map(file => ({
+                        name: file,
+                        path: path.join(sesionesDir, file),
+                        mtime: fs.statSync(path.join(sesionesDir, file)).mtime
+                    }))
+                    .sort((a, b) => b.mtime - a.mtime);
+                
+                if (pdfFiles.length > 0) {
+                    pdfPath = pdfFiles[0].path;
+                }
+            }
+        }
+        
+        if (!pdfPath || !fs.existsSync(pdfPath)) {
+            return res.status(404).json({ error: 'Archivo PDF no encontrado' });
+        }
+        
+        // Enviar el archivo PDF
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="orden-del-dia.pdf"');
+        
+        const stream = fs.createReadStream(pdfPath);
+        stream.on('error', (error) => {
+            console.error('Error leyendo PDF:', error);
+            res.status(500).json({ error: 'Error al leer el archivo PDF' });
+        });
+        
+        stream.pipe(res);
+    });
+});
+
 module.exports = router;
