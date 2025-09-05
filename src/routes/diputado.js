@@ -57,25 +57,29 @@ router.post('/votar', (req, res) => {
     
     // PRIMERO: Verificar que el diputado está marcado como presente en el pase de lista
     db.get(`
-        SELECT ad.asistencia 
+        SELECT ad.presente, ad.asistencia
         FROM asistencia_diputados ad
-        INNER JOIN asistencias a ON ad.asistencia_id = a.id
-        INNER JOIN sesiones s ON a.sesion_id = s.id
+        INNER JOIN pase_lista pl ON ad.pase_lista_id = pl.id
+        INNER JOIN sesiones s ON pl.sesion_id = s.id
         WHERE s.activa = 1 AND ad.diputado_id = ?
-        ORDER BY a.id DESC
+        ORDER BY pl.id DESC
         LIMIT 1
-    `, [userId], (err, asistencia) => {
+    `, [userId], (err, asistenciaData) => {
         if (err) {
             console.error('Error verificando asistencia:', err);
             // Si hay error con la tabla, intentar sin validación por ahora
             console.log('Permitiendo voto sin validación de asistencia debido a error');
-        } else if (asistencia && asistencia.asistencia !== 'presente') {
-            // Solo bloquear si existe registro y NO está presente
-            return res.status(403).json({ 
-                error: 'No puede votar sin estar presente',
-                mensaje: 'Debe estar marcado como PRESENTE en el pase de lista para poder votar.',
-                estado_asistencia: asistencia.asistencia
-            });
+        } else if (asistenciaData) {
+            // Verificar si tiene el campo 'asistencia' (nueva columna) o 'presente' (columna antigua)
+            const estaPresente = asistenciaData.asistencia === 'presente' || asistenciaData.presente === 1;
+            if (!estaPresente) {
+                // Solo bloquear si existe registro y NO está presente
+                return res.status(403).json({ 
+                    error: 'No puede votar sin estar presente',
+                    mensaje: 'Debe estar marcado como PRESENTE en el pase de lista para poder votar.',
+                    estado_asistencia: asistenciaData.asistencia || (asistenciaData.presente ? 'presente' : 'ausente')
+                });
+            }
         }
         
         // Verificar que la iniciativa está activa
@@ -498,7 +502,11 @@ router.get('/sesion-actual', (req, res) => {
                             user.cargo_mesa_directiva === 'Presidente';
         const esVicepresidente = cargoLower === 'vicepresidente' ||
                                 user.cargo_mesa_directiva === 'Vicepresidente';
-        const esSecretario = user.role === 'secretario';
+        const esSecretario = user.role === 'secretario' ||
+                            cargoLower === 'secretario1' ||
+                            cargoLower === 'secretario2' ||
+                            user.cargo_mesa_directiva === 'secretario1' ||
+                            user.cargo_mesa_directiva === 'secretario2';
         
         console.log('Verificación de permisos:', {
             userId,

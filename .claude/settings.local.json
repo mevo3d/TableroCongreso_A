@@ -40,7 +40,14 @@
       "Bash(del create-documentos-originales-table.js)",
       "Bash(find:*)",
       "Bash(del add-categoria-column.js fix-categorias-dictamenes.js)",
-      "Bash(del \"C:\\Users\\BALERION\\proyectos-automatizacion\\TableroAGit\\src\\db\\migrations\\add-categoria-iniciativas-precargadas.js\")"
+      "Bash(del \"C:\\Users\\BALERION\\proyectos-automatizacion\\TableroAGit\\src\\db\\migrations\\add-categoria-iniciativas-precargadas.js\")",
+      "Read(/C:\\Users\\Vaghar\\votacion\\src\\routes/**)",
+      "Read(/C:\\Users\\Vaghar\\votacion\\src\\routes/**)",
+      "Read(/C:\\Users\\Vaghar\\votacion\\src\\routes/**)",
+      "Read(/C:\\Users\\Vaghar\\votacion\\src\\views/**)",
+      "Read(/C:\\Users\\Vaghar\\votacion\\src\\views/**)",
+      "Read(/C:\\Users\\Vaghar\\votacion\\src\\views/**)",
+      "Read(/C:\\Users\\Vaghar\\votacion\\src\\routes/**)"
     ],
     "deny": [],
     "ask": [],

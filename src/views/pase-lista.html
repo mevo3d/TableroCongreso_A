@@ -1470,7 +1470,20 @@
                 if (response.ok) {
                     const data = await response.json();
                     if (data.pase_lista) {
-                        attendanceData = data.asistencias || {};
+                        // Convertir el objeto de asistencias al formato esperado
+                        const asistenciasTemp = data.asistencias || {};
+                        attendanceData = {};
+                        
+                        // Extraer solo el estado de cada asistencia
+                        Object.keys(asistenciasTemp).forEach(diputadoId => {
+                            const asistencia = asistenciasTemp[diputadoId];
+                            // Si es un objeto, tomar el estado; si es string, usarlo directamente
+                            if (typeof asistencia === 'object' && asistencia !== null) {
+                                attendanceData[diputadoId] = asistencia.estado || 'pending';
+                            } else {
+                                attendanceData[diputadoId] = asistencia || 'pending';
+                            }
+                        });
                         
                         // Si ya hay un pase de lista, asegurar que esté activado
                         if (!pantallaActivada) {

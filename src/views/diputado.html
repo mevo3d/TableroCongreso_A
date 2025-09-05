@@ -1564,11 +1564,13 @@
         
         <!-- Mensaje sin votación -->
         <div class="vote-card no-voting" id="noVotingPanel">
-            <i class="fas fa-clock fa-4x mb-3"></i>
-            <h3>No hay iniciativa activa</h3>
-            <p>Espera a que se active una iniciativa para votar</p>
-            <div class="spinner-border text-primary mt-3" role="status">
-                <span class="visually-hidden">Esperando...</span>
+            <div id="noVotingMessage">
+                <i class="fas fa-clock fa-4x mb-3"></i>
+                <h3>No hay iniciativa activa</h3>
+                <p>Espera a que se active una iniciativa para votar</p>
+                <div class="spinner-border text-primary mt-3" role="status">
+                    <span class="visually-hidden">Esperando...</span>
+                </div>
             </div>
         </div>
         
@@ -1764,10 +1766,14 @@
             // Configurar visibilidad de paneles según el rol
             setTimeout(() => {
                 if (typeof user !== 'undefined' && user) {
-                    console.log('Configurando paneles según rol:', user.cargo_mesa_directiva);
+                    const cargo = user.cargo_mesa_directiva || '';
+                    console.log('Configurando paneles según rol:', cargo || 'Sin cargo en mesa directiva');
+                    
+                    // Normalizar el cargo para comparación
+                    const cargoLower = cargo.toLowerCase().trim();
                     
                     // Mostrar panel del presidente si corresponde
-                    if (user.cargo_mesa_directiva === 'presidente') {
+                    if (cargoLower === 'presidente' || cargoLower === 'presidente de la mesa directiva') {
                         const panelPresidente = document.getElementById('panelPresidente');
                         if (panelPresidente) {
                             panelPresidente.style.display = 'block';
@@ -1776,12 +1782,18 @@
                     }
                     
                     // Mostrar panel del secretario si corresponde
-                    if (user.cargo_mesa_directiva && user.cargo_mesa_directiva.includes('secretario')) {
+                    if (cargoLower === 'secretario1' || cargoLower === 'secretario2' || 
+                        cargoLower.includes('secretario') && cargoLower !== '') {
                         const panelSecretario = document.getElementById('panelSecretario');
                         if (panelSecretario) {
                             panelSecretario.style.display = 'block';
                             console.log('Panel secretario visible');
                         }
+                    }
+                    
+                    // Si no tiene cargo en mesa directiva, es diputado regular
+                    if (!cargo || cargo === '') {
+                        console.log('Diputado sin cargo en mesa directiva');
                     }
                 }
             }, 500);
@@ -3877,42 +3889,45 @@
         }
         
         function checkIfSecretary() {
-            console.log('Verificando cargo mesa directiva:', user.cargo_mesa_directiva);
+            const cargo = user.cargo_mesa_directiva || '';
+            console.log('Verificando cargo mesa directiva:', cargo || 'Sin cargo');
             console.log('Usuario completo:', user);
             
-            // Verificar si es miembro de mesa directiva para mostrar botón EN VIVO - DESHABILITADO porque ya tenemos PWA
-            // const cargoNormalizado = (user.cargo_mesa_directiva || '').toLowerCase();
-            // const esMesaDirectiva = cargoNormalizado.includes('presidente') || 
-            //                        cargoNormalizado.includes('vicepresidente') || 
-            //                        cargoNormalizado.includes('secretario') || 
-            //                        cargoNormalizado.includes('prosecretario');
-            
-            // if (esMesaDirectiva) {
-            //     const btnStreaming = document.getElementById('btnStreamingLive');
-            //     if (btnStreaming) {
-            //         btnStreaming.style.display = 'flex';
-            //         console.log('Botón EN VIVO habilitado para mesa directiva');
-            //     }
-            // }
+            // Normalizar el cargo para comparación
+            const cargoLower = cargo.toLowerCase().trim();
             
             // Mostrar menú de secretario en el panel lateral
-            if (user.cargo_mesa_directiva === 'secretario1' || user.cargo_mesa_directiva === 'secretario2') {
+            if (cargoLower === 'secretario1' || cargoLower === 'secretario2' || 
+                (cargoLower.includes('secretario') && cargoLower !== '')) {
                 console.log('Es secretario, mostrando panel en menú lateral');
-                document.getElementById('panelSecretario').style.display = 'block'; // Panel en menú lateral
+                const panelSecretario = document.getElementById('panelSecretario');
+                if (panelSecretario) {
+                    panelSecretario.style.display = 'block';
+                }
             }
             
             // Verificar estado del pase de lista para TODOS los diputados
-            verificarEstadoPaseLista();
+            // Comentado temporalmente - la ruta /api/pase-lista/estado no existe
+            // verificarEstadoPaseLista();
             
             // Mostrar panel de control de presidente/vicepresidente
-            if (user.cargo_mesa_directiva === 'presidente') {
+            if (cargoLower === 'presidente' || cargoLower === 'presidente de la mesa directiva') {
                 console.log('Es presidente, mostrando panel de control');
-                document.getElementById('presidentControls').style.display = 'block';
-                document.getElementById('panelPresidente').style.display = 'block'; // Panel en menú lateral
+                const presidentControls = document.getElementById('presidentControls');
+                const panelPresidente = document.getElementById('panelPresidente');
+                
+                if (presidentControls) {
+                    presidentControls.style.display = 'block';
+                }
+                if (panelPresidente) {
+                    panelPresidente.style.display = 'block';
+                }
                 checkSessionStatus();
-            } else if (user.cargo_mesa_directiva === 'vicepresidente') {
+            } else if (cargoLower === 'vicepresidente') {
                 console.log('Es vicepresidente, verificando autorización');
                 verificarAutorizacionVicepresidente();
+            } else if (!cargo || cargo === '') {
+                console.log('Diputado sin cargo en mesa directiva - paneles especiales no mostrados');
             }
         }
         
@@ -5825,40 +5840,55 @@
             window.location.href = '/api/diputado/servicios-legislativos/plantilla-excel';
         }
         
-        // Cargar Excel
-        document.getElementById('formCargarExcel').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData();
-            const archivo = document.getElementById('archivoExcel').files[0];
-            formData.append('archivo', archivo);
-            
-            try {
-                const response = await fetch('/api/diputado/servicios-legislativos/cargar-excel', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
+        // Cargar Excel - Verificar que el elemento existe
+        const formCargarExcel = document.getElementById('formCargarExcel');
+        if (formCargarExcel) {
+            formCargarExcel.addEventListener('submit', async (e) => {
+                e.preventDefault();
                 
-                const data = await response.json();
-                
-                if (response.ok) {
-                    alert(`Se cargaron ${data.iniciativas.length} iniciativas correctamente`);
-                    cargarIniciativasSesion();
-                } else {
-                    alert('Error: ' + data.error);
+                const formData = new FormData();
+                const archivoInput = document.getElementById('archivoExcel');
+                if (!archivoInput || !archivoInput.files[0]) {
+                    alert('Por favor selecciona un archivo Excel');
+                    return;
                 }
-            } catch (error) {
-                alert('Error al cargar el archivo Excel');
-                console.error(error);
-            }
-        });
+                
+                const archivo = archivoInput.files[0];
+                formData.append('archivo', archivo);
+                
+                try {
+                    const response = await fetch('/api/diputado/servicios-legislativos/cargar-excel', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        alert(`Se cargaron ${data.iniciativas.length} iniciativas correctamente`);
+                        if (typeof cargarIniciativasSesion === 'function') {
+                            cargarIniciativasSesion();
+                        }
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Error al cargar el archivo Excel');
+                    console.error(error);
+                }
+            });
+        } else {
+            console.log('Formulario de carga Excel no disponible');
+        }
         
-        // Cargar PDF
-        document.getElementById('formCargarPDF').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Cargar PDF - Verificar que el elemento existe
+        const formCargarPDF = document.getElementById('formCargarPDF');
+        if (formCargarPDF) {
+            formCargarPDF.addEventListener('submit', async (e) => {
+                e.preventDefault();
             
             const formData = new FormData();
             const archivo = document.getElementById('archivoPDF').files[0];
@@ -5885,7 +5915,10 @@
                 alert('Error al procesar el archivo PDF');
                 console.error(error);
             }
-        });
+            });
+        } else {
+            console.log('Formulario de carga PDF no disponible');
+        }
         
         // Mostrar iniciativas extraídas del PDF
         function mostrarIniciativasExtraidas(iniciativas) {
@@ -5961,9 +5994,11 @@
             }
         }
         
-        // Captura manual
-        document.getElementById('formCapturaManual').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Captura manual - Verificar que el elemento existe
+        const formCapturaManual = document.getElementById('formCapturaManual');
+        if (formCapturaManual) {
+            formCapturaManual.addEventListener('submit', async (e) => {
+                e.preventDefault();
             
             const iniciativa = {
                 titulo: document.getElementById('manualTitulo').value,
@@ -5997,7 +6032,10 @@
                 alert('Error al guardar la iniciativa');
                 console.error(error);
             }
-        });
+            });
+        } else {
+            console.log('Formulario de captura manual no disponible');
+        }
         
         // Editar iniciativa
         async function editarIniciativa(id) {

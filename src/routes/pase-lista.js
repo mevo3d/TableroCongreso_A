@@ -65,7 +65,8 @@ router.get('/actual', (req, res) => {
         LIMIT 1
     `, (err, paseLista) => {
         if (err) {
-            return res.status(500).json({ error: 'Error obteniendo pase de lista' });
+            console.error('Error obteniendo pase de lista:', err);
+            return res.status(500).json({ error: 'Error obteniendo pase de lista', details: err.message });
         }
         
         if (!paseLista) {
@@ -74,18 +75,44 @@ router.get('/actual', (req, res) => {
         
         // Obtener detalles de asistencias
         db.all(`
-            SELECT diputado_id, asistencia
-            FROM asistencias
-            WHERE pase_lista_id = ?
+            SELECT 
+                ad.diputado_id, 
+                ad.presente,
+                ad.asistencia,
+                ad.hora_registro,
+                ad.observaciones,
+                ad.registrado_por,
+                ad.tipo_registro,
+                ad.justificado,
+                ad.justificacion_motivo
+            FROM asistencia_diputados ad
+            WHERE ad.pase_lista_id = ?
         `, [paseLista.id], (err, asistencias) => {
             if (err) {
-                return res.status(500).json({ error: 'Error obteniendo asistencias' });
+                console.error('Error en consulta de asistencias:', err);
+                return res.status(500).json({ error: 'Error obteniendo asistencias', details: err.message });
             }
             
             // Convertir a objeto para fácil acceso
             const asistenciasObj = {};
             asistencias.forEach(a => {
-                asistenciasObj[a.diputado_id] = a.asistencia;
+                // Usar campo 'asistencia' si existe, sino determinar por 'presente'
+                let estado;
+                if (a.asistencia) {
+                    estado = a.asistencia;
+                } else if (a.justificado === 1) {
+                    estado = 'justificado';
+                } else {
+                    estado = a.presente === 1 ? 'presente' : (a.presente === 0 ? 'ausente' : 'pending');
+                }
+                
+                asistenciasObj[a.diputado_id] = {
+                    estado: estado,
+                    hora_registro: a.hora_registro,
+                    registrado_por: a.registrado_por,
+                    tipo_registro: a.tipo_registro,
+                    justificacion_motivo: a.justificacion_motivo
+                };
             });
             
             // Verificar si hay sesión activa
@@ -827,15 +854,34 @@ router.post('/confirmar-asistencia', (req, res) => {
                 return res.status(400).json({ error: 'No hay pase de lista activo' });
             }
             
-            // Registrar asistencia
-            db.run(`
-                INSERT OR REPLACE INTO asistencias (pase_lista_id, diputado_id, asistencia, hora)
-                VALUES (?, ?, 'presente', datetime('now', 'localtime'))
-            `, [paseLista.id, userId], (err) => {
+            // Verificar si ya existe registro de asistencia
+            db.get(`
+                SELECT * FROM asistencia_diputados 
+                WHERE pase_lista_id = ? AND diputado_id = ?
+            `, [paseLista.id, userId], (err, existingRecord) => {
                 if (err) {
-                    console.error('Error registrando asistencia:', err);
-                    return res.status(500).json({ error: 'Error registrando asistencia' });
+                    console.error('Error verificando asistencia existente:', err);
+                    return res.status(500).json({ error: 'Error verificando asistencia' });
                 }
+                
+                // Si ya existe, actualizar; si no, insertar
+                const query = existingRecord ? 
+                    `UPDATE asistencia_diputados 
+                     SET presente = 1, asistencia = 'presente', hora_registro = datetime('now', 'localtime'),
+                         tipo_registro = 'personal', registrado_por = ?
+                     WHERE pase_lista_id = ? AND diputado_id = ?` :
+                    `INSERT INTO asistencia_diputados (pase_lista_id, diputado_id, presente, asistencia, hora_registro, tipo_registro, registrado_por)
+                     VALUES (?, ?, 1, 'presente', datetime('now', 'localtime'), 'personal', ?)`;
+                
+                const params = existingRecord ? 
+                    [userId, paseLista.id, userId] : 
+                    [paseLista.id, userId, userId];
+                
+                db.run(query, params, (err) => {
+                    if (err) {
+                        console.error('Error registrando asistencia:', err);
+                        return res.status(500).json({ error: 'Error registrando asistencia' });
+                    }
                 
                 // Actualizar puede_votar
                 db.run(`
@@ -864,6 +910,7 @@ router.post('/confirmar-asistencia', (req, res) => {
                         nombre: userData.nombre_completo,
                         genero: userData.genero
                     });
+                });
                 });
             });
         });

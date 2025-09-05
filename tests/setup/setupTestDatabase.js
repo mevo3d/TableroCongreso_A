@@ -177,10 +177,18 @@ function createTables(db) {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         pase_lista_id INTEGER,
         diputado_id INTEGER,
-        asistencia TEXT CHECK(asistencia IN ('presente', 'ausente')),
+        asistencia TEXT CHECK(asistencia IN ('presente', 'ausente', 'justificado')),
         hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+        justificacion_motivo TEXT DEFAULT NULL,
+        justificado_por INTEGER,
+        hora_justificacion DATETIME,
+        llegada_tardia INTEGER DEFAULT 0,
+        hora_llegada_tardia DATETIME,
+        auto_registro INTEGER DEFAULT 0,
+        hora_pase_lista_inicial DATETIME,
         FOREIGN KEY (pase_lista_id) REFERENCES pase_lista(id),
         FOREIGN KEY (diputado_id) REFERENCES usuarios(id),
+        FOREIGN KEY (justificado_por) REFERENCES usuarios(id),
         UNIQUE(pase_lista_id, diputado_id)
       )`
     ];
