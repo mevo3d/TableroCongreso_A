@@ -439,23 +439,33 @@ router.post('/clausurar-sesion', (req, res) => {
                                 return res.status(500).json({ error: 'Error clausurando sesión' });
                             }
                             
-                            // Obtener estadísticas de la sesión
-                            db.all(
-                                `SELECT 
-                                    COUNT(*) as total_iniciativas,
-                                    SUM(CASE WHEN resultado = 'aprobada' THEN 1 ELSE 0 END) as aprobadas,
-                                    SUM(CASE WHEN resultado = 'rechazada' THEN 1 ELSE 0 END) as rechazadas
-                                 FROM iniciativas 
-                                 WHERE sesion_id = ?`,
-                                [sesion.id],
-                                (err, stats) => {
-                                    // Emitir evento de clausura a todos
-                                    io.emit('sesion-clausurada', {
-                                        sesion_id: sesion.id,
-                                        clausurada_por: user.nombre_completo,
-                                        cargo: user.cargo_mesa_directiva || user.role,
-                                        estadisticas: stats[0]
-                                    });
+                            // Verificar si es Isaac Pimentel (Presidente) para limpiar asistencias
+                            const esPresidenteIsaac = (user.nombre_completo === 'Isaac Pimentel Mejía' || 
+                                                     user.nombre_completo === 'Pimentel Mejía Isaac' ||
+                                                     user.id === 16) && 
+                                                    (user.cargo_mesa_directiva === 'presidente' || 
+                                                     user.cargo_mesa_directiva === 'Presidente de la Mesa Directiva');
+                            
+                            // Función para continuar con las estadísticas y emisión de eventos
+                            const completarClausura = () => {
+                                // Obtener estadísticas de la sesión
+                                db.all(
+                                    `SELECT 
+                                        COUNT(*) as total_iniciativas,
+                                        SUM(CASE WHEN resultado = 'aprobada' THEN 1 ELSE 0 END) as aprobadas,
+                                        SUM(CASE WHEN resultado = 'rechazada' THEN 1 ELSE 0 END) as rechazadas
+                                     FROM iniciativas 
+                                     WHERE sesion_id = ?`,
+                                    [sesion.id],
+                                    (err, stats) => {
+                                        // Emitir evento de clausura a todos
+                                        io.emit('sesion-clausurada', {
+                                            sesion_id: sesion.id,
+                                            clausurada_por: user.nombre_completo,
+                                            cargo: user.cargo_mesa_directiva || user.role,
+                                            estadisticas: stats[0],
+                                            asistencias_limpiadas: esPresidenteIsaac
+                                        });
                                     
                                     // Si es el secretario legislativo quien clausura, notificar al presidente
                                     if (user.role === 'secretario') {
@@ -467,14 +477,64 @@ router.post('/clausurar-sesion', (req, res) => {
                                         });
                                     }
                                     
-                                    res.json({ 
-                                        success: true,
-                                        mensaje: 'Sesión clausurada correctamente',
-                                        clausurada_por: user.role === 'secretario' ? 'Secretario Legislativo' : user.cargo_mesa_directiva,
-                                        estadisticas: stats[0]
-                                    });
-                                }
-                            );
+                                        res.json({ 
+                                            success: true,
+                                            mensaje: 'Sesión clausurada correctamente',
+                                            clausurada_por: user.role === 'secretario' ? 'Secretario Legislativo' : user.cargo_mesa_directiva,
+                                            estadisticas: stats[0],
+                                            asistencias_limpiadas: esPresidenteIsaac
+                                        });
+                                    }
+                                );
+                            };
+                            
+                            // Si es el presidente Isaac Pimentel, limpiar las asistencias
+                            if (esPresidenteIsaac) {
+                                console.log('Presidente Isaac Pimentel clausurando sesión - limpiando asistencias...');
+                                
+                                // Obtener el pase de lista activo de esta sesión
+                                db.get(
+                                    `SELECT id FROM pase_lista WHERE sesion_id = ? AND activo = 1`,
+                                    [sesion.id],
+                                    (err, paseListaActivo) => {
+                                        if (paseListaActivo) {
+                                            // Limpiar las asistencias del pase de lista actual
+                                            db.run(
+                                                `DELETE FROM asistencia_diputados WHERE pase_lista_id = ?`,
+                                                [paseListaActivo.id],
+                                                (err) => {
+                                                    if (err) {
+                                                        console.error('Error limpiando asistencias:', err);
+                                                    } else {
+                                                        console.log('Asistencias limpiadas correctamente');
+                                                        
+                                                        // Desactivar el pase de lista
+                                                        db.run(
+                                                            `UPDATE pase_lista SET activo = 0, confirmado = 1 WHERE id = ?`,
+                                                            [paseListaActivo.id],
+                                                            (err) => {
+                                                                if (err) {
+                                                                    console.error('Error desactivando pase de lista:', err);
+                                                                }
+                                                            }
+                                                        );
+                                                    }
+                                                    
+                                                    // Continuar con la clausura normal
+                                                    completarClausura();
+                                                }
+                                            );
+                                        } else {
+                                            // No hay pase de lista activo, continuar normalmente
+                                            completarClausura();
+                                        }
+                                    }
+                                );
+                            } else {
+                                // Si no es el presidente Isaac Pimentel, NO limpiar asistencias
+                                console.log('Clausurando sesión sin limpiar asistencias (no es el Presidente Isaac Pimentel)');
+                                completarClausura();
+                            }
                         }
                     );
                 }

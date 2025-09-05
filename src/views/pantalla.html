@@ -504,26 +504,68 @@
             text-align: right;
         }
         
-        /* Pantalla de sin actividad */
+        /* Pantalla de sin actividad mejorada */
         .no-voting {
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             flex-direction: column;
-            background: #2c2c2c;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+            padding: 20px;
         }
         
-        .no-voting i {
-            font-size: 5em;
-            margin-bottom: 20px;
-            opacity: 0.5;
-            color: #888;
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 50px;
+            margin-bottom: 40px;
         }
         
-        .no-voting h2 {
-            opacity: 0.7;
+        .logo-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .logo-item img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .system-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 2.5em;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-top: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        .status-message {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.2em;
             color: #aaa;
+            margin-top: 20px;
+            text-align: center;
         }
         
         /* Animación para nuevos votos */
@@ -986,11 +1028,25 @@
         }
         
         function showNoVoting() {
+            // Obtener logos de configuración o usar valores por defecto
+            const logoPrincipal = configuracionSistema.logo_congreso || '/uploads/logo-1754407608820.png';
+            const logoSecundario = configuracionSistema.logo_secundario || '/uploads/logo-secundario.png';
+            
             document.getElementById('mainContainer').innerHTML = `
                 <div class="no-voting">
-                    <i class="fas fa-clock"></i>
-                    <h2>Sin Actividad de Votación</h2>
-                    <p>Esperando inicio de sesión legislativa...</p>
+                    <div class="logo-container">
+                        <div class="logo-item">
+                            <img src="${logoPrincipal}" alt="Logo Principal" 
+                                 onerror="this.style.display='none'">
+                        </div>
+                        ${logoSecundario ? `
+                        <div class="logo-item">
+                            <img src="${logoSecundario}" alt="Logo Secundario"
+                                 onerror="this.style.display='none'">
+                        </div>` : ''}
+                    </div>
+                    <h1 class="system-title">SISTEMA DE VOTACIÓN ELECTRÓNICO</h1>
+                    <p class="status-message">Esperando inicio de sesión legislativa...</p>
                 </div>
             `;
         }
@@ -1237,6 +1293,36 @@
         
         socket.on('sesion-creada', () => {
             loadState();
+        });
+        
+        // Escuchar cuando se inicia sesión para cambiar de estado automáticamente
+        socket.on('sesion-iniciada', (data) => {
+            console.log('🔔 Sesión iniciada detectada:', data);
+            // Ya no mostrar "Sin actividad", la pantalla está lista
+            // pero aún no hay votación activa, mostrar mensaje apropiado
+            document.getElementById('mainContainer').innerHTML = `
+                <div class="no-voting">
+                    <div class="logo-container">
+                        <div class="logo-item">
+                            <img src="${configuracionSistema.logo_congreso || '/uploads/logo-1754407608820.png'}" 
+                                 alt="Logo Principal" onerror="this.style.display='none'">
+                        </div>
+                        ${configuracionSistema.logo_secundario ? `
+                        <div class="logo-item">
+                            <img src="${configuracionSistema.logo_secundario}" 
+                                 alt="Logo Secundario" onerror="this.style.display='none'">
+                        </div>` : ''}
+                    </div>
+                    <h1 class="system-title">SISTEMA DE VOTACIÓN ELECTRÓNICO</h1>
+                    <p class="status-message" style="color: #28a745;">
+                        <i class="fas fa-check-circle"></i> Sesión Legislativa Activa
+                    </p>
+                    <p class="status-message">Esperando iniciativa para votación...</p>
+                </div>
+            `;
+            
+            // Cargar estado por si hay votación activa
+            setTimeout(() => loadState(), 1000);
         });
         
         // Actualizar periódicamente

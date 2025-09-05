@@ -354,26 +354,68 @@
             background: #888;
         }
         
-        /* Pantalla de sin actividad */
+        /* Pantalla de sin actividad mejorada */
         .no-attendance {
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             flex-direction: column;
-            background: #2c2c2c;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 100%);
+            padding: 20px;
         }
         
-        .no-attendance i {
-            font-size: 5em;
-            margin-bottom: 20px;
-            opacity: 0.5;
-            color: #888;
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 50px;
+            margin-bottom: 40px;
         }
         
-        .no-attendance h2 {
-            opacity: 0.7;
+        .logo-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .logo-item img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .system-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 2.5em;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-top: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        .status-message {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.2em;
             color: #aaa;
+            margin-top: 20px;
+            text-align: center;
         }
         
         /* Modos para streaming con vMix/OBS */
@@ -548,19 +590,6 @@
             { id: 14, nombre_completo: 'Sotelo Martínez Alfonso de Jesús', partido: 'MORENA', orden: 20 }
         ];
         
-        // Cargar configuración del sistema
-        async function loadConfiguracion() {
-            try {
-                const response = await fetch('/api/configuracion/public');
-                if (response.ok) {
-                    configuracionSistema = await response.json();
-                    console.log('Configuración cargada:', configuracionSistema);
-                    updateLogos();
-                }
-            } catch (error) {
-                console.error('Error cargando configuración:', error);
-            }
-        }
         
         // Actualizar logos
         function updateLogos() {
@@ -583,33 +612,23 @@
             }
         }
         
-        // Cargar información de partidos
-        async function loadPartidos() {
-            try {
-                const response = await fetch('/api/pantalla/partidos');
-                if (response.ok) {
-                    const partidos = await response.json();
-                    partidos.forEach(partido => {
-                        partidosData[partido.siglas] = partido;
-                    });
-                    console.log('Mapa de partidos:', partidosData);
-                }
-            } catch (error) {
-                console.error('Error cargando partidos:', error);
-            }
-        }
         
         // Conectar al servidor
         socket.on('connect', () => {
-            console.log('Conectado al servidor');
+            console.log('Conectado al servidor - Pantalla de asistencia');
             // Cargar configuración y partidos primero
             Promise.all([cargarConfiguracion(), cargarPartidos()]).then(() => {
+                console.log('Configuración y partidos cargados, verificando estado...');
                 verificarEstado();
+            }).catch(error => {
+                console.error('Error cargando configuración inicial:', error);
+                verificarEstado(); // Intentar verificar estado de todos modos
             });
             
             // Verificar periódicamente si no está activo
             const checkInterval = setInterval(() => {
                 if (!paseListaActivo) {
+                    console.log('Verificando estado del pase de lista...');
                     verificarEstado();
                 } else {
                     clearInterval(checkInterval);
@@ -619,11 +638,27 @@
         
         // Escuchar activación del pase de lista
         socket.on('pase-lista-activado', (data) => {
-            console.log('Pase de lista activado:', data);
+            console.log('🔔 Evento pase-lista-activado recibido:', data);
             // Activar siempre que se reciba este evento
             paseListaActivo = true;
-            cargarDiputados();
+            
+            // Usar el mapeo fijo de diputados
+            diputadosData = DIPUTADOS_DEFAULT;
+            console.log('Usando mapeo fijo de diputados para pantalla pública');
+            
+            // Mostrar el contenedor de estadísticas
             document.getElementById('statsContainer').style.display = 'flex';
+            
+            // NO limpiar asistenciaData - mantener datos persistentes
+            // Solo cargar datos nuevos si no existen
+            cargarDiputados().then(() => {
+                console.log('✅ Pantalla de asistencia activada correctamente');
+            }).catch(error => {
+                console.error('Error al cargar diputados:', error);
+                // Renderizar con datos por defecto
+                renderizarDiputados();
+                actualizarEstadisticas();
+            });
         });
         
         // Escuchar actualizaciones de asistencia
@@ -736,61 +771,191 @@
             }, 5000);
         });
         
+        // Escuchar cuando se inicia sesión (aunque el pase de lista se activa automáticamente)
+        socket.on('sesion-iniciada', (data) => {
+            console.log('🔔 Sesión iniciada detectada:', data);
+            // El pase de lista se activará automáticamente por el evento pase-lista-activado
+            // Solo actualizamos el mensaje mientras esperamos
+            if (!paseListaActivo) {
+                const logoPrincipal = configuracionSistema.logo_congreso || '/uploads/logo-1754407608820.png';
+                const logoSecundario = configuracionSistema.logo_secundario || '/uploads/logo-secundario.png';
+                
+                document.getElementById('deputiesContent').innerHTML = `
+                    <div class="no-attendance">
+                        <div class="logo-container">
+                            <div class="logo-item">
+                                <img src="${logoPrincipal}" alt="Logo Principal" 
+                                     onerror="this.style.display='none'">
+                            </div>
+                            ${logoSecundario ? `
+                            <div class="logo-item">
+                                <img src="${logoSecundario}" alt="Logo Secundario"
+                                     onerror="this.style.display='none'">
+                            </div>` : ''}
+                        </div>
+                        <h1 class="system-title">PASE DE LISTA ELECTRÓNICO</h1>
+                        <p class="status-message" style="color: #28a745;">
+                            <i class="fas fa-check-circle"></i> Sesión Legislativa Activa
+                        </p>
+                        <p class="status-message">Preparando pase de lista...</p>
+                    </div>
+                `;
+            }
+        });
+        
         // Escuchar fin de sesión
         socket.on('sesion-clausurada', () => {
             paseListaActivo = false;
+            
+            const logoPrincipal = configuracionSistema.logo_congreso || '/uploads/logo-1754407608820.png';
+            const logoSecundario = configuracionSistema.logo_secundario || '/uploads/logo-secundario.png';
+            
             document.getElementById('deputiesContent').innerHTML = `
                 <div class="no-attendance">
-                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <h2>Sesión Finalizada</h2>
-                    <p>La sesión ha sido clausurada</p>
+                    <div class="logo-container">
+                        <div class="logo-item">
+                            <img src="${logoPrincipal}" alt="Logo Principal" 
+                                 onerror="this.style.display='none'">
+                        </div>
+                        ${logoSecundario ? `
+                        <div class="logo-item">
+                            <img src="${logoSecundario}" alt="Logo Secundario"
+                                 onerror="this.style.display='none'">
+                        </div>` : ''}
+                    </div>
+                    <h1 class="system-title">SESIÓN CLAUSURADA</h1>
+                    <p class="status-message" style="color: #28a745;">
+                        <i class="fas fa-check-circle"></i> La sesión legislativa ha finalizado
+                    </p>
                 </div>
             `;
             document.getElementById('statsContainer').style.display = 'none';
         });
         
-        // Verificar estado inicial
+        // Verificar estado inicial y cargar asistencias persistentes
         async function verificarEstado() {
             try {
-                const response = await fetch('/api/pase-lista/pantalla');
-                const data = await response.json();
+                console.log('=== Verificando estado persistente de asistencia ===');
                 
-                console.log('Estado del pase de lista:', data);
-                
-                if (data.activo !== false || (data.diputados && data.diputados.length > 0)) {
-                    paseListaActivo = true;
+                // Primero verificar si hay un pase de lista activo
+                const response = await fetch('/api/pase-lista/actual');
+                if (response.ok) {
+                    const paseListaData = await response.json();
                     
-                    // SIEMPRE usar el mapeo fijo con IDs correctos
-                    diputadosData = DIPUTADOS_DEFAULT;
-                    console.log('Usando mapeo fijo de diputados con IDs correctos');
-                    
-                    asistenciaData = {};
-                    if (data.diputados) {
-                        data.diputados.forEach(diputado => {
-                            if (diputado.asistencia && diputado.asistencia !== 'sin_marcar') {
-                                asistenciaData[diputado.id] = diputado.asistencia;
-                            }
-                        });
+                    if (paseListaData.paseListaActivo) {
+                        console.log('Pase de lista activo encontrado:', paseListaData.id);
+                        paseListaActivo = true;
+                        
+                        // Usar el mapeo fijo con IDs correctos
+                        diputadosData = DIPUTADOS_DEFAULT;
+                        console.log('Usando mapeo fijo de diputados con IDs correctos');
+                        
+                        // NO reiniciar asistenciaData si ya tiene datos - mantener persistencia
+                        if (Object.keys(asistenciaData).length === 0) {
+                            // Solo cargar si no hay datos previos
+                            asistenciaData = {};
+                        }
+                        let totalCargadas = 0;
+                        
+                        if (paseListaData.asistencias && paseListaData.asistencias.length > 0) {
+                            console.log('Cargando asistencias persistentes:', paseListaData.asistencias.length);
+                            paseListaData.asistencias.forEach(asistencia => {
+                                // Mapear el estado de asistencia correctamente
+                                let estado = 'sin_marcar';
+                                
+                                // Priorizar el campo 'asistencia' si existe
+                                if (asistencia.asistencia) {
+                                    estado = asistencia.asistencia;
+                                } else {
+                                    // Determinar por campos individuales
+                                    if (asistencia.justificado === 1) {
+                                        estado = 'justificado';
+                                    } else if (asistencia.presente === 1) {
+                                        estado = 'presente';
+                                    } else if (asistencia.presente === 0) {
+                                        estado = 'ausente';
+                                    }
+                                }
+                                
+                                // Guardar TODOS los estados, incluyendo ausentes
+                                if (estado !== 'sin_marcar') {
+                                    asistenciaData[asistencia.diputado_id] = estado;
+                                    totalCargadas++;
+                                    console.log(`Diputado ID ${asistencia.diputado_id}: ${estado}`);
+                                }
+                            });
+                            console.log(`Total asistencias procesadas: ${totalCargadas} (Presentes, Ausentes y Justificados)`);
+                        }
+                        
+                        document.getElementById('statsContainer').style.display = 'flex';
+                        renderizarDiputados();
+                        actualizarEstadisticas();
+                        
+                        console.log('=== Estado persistente cargado exitosamente ===');
+                        console.log('Total asistencias cargadas:', Object.keys(asistenciaData).length);
+                    } else {
+                        // No hay pase de lista activo
+                        mostrarEsperandoPaseLista();
                     }
-                    
-                    document.getElementById('statsContainer').style.display = 'flex';
-                    renderizarDiputados();
-                    actualizarEstadisticas();
                 } else {
-                    paseListaActivo = false;
-                    document.getElementById('deputiesContent').innerHTML = `
-                        <div class="no-attendance">
-                            <i class="fas fa-clock"></i>
-                            <h2>Esperando inicio del pase de lista</h2>
-                            <p>El pase de lista será activado por el secretario</p>
-                        </div>
-                    `;
+                    // Fallback: intentar cargar desde /api/pase-lista/pantalla
+                    const pantallaResponse = await fetch('/api/pase-lista/pantalla');
+                    const data = await pantallaResponse.json();
+                    
+                    if (data.activo !== false || (data.diputados && data.diputados.length > 0)) {
+                        paseListaActivo = true;
+                        diputadosData = DIPUTADOS_DEFAULT;
+                        
+                        asistenciaData = {};
+                        if (data.diputados) {
+                            data.diputados.forEach(diputado => {
+                                if (diputado.asistencia && diputado.asistencia !== 'sin_marcar') {
+                                    asistenciaData[diputado.id] = diputado.asistencia;
+                                }
+                            });
+                        }
+                        
+                        document.getElementById('statsContainer').style.display = 'flex';
+                        renderizarDiputados();
+                        actualizarEstadisticas();
+                    } else {
+                        mostrarEsperandoPaseLista();
+                    }
                 }
             } catch (error) {
                 console.error('Error verificando estado:', error);
                 // En caso de error, usar el mapeo fijo
                 diputadosData = DIPUTADOS_DEFAULT;
+                mostrarEsperandoPaseLista();
             }
+        }
+        
+        // Función auxiliar para mostrar mensaje de espera con logos
+        function mostrarEsperandoPaseLista() {
+            paseListaActivo = false;
+            
+            // Obtener logos de configuración o usar valores por defecto
+            const logoPrincipal = configuracionSistema.logo_congreso || '/uploads/logo-1754407608820.png';
+            const logoSecundario = configuracionSistema.logo_secundario || '/uploads/logo-secundario.png';
+            
+            document.getElementById('deputiesContent').innerHTML = `
+                <div class="no-attendance">
+                    <div class="logo-container">
+                        <div class="logo-item">
+                            <img src="${logoPrincipal}" alt="Logo Principal" 
+                                 onerror="this.style.display='none'">
+                        </div>
+                        ${logoSecundario ? `
+                        <div class="logo-item">
+                            <img src="${logoSecundario}" alt="Logo Secundario"
+                                 onerror="this.style.display='none'">
+                        </div>` : ''}
+                    </div>
+                    <h1 class="system-title">PASE DE LISTA ELECTRÓNICO</h1>
+                    <p class="status-message">Esperando activación por el Secretario Legislativo</p>
+                </div>
+            `;
+            document.getElementById('statsContainer').style.display = 'none';
         }
         
         // Cargar diputados reales desde la API
@@ -823,6 +988,7 @@
                 if (response.ok) {
                     configuracionSistema = await response.json();
                     console.log('Configuración cargada:', configuracionSistema);
+                    updateLogos();
                 }
             } catch (error) {
                 console.error('Error cargando configuración:', error);
@@ -849,36 +1015,66 @@
         // Cargar lista de diputados
         async function cargarDiputados() {
             try {
-                // Primero cargar los diputados reales si no están cargados
-                if (!diputadosData || diputadosData.length === 0) {
-                    await cargarDiputadosReales();
+                console.log('=== Cargando diputados para pantalla pública ===');
+                
+                // Siempre usar el mapeo fijo para consistencia
+                diputadosData = DIPUTADOS_DEFAULT;
+                console.log('Usando mapeo fijo de 20 diputados');
+                
+                // Intentar cargar el estado actual del pase de lista
+                try {
+                    const response = await fetch('/api/pase-lista/pantalla');
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Datos de pase de lista recibidos:', data);
+                        
+                        // NO reiniciar si ya hay datos - solo actualizar con nuevos
+                        if (Object.keys(asistenciaData).length === 0) {
+                            asistenciaData = {};
+                        }
+                        let presentes = 0, ausentes = 0, justificados = 0;
+                        
+                        // Cargar asistencias si existen
+                        if (data.asistencias) {
+                            asistenciaData = data.asistencias;
+                            console.log('Asistencias cargadas (objeto):', Object.keys(asistenciaData).length);
+                        } else if (data.diputados && Array.isArray(data.diputados)) {
+                            // Formato alternativo con array de diputados
+                            console.log('Procesando array de diputados:', data.diputados.length);
+                            data.diputados.forEach(dip => {
+                                // Procesar TODOS los estados, no solo los marcados
+                                if (dip.asistencia) {
+                                    asistenciaData[dip.id] = dip.asistencia;
+                                    
+                                    // Contar por tipo
+                                    if (dip.asistencia === 'presente') presentes++;
+                                    else if (dip.asistencia === 'ausente') ausentes++;
+                                    else if (dip.asistencia === 'justificado') justificados++;
+                                }
+                            });
+                            console.log(`Asistencias procesadas: ${presentes} presentes, ${ausentes} ausentes, ${justificados} justificados`);
+                        } else {
+                            console.log('No hay asistencias registradas aún');
+                        }
+                    } else {
+                        console.warn('Error en respuesta del servidor:', response.status);
+                        asistenciaData = {};
+                    }
+                } catch (fetchError) {
+                    console.error('Error obteniendo datos del servidor:', fetchError);
+                    asistenciaData = {};
                 }
                 
-                // Luego cargar el estado actual del pase de lista
-                const response = await fetch('/api/pase-lista/pantalla');
-                const data = await response.json();
-                
-                console.log('Datos de pase de lista recibidos:', data);
-                
-                // Usar los diputados reales cargados
-                if (!diputadosData || diputadosData.length === 0) {
-                    diputadosData = DIPUTADOS_DEFAULT;
-                    console.log('Usando mapeo por defecto de diputados');
-                } else {
-                    console.log('Usando diputados reales cargados');
-                }
-                
-                asistenciaData = data.asistencias || {};
-                console.log('Asistencias actuales:', asistenciaData);
-                
+                // Renderizar la pantalla
                 renderizarDiputados();
                 actualizarEstadisticas();
+                
+                console.log('=== Pantalla de asistencia actualizada ===');
             } catch (error) {
-                console.error('Error cargando diputados:', error);
-                // En caso de error, usar el mapeo fijo
-                if (!diputadosData || diputadosData.length === 0) {
-                    diputadosData = DIPUTADOS_DEFAULT;
-                }
+                console.error('Error general cargando diputados:', error);
+                // En caso de error, usar valores por defecto
+                diputadosData = DIPUTADOS_DEFAULT;
+                asistenciaData = {};
                 renderizarDiputados();
                 actualizarEstadisticas();
             }
@@ -1056,64 +1252,96 @@
             }
         }
         
-        // Mostrar resumen final
+        // Mostrar resumen final con todos los estados
         function mostrarResumenFinal(data) {
             const container = document.getElementById('deputiesContent');
             const presentes = data.presentes || 0;
             const ausentes = data.ausentes || 0;
-            const total = presentes + ausentes;
+            const justificados = data.justificados || 0;
+            const total = data.total || (presentes + ausentes + justificados);
             const quorumMinimo = 11;
             const hayQuorum = presentes >= quorumMinimo;
             
+            // Si hay detalle de diputados, actualizar asistenciaData
+            if (data.detalle && Array.isArray(data.detalle)) {
+                console.log('Actualizando asistencias desde detalle:', data.detalle.length);
+                data.detalle.forEach(dip => {
+                    if (dip.estado && dip.estado !== 'sin_marcar') {
+                        asistenciaData[dip.id] = dip.estado;
+                    }
+                });
+            }
+            
+            // Obtener logos de la configuración
+            const logoPrincipal = configuracionSistema.logo_congreso || '/uploads/logo-1754407608820.png';
+            const logoSecundario = configuracionSistema.logo_secundario || '';
+            
             container.innerHTML = `
-                <div class="no-attendance" style="padding: 20px;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 20px;">
-                        <i class="fas fa-check-circle" style="color: white; font-size: 4em;"></i>
-                        <h2 style="color: white; margin: 20px 0;">Pase de Lista Confirmado</h2>
+                <div class="no-attendance" style="padding: 20px; background: #2c2c2c;">
+                    <div style="background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%); padding: 25px; border-radius: 20px;">
+                        <!-- Logos en la parte superior -->
+                        ${(logoPrincipal || logoSecundario) ? `
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 40px; margin-bottom: 25px;">
+                            ${logoPrincipal ? `<img src="${logoPrincipal}" alt="Logo Principal" style="height: 60px; max-width: 120px; object-fit: contain;" onerror="this.style.display='none'">` : ''}
+                            ${logoSecundario ? `<img src="${logoSecundario}" alt="Logo Secundario" style="height: 60px; max-width: 120px; object-fit: contain;" onerror="this.style.display='none'">` : ''}
+                        </div>` : ''}
                         
-                        <!-- Cards de resultados -->
-                        <div style="display: flex; gap: 20px; justify-content: center; margin: 30px 0; flex-wrap: wrap;">
-                            <!-- Card Presentes -->
-                            <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); 
-                                        padding: 25px; border-radius: 15px; min-width: 200px; 
-                                        box-shadow: 0 8px 25px rgba(0,0,0,0.3); text-align: center;">
-                                <i class="fas fa-user-check" style="color: white; font-size: 3em; margin-bottom: 15px;"></i>
-                                <h1 style="color: white; font-size: 4em; margin: 10px 0; font-weight: bold;">${presentes}</h1>
-                                <h4 style="color: white; text-transform: uppercase; letter-spacing: 2px; margin: 0;">Presentes</h4>
+                        <i class="fas fa-check-circle" style="color: #4CAF50; font-size: 3.5em;"></i>
+                        <h2 style="color: white; margin: 15px 0;">Pase de Lista Confirmado</h2>
+                        
+                        <!-- Cards de resultados con colores correctos y tamaño reducido -->
+                        <div style="display: flex; gap: 15px; justify-content: center; margin: 25px 0; flex-wrap: wrap;">
+                            <!-- Card Presentes - VERDE -->
+                            <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+                                        padding: 20px; border-radius: 12px; min-width: 160px; 
+                                        box-shadow: 0 6px 20px rgba(0,0,0,0.4); text-align: center;">
+                                <i class="fas fa-user-check" style="color: white; font-size: 2.2em; margin-bottom: 12px;"></i>
+                                <h1 style="color: white; font-size: 3em; margin: 8px 0; font-weight: bold;">${presentes}</h1>
+                                <h4 style="color: white; text-transform: uppercase; letter-spacing: 1.5px; margin: 0; font-size: 0.85em;">Presentes</h4>
                             </div>
                             
-                            <!-- Card Ausentes -->
-                            <div style="background: linear-gradient(135deg, #fc466b 0%, #ff9068 100%); 
-                                        padding: 25px; border-radius: 15px; min-width: 200px;
-                                        box-shadow: 0 8px 25px rgba(0,0,0,0.3); text-align: center;">
-                                <i class="fas fa-user-times" style="color: white; font-size: 3em; margin-bottom: 15px;"></i>
-                                <h1 style="color: white; font-size: 4em; margin: 10px 0; font-weight: bold;">${ausentes}</h1>
-                                <h4 style="color: white; text-transform: uppercase; letter-spacing: 2px; margin: 0;">Inasistencias</h4>
+                            <!-- Card Ausentes - ROJO -->
+                            <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
+                                        padding: 20px; border-radius: 12px; min-width: 160px;
+                                        box-shadow: 0 6px 20px rgba(0,0,0,0.4); text-align: center;">
+                                <i class="fas fa-user-times" style="color: white; font-size: 2.2em; margin-bottom: 12px;"></i>
+                                <h1 style="color: white; font-size: 3em; margin: 8px 0; font-weight: bold;">${ausentes}</h1>
+                                <h4 style="color: white; text-transform: uppercase; letter-spacing: 1.5px; margin: 0; font-size: 0.85em;">Inasistencias</h4>
                             </div>
                             
-                            <!-- Card Total -->
-                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                                        padding: 25px; border-radius: 15px; min-width: 200px;
-                                        box-shadow: 0 8px 25px rgba(0,0,0,0.3); text-align: center;">
-                                <i class="fas fa-users" style="color: white; font-size: 3em; margin-bottom: 15px;"></i>
-                                <h1 style="color: white; font-size: 4em; margin: 10px 0; font-weight: bold;">${total}</h1>
-                                <h4 style="color: white; text-transform: uppercase; letter-spacing: 2px; margin: 0;">Total</h4>
+                            <!-- Card Justificados - AMARILLO -->
+                            ${justificados > 0 ? `
+                            <div style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); 
+                                        padding: 20px; border-radius: 12px; min-width: 160px;
+                                        box-shadow: 0 6px 20px rgba(0,0,0,0.4); text-align: center;">
+                                <i class="fas fa-file-medical" style="color: white; font-size: 2.2em; margin-bottom: 12px;"></i>
+                                <h1 style="color: white; font-size: 3em; margin: 8px 0; font-weight: bold;">${justificados}</h1>
+                                <h4 style="color: white; text-transform: uppercase; letter-spacing: 1.5px; margin: 0; font-size: 0.85em;">Justificados</h4>
+                            </div>` : ''}
+                            
+                            <!-- Card Total - GRIS -->
+                            <div style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); 
+                                        padding: 20px; border-radius: 12px; min-width: 160px;
+                                        box-shadow: 0 6px 20px rgba(0,0,0,0.4); text-align: center;">
+                                <i class="fas fa-users" style="color: white; font-size: 2.2em; margin-bottom: 12px;"></i>
+                                <h1 style="color: white; font-size: 3em; margin: 8px 0; font-weight: bold;">${total}</h1>
+                                <h4 style="color: white; text-transform: uppercase; letter-spacing: 1.5px; margin: 0; font-size: 0.85em;">Total</h4>
                             </div>
                         </div>
                         
                         <!-- Indicador de Quórum Mejorado -->
-                        <div style="margin-top: 30px;">
+                        <div style="margin-top: 25px;">
                             <div style="background: ${hayQuorum ? '#28a745' : '#dc3545'}; 
-                                        padding: 20px 40px; border-radius: 50px; display: inline-block;
-                                        box-shadow: 0 5px 20px rgba(0,0,0,0.3);">
-                                <h3 style="color: white; margin: 0; display: flex; align-items: center; gap: 15px;">
-                                    <i class="fas fa-check-circle" style="color: white; font-size: 1.5em;"></i>
+                                        padding: 18px 35px; border-radius: 50px; display: inline-block;
+                                        box-shadow: 0 4px 15px rgba(0,0,0,0.4);">
+                                <h3 style="color: white; margin: 0; display: flex; align-items: center; gap: 12px;">
+                                    <i class="fas ${hayQuorum ? 'fa-check-circle' : 'fa-times-circle'}" style="color: white; font-size: 1.4em;"></i>
                                     ${hayQuorum ? 
                                         `¡HAY QUÓRUM!` : 
                                         `NO HAY QUÓRUM`
                                     }
                                 </h3>
-                                <p style="color: white; margin: 5px 0 0 0; opacity: 0.9;">
+                                <p style="color: white; margin: 4px 0 0 0; opacity: 0.95; font-size: 0.95em;">
                                     ${presentes} de 20 diputados • Mínimo requerido: ${quorumMinimo}
                                 </p>
                             </div>

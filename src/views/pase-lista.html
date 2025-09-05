@@ -811,7 +811,10 @@
                 deputies = obtenerDiputadosPorDefecto();
             }
             
-            // Lista ordenada de diputados con sus IDs correctos
+            // Guardar globalmente para uso posterior
+            window.allDeputies = deputies;
+            
+            // Lista ordenada de diputados con sus IDs correctos - ORDEN ALFABÉTICO POR APELLIDO
             const DIPUTADOS_ORDEN = [
                 { apellidos: 'Abarca Peña', id: 18, orden: 1 },
                 { apellidos: 'Domínguez Mandujano', id: 12, orden: 2 },
@@ -828,7 +831,7 @@
                 { apellidos: 'Reyes Reyes', id: 10, orden: 13 },
                 { apellidos: 'Rodríguez López', id: 23, orden: 14 },
                 { apellidos: 'Rodríguez Ruiz', id: 20, orden: 15 },
-                { apellidos: 'Ruiz Rodríguez', id: 11, orden: 16 },
+                { apellidos: 'Ruíz Rodríguez', id: 11, orden: 16 },  // Corregido: Ruíz con tilde
                 { apellidos: 'Sánchez Ortega', id: 24, orden: 17 },
                 { apellidos: 'Sánchez Zavala', id: 13, orden: 18 },
                 { apellidos: 'Solano López', id: 9, orden: 19 },
@@ -865,7 +868,7 @@
                 
                 const attendance = attendanceData[correctId] || 'pending';
                 const card = document.createElement('div');
-                card.className = `deputy-card ${attendance === 'presente' ? 'present' : attendance === 'ausente' ? 'absent' : ''}`;
+                card.className = `deputy-card ${attendance === 'presente' ? 'present' : attendance === 'ausente' ? 'absent' : attendance === 'justificado' ? 'justified' : ''}`;
                 
                 // Crear el HTML de la foto o placeholder
                 let photoHtml = '';
@@ -1343,12 +1346,21 @@
         
         // Función auxiliar para obtener el nombre del diputado por ID
         function obtenerNombreDiputado(diputadoId) {
-            // Buscar el nombre en las tarjetas del grid
+            // Primero buscar en el array de diputados si está disponible
+            if (window.allDeputies && window.allDeputies.length > 0) {
+                const diputado = window.allDeputies.find(d => d.id === parseInt(diputadoId));
+                if (diputado) {
+                    return diputado.nombre_completo || diputado.nombre;
+                }
+            }
+            
+            // Si no, buscar el nombre en las tarjetas del grid
             const cards = document.querySelectorAll('.deputy-card');
             for (let card of cards) {
                 const buttons = card.querySelectorAll('.attendance-buttons button');
                 for (let btn of buttons) {
-                    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`markAttendance(${diputadoId},`)) {
+                    const onclickAttr = btn.getAttribute('onclick');
+                    if (onclickAttr && onclickAttr.includes(`markAttendance(${diputadoId},`)) {
                         const nameElement = card.querySelector('.deputy-name');
                         if (nameElement) {
                             return nameElement.textContent.trim();
@@ -1357,7 +1369,9 @@
                     }
                 }
             }
-            return `Diputado ${diputadoId}`;
+            
+            // Como último recurso, devolver null para evitar mostrar "Diputado ID"
+            return null;
         }
         
         // Función para actualizar un diputado en el grid
@@ -1458,8 +1472,9 @@
             }
         }
         
-        // Cargar estado actual
+        // Cargar estado actual - SIEMPRE mantener persistencia durante la sesión
         async function loadCurrentAttendance() {
+            console.log('=== Cargando estado persistente de asistencia ===');
             try {
                 const response = await fetch('/api/pase-lista/actual', {
                     headers: {
@@ -1469,6 +1484,8 @@
                 
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('Estado de pase de lista recibido:', data);
+                    
                     if (data.pase_lista) {
                         // Convertir el objeto de asistencias al formato esperado
                         const asistenciasTemp = data.asistencias || {};
@@ -1485,6 +1502,13 @@
                             }
                         });
                         
+                        console.log('Asistencias cargadas:', Object.keys(attendanceData).length, 'registros');
+                        
+                        // IMPORTANTE: Actualizar el grid con los datos persistentes
+                        if (window.allDeputies && window.allDeputies.length > 0) {
+                            displayDeputies(window.allDeputies);
+                        }
+                        
                         // Si ya hay un pase de lista, asegurar que esté activado
                         if (!pantallaActivada) {
                             pantallaActivada = true;
@@ -1494,6 +1518,9 @@
                                 sesion_id: data.pase_lista.sesion_id
                             });
                         }
+                        
+                        // Actualizar estadísticas
+                        updateStats();
                         
                         // Siempre mantener editable durante la sesión activa
                         if (data.sesion_activa) {
@@ -1675,20 +1702,27 @@
         socket.on('asistencia-confirmada', (data) => {
             console.log('Diputado confirmó asistencia:', data);
             
+            // Validar que tengamos los datos necesarios
+            if (!data || !data.diputado_id) {
+                console.error('Datos de asistencia incompletos:', data);
+                return;
+            }
+            
             // Marcar como presente
             attendanceData[data.diputado_id] = 'presente';
             
             // Actualizar el grid visual
             actualizarDiputadoEnGrid(data.diputado_id, 'presente');
             
-            // Mostrar notificación
-            const nombreDiputado = obtenerNombreDiputado(data.diputado_id);
-            mostrarNotificacion(`✅ ${nombreDiputado} confirmó asistencia`, 'success', 4000);
+            // Usar el nombre del evento si está disponible, si no buscar en el grid
+            const nombreDiputado = data.nombre || obtenerNombreDiputado(data.diputado_id);
+            
+            // Solo mostrar notificación si tenemos un nombre válido
+            if (nombreDiputado && nombreDiputado !== `Diputado ${data.diputado_id}`) {
+                mostrarNotificacion(`✅ ${nombreDiputado} confirmó asistencia`, 'success', 4000);
+            }
             
             updateStats();
-            
-            // Mostrar notificación
-            showNotification('success', `✅ ${data.nombre} confirmó su asistencia`);
         });
         
         socket.on('pase-lista-confirmado', () => {
@@ -1872,11 +1906,14 @@
                     return;
                 }
                 
-                loadCurrentAttendance();
+                await loadCurrentAttendance();  // Esperar a que cargue el estado persistente
                 console.log('loadCurrentAttendance completado');
                 
-                await loadDeputies();  // Cargar el grid de diputados
-                console.log('loadDeputies completado');
+                // Solo cargar diputados si no se cargaron ya con loadCurrentAttendance
+                if (window.allDeputies && window.allDeputies.length === 0) {
+                    await loadDeputies();  // Cargar el grid de diputados
+                    console.log('loadDeputies completado');
+                }
                 
                 activarPantallaAlCargar();
                 console.log('activarPantallaAlCargar completado');

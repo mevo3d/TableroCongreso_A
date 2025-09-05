@@ -73,21 +73,42 @@ router.get('/actual', (req, res) => {
             return res.json({ pase_lista: null, asistencias: {} });
         }
         
-        // Obtener detalles de asistencias
+        // Obtener detalles de asistencias de AMBAS tablas
         db.all(`
             SELECT 
-                ad.diputado_id, 
-                ad.presente,
-                ad.asistencia,
-                ad.hora_registro,
+                u.id as diputado_id,
+                COALESCE(a.asistencia, 
+                    CASE 
+                        WHEN ad.justificado = 1 THEN 'justificado'
+                        WHEN ad.presente = 1 THEN 'presente'
+                        WHEN ad.presente = 0 THEN 'ausente'
+                        ELSE NULL
+                    END
+                ) as asistencia,
+                CASE 
+                    WHEN a.asistencia = 'presente' THEN 1
+                    WHEN ad.presente = 1 THEN 1
+                    ELSE 0
+                END as presente,
+                CASE 
+                    WHEN a.asistencia = 'justificado' THEN 1
+                    WHEN ad.justificado = 1 THEN 1
+                    ELSE 0
+                END as justificado,
+                COALESCE(a.hora, ad.hora_registro) as hora_registro,
                 ad.observaciones,
-                ad.registrado_por,
-                ad.tipo_registro,
-                ad.justificado,
-                ad.justificacion_motivo
-            FROM asistencia_diputados ad
-            WHERE ad.pase_lista_id = ?
-        `, [paseLista.id], (err, asistencias) => {
+                COALESCE(a.auto_registro, ad.registrado_por) as registrado_por,
+                CASE 
+                    WHEN a.id IS NOT NULL THEN 'personal'
+                    WHEN ad.tipo_registro IS NOT NULL THEN ad.tipo_registro
+                    ELSE 'secretario'
+                END as tipo_registro,
+                COALESCE(a.justificacion_motivo, ad.justificacion_motivo) as justificacion_motivo
+            FROM usuarios u
+            LEFT JOIN asistencia_diputados ad ON ad.diputado_id = u.id AND ad.pase_lista_id = ?
+            LEFT JOIN asistencias a ON a.diputado_id = u.id AND a.pase_lista_id = ?
+            WHERE u.role = 'diputado' AND (ad.id IS NOT NULL OR a.id IS NOT NULL)
+        `, [paseLista.id, paseLista.id], (err, asistencias) => {
             if (err) {
                 console.error('Error en consulta de asistencias:', err);
                 return res.status(500).json({ error: 'Error obteniendo asistencias', details: err.message });
@@ -118,8 +139,21 @@ router.get('/actual', (req, res) => {
             // Verificar si hay sesión activa
             db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
                 res.json({
+                    paseListaActivo: true,
+                    id: paseLista.id,
                     pase_lista: paseLista,
-                    asistencias: asistenciasObj,
+                    asistencias: asistencias.map(a => ({
+                        diputado_id: a.diputado_id,
+                        presente: a.presente,
+                        justificado: a.justificado,
+                        asistencia: a.asistencia || (a.justificado === 1 ? 'justificado' : (a.presente === 1 ? 'presente' : 'ausente')),
+                        hora_registro: a.hora_registro,
+                        observaciones: a.observaciones,
+                        registrado_por: a.registrado_por,
+                        tipo_registro: a.tipo_registro,
+                        justificacion_motivo: a.justificacion_motivo
+                    })),
+                    asistenciasObj: asistenciasObj,
                     sesion_activa: !!sesion
                 });
             });
@@ -354,57 +388,109 @@ router.post('/confirmar', (req, res) => {
                 return res.status(404).json({ error: 'No hay pase de lista activo' });
             }
             
-            // Contar asistencias
+            // Contar asistencias de AMBAS tablas incluyendo justificados
             db.get(`
                 SELECT 
-                    COUNT(CASE WHEN asistencia = 'presente' THEN 1 END) as presentes,
-                    COUNT(CASE WHEN asistencia = 'ausente' THEN 1 END) as ausentes,
-                    COUNT(*) as total
-                FROM asistencias
-                WHERE pase_lista_id = ?
-            `, [paseLista.id], (err, conteo) => {
+                    COUNT(CASE 
+                        WHEN a.asistencia = 'presente' OR ad.presente = 1 THEN 1 
+                    END) as presentes,
+                    COUNT(CASE 
+                        WHEN (a.asistencia = 'ausente' OR (ad.presente = 0 AND (ad.justificado IS NULL OR ad.justificado = 0))) 
+                        AND NOT (a.asistencia = 'presente' OR a.asistencia = 'justificado')
+                        THEN 1 
+                    END) as ausentes,
+                    COUNT(CASE 
+                        WHEN a.asistencia = 'justificado' OR ad.justificado = 1 THEN 1 
+                    END) as justificados,
+                    COUNT(DISTINCT u.id) as total
+                FROM usuarios u
+                LEFT JOIN asistencia_diputados ad ON ad.diputado_id = u.id AND ad.pase_lista_id = ?
+                LEFT JOIN asistencias a ON a.diputado_id = u.id AND a.pase_lista_id = ?
+                WHERE u.role = 'diputado' 
+                AND (ad.id IS NOT NULL OR a.id IS NOT NULL)
+            `, [paseLista.id, paseLista.id], (err, conteo) => {
                 if (err) {
+                    console.error('Error contando asistencias:', err);
                     return res.status(500).json({ error: 'Error contando asistencias' });
                 }
                 
-                // Actualizar pase de lista como confirmado (NO finalizado)
-                db.run(`
-                    UPDATE pase_lista 
-                    SET confirmado = 1,
-                        total_presentes = ?,
-                        total_ausentes = ?,
-                        hora_confirmacion = datetime('now')
-                    WHERE id = ?
-                `, [conteo.presentes, conteo.ausentes, paseLista.id], (err) => {
+                console.log('Conteo de asistencias:', conteo);
+                
+                // Obtener lista detallada de diputados con sus estados de AMBAS tablas
+                db.all(`
+                    SELECT 
+                        u.id,
+                        u.nombre_completo,
+                        u.partido,
+                        CASE 
+                            -- Primero verificar en asistencias (auto-registro de diputados)
+                            WHEN a.asistencia = 'presente' THEN 'presente'
+                            WHEN a.asistencia = 'ausente' THEN 'ausente'
+                            WHEN a.asistencia = 'justificado' THEN 'justificado'
+                            -- Luego verificar en asistencia_diputados (marcado por secretario)
+                            WHEN ad.presente = 1 THEN 'presente'
+                            WHEN ad.justificado = 1 THEN 'justificado'
+                            WHEN ad.presente = 0 THEN 'ausente'
+                            ELSE 'sin_marcar'
+                        END as estado
+                    FROM usuarios u
+                    LEFT JOIN asistencia_diputados ad ON ad.diputado_id = u.id AND ad.pase_lista_id = ?
+                    LEFT JOIN asistencias a ON a.diputado_id = u.id AND a.pase_lista_id = ?
+                    WHERE u.role = 'diputado'
+                    ORDER BY u.nombre_completo
+                `, [paseLista.id, paseLista.id], (err, listaDetallada) => {
                     if (err) {
-                        return res.status(500).json({ error: 'Error confirmando pase de lista' });
+                        console.error('Error obteniendo lista detallada:', err);
+                        listaDetallada = [];
                     }
                     
-                    // Emitir eventos
-                    io.emit('pase-lista-confirmado', {
-                        presentes: conteo.presentes,
-                        ausentes: conteo.ausentes,
-                        total: conteo.total
-                    });
+                    // Actualizar pase de lista como confirmado (NO finalizado)
+                    db.run(`
+                        UPDATE pase_lista 
+                        SET confirmado = 1,
+                            total_presentes = ?,
+                            total_ausentes = ?,
+                            hora_confirmacion = datetime('now')
+                        WHERE id = ?
+                    `, [conteo.presentes, conteo.ausentes + conteo.justificados, paseLista.id], (err) => {
+                        if (err) {
+                            return res.status(500).json({ error: 'Error confirmando pase de lista' });
+                        }
+                        
+                        // Emitir eventos con información completa
+                        io.emit('pase-lista-confirmado', {
+                            presentes: conteo.presentes,
+                            ausentes: conteo.ausentes,
+                            justificados: conteo.justificados,
+                            total: conteo.total,
+                            detalle: listaDetallada
+                        });
                     
-                    // Notificar a los secretarios (popup especial)
-                    io.emit('notificar-secretarios-asistencia-final', {
-                        totalPresentes: conteo.presentes,
-                        confirmadoPor: req.user.nombre_completo,
-                        cargo: userData.cargo_mesa_directiva || userData.role
-                    });
-                    
-                    // Mostrar automáticamente en pantalla
-                    io.emit('mostrar-pase-lista', {
-                        visible: true,
-                        pase_lista_id: paseLista.id
-                    });
-                    
-                    res.json({
-                        message: 'Pase de lista confirmado y visible en pantalla',
-                        presentes: conteo.presentes,
-                        ausentes: conteo.ausentes,
-                        total: conteo.total
+                        // Notificar a los secretarios con información completa
+                        io.emit('notificar-secretarios-asistencia-final', {
+                            totalPresentes: conteo.presentes,
+                            totalAusentes: conteo.ausentes,
+                            totalJustificados: conteo.justificados,
+                            total: conteo.total,
+                            confirmadoPor: req.user.nombre_completo,
+                            cargo: userData.cargo_mesa_directiva || userData.role,
+                            detalle: listaDetallada
+                        });
+                        
+                        // Mostrar automáticamente en pantalla
+                        io.emit('mostrar-pase-lista', {
+                            visible: true,
+                            pase_lista_id: paseLista.id
+                        });
+                        
+                        res.json({
+                            message: 'Pase de lista confirmado y visible en pantalla',
+                            presentes: conteo.presentes,
+                            ausentes: conteo.ausentes,
+                            justificados: conteo.justificados,
+                            total: conteo.total,
+                            detalle: listaDetallada
+                        });
                     });
                 });
             });
@@ -1247,15 +1333,26 @@ router.get('/pantalla', (req, res) => {
             return res.json({ activo: false });
         }
         
-        // Obtener lista completa con asistencias
+        // Obtener lista completa con asistencias de AMBAS tablas
         db.all(`
             SELECT 
                 u.id,
                 u.nombre_completo,
                 u.partido,
                 u.foto_url,
-                COALESCE(a.asistencia, 'sin_marcar') as asistencia
+                CASE 
+                    -- Primero verificar en asistencias (auto-registro de diputados)
+                    WHEN a.asistencia = 'presente' THEN 'presente'
+                    WHEN a.asistencia = 'ausente' THEN 'ausente'
+                    WHEN a.asistencia = 'justificado' THEN 'justificado'
+                    -- Luego verificar en asistencia_diputados (marcado por secretario)
+                    WHEN ad.presente = 1 THEN 'presente'
+                    WHEN ad.justificado = 1 THEN 'justificado'
+                    WHEN ad.presente = 0 THEN 'ausente'
+                    ELSE 'sin_marcar'
+                END as asistencia
             FROM usuarios u
+            LEFT JOIN asistencia_diputados ad ON ad.diputado_id = u.id AND ad.pase_lista_id = ?
             LEFT JOIN asistencias a ON a.diputado_id = u.id AND a.pase_lista_id = ?
             WHERE u.role = 'diputado'
             ORDER BY 
@@ -1282,7 +1379,7 @@ router.get('/pantalla', (req, res) => {
                 WHEN u.nombre_completo LIKE '%Sotelo Martínez%' THEN 20
                 ELSE 99
             END
-        `, [paseLista.id], (err, diputados) => {
+        `, [paseLista.id, paseLista.id], (err, diputados) => {
             if (err) {
                 return res.status(500).json({ error: 'Error obteniendo asistencias' });
             }
