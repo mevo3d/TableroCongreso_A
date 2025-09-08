@@ -47,7 +47,9 @@
       "Read(/C:\\Users\\Vaghar\\votacion\\src\\views/**)",
       "Read(/C:\\Users\\Vaghar\\votacion\\src\\views/**)",
       "Read(/C:\\Users\\Vaghar\\votacion\\src\\views/**)",
-      "Read(/C:\\Users\\Vaghar\\votacion\\src\\routes/**)"
+      "Read(/C:\\Users\\Vaghar\\votacion\\src\\routes/**)",
+      "Bash(\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --incognito \"http://localhost:3333/autologin/isaac.pimentel\")",
+      "Bash(\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --incognito \"http://localhost:3333/autologin/isaac.pimentel\" --auto-open-devtools-for-tabs)"
     ],
     "deny": [],
     "ask": [],

@@ -811,6 +811,7 @@ function extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion) {
     let numeroEnSeccion = 0; // Se reinicia en cada sección (1,2,3...)
     let dentroDeSeccionPrincipal = false;
     let numeroSeccionPrincipal = 0;
+    let contadorPorSeccion = {}; // Para rastrear el contador dentro de cada sección
     
     console.log('\n📋 === EXTRAYENDO ELEMENTOS DEL DOCUMENTO ===');
     
@@ -829,8 +830,10 @@ function extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion) {
                 dentroDeSeccionPrincipal = true;
                 numeroSeccionPrincipal = 8;
                 numeroEnSeccion = 0; // Reinicia numeración interna
+                contadorPorSeccion[8] = 0; // Inicializar contador para esta sección
                 console.log('\n📂 Entrando a sección 8: INICIATIVAS');
                 console.log('   Próximo número global: ' + (numeroGeneral + 1));
+                console.log('   Reiniciando contador de sección a 0');
                 continue;
             }
             
@@ -840,8 +843,10 @@ function extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion) {
                 dentroDeSeccionPrincipal = true;
                 numeroSeccionPrincipal = 9;
                 numeroEnSeccion = 0; // Reinicia numeración interna
+                contadorPorSeccion[9] = 0; // Inicializar contador para esta sección
                 console.log('\n📋 Entrando a sección 9: PRIMERA LECTURA');
                 console.log('   Próximo número global: ' + (numeroGeneral + 1));
+                console.log('   Reiniciando contador de sección a 0');
                 continue;
             }
             
@@ -851,8 +856,10 @@ function extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion) {
                 dentroDeSeccionPrincipal = true;
                 numeroSeccionPrincipal = 10;
                 numeroEnSeccion = 0; // Reinicia numeración interna
+                contadorPorSeccion[10] = 0; // Inicializar contador para esta sección
                 console.log('\n✅ Entrando a sección 10: SEGUNDA LECTURA');
                 console.log('   Próximo número global: ' + (numeroGeneral + 1));
+                console.log('   Reiniciando contador de sección a 0');
                 continue;
             }
             
@@ -960,7 +967,14 @@ function extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion) {
                 }
                 
                 numeroGeneral++; // Incrementar contador global
-                // NO incrementar numeroEnSeccion aquí, usar numeroOriginal del PDF
+                
+                // Incrementar contador de sección
+                if (numeroSeccionPrincipal && contadorPorSeccion[numeroSeccionPrincipal] !== undefined) {
+                    contadorPorSeccion[numeroSeccionPrincipal]++;
+                    numeroEnSeccion = contadorPorSeccion[numeroSeccionPrincipal];
+                } else {
+                    numeroEnSeccion = numeroOriginal; // Usar el número original si no hay sección
+                }
                 
                 let contenido = matchNumero[2];
                 
@@ -1000,8 +1014,8 @@ function extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion) {
                 const elemento = {
                     // Numeración correcta:
                     numero: numeroGeneral, // Consecutivo global (1,2,3...238)
-                    numero_orden_dia: numeroOriginal, // Número del PDF (1,2,3... reinicia cada sección)
-                    numero_original: numeroOriginal, // Mismo que numero_orden_dia
+                    numero_orden_dia: numeroEnSeccion, // Número dentro de la sección (1,2,3... reinicia cada sección)
+                    numero_original: numeroOriginal, // Número original del PDF
                     numero_seccion: numeroSeccionPrincipal, // 8, 9 o 10
                     
                     // Contenido completo
@@ -1047,8 +1061,11 @@ function extraerElementosConCategoria(texto, estructuraIncisos, tipoSesion) {
             
             elementos.push(elemento);
                 
-                // Mostrar: Global/Original
-                console.log(`   ✓ ${numeroGeneral}/${numeroOriginal} ${contenido.substring(0, 60)}... [${categoriaElemento}]`);
+                // Mostrar: Global/Sección
+                console.log(`   ✓ ${numeroGeneral}/${numeroEnSeccion} ${contenido.substring(0, 60)}... [${categoriaElemento}]`);
+                if (numeroSeccionPrincipal) {
+                    console.log(`      (Sección ${numeroSeccionPrincipal}, elemento ${numeroEnSeccion} de la sección)`);
+                }
                 
                 // Avanzar el índice si acumulamos líneas
                 i = j - 1;

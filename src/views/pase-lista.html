@@ -866,7 +866,8 @@
                 const diputadoInfo = getDiputadoInfo(deputy.nombre_completo);
                 const correctId = diputadoInfo ? diputadoInfo.id : deputy.id;
                 
-                const attendance = attendanceData[correctId] || 'pending';
+                // IMPORTANTE: Mantener el estado persistente si ya existe
+                const attendance = attendanceData[correctId] || attendanceData[deputy.id] || 'pending';
                 const card = document.createElement('div');
                 card.className = `deputy-card ${attendance === 'presente' ? 'present' : attendance === 'ausente' ? 'absent' : attendance === 'justificado' ? 'justified' : ''}`;
                 
@@ -1507,16 +1508,34 @@
                         // IMPORTANTE: Actualizar el grid con los datos persistentes
                         if (window.allDeputies && window.allDeputies.length > 0) {
                             displayDeputies(window.allDeputies);
+                        } else {
+                            // Solo cargar diputados si no están ya cargados
+                            await loadDeputies();
                         }
                         
                         // Si ya hay un pase de lista, asegurar que esté activado
                         if (!pantallaActivada) {
                             pantallaActivada = true;
-                            // Emitir evento para asegurar que la pantalla esté activada
-                            socket.emit('pase-lista-activado', {
-                                activo: true,
-                                sesion_id: data.pase_lista.sesion_id
-                            });
+                            
+                            // Si el pase NO está confirmado, emitir evento normal
+                            // Si está confirmado, emitir solo para pantalla pero no para diputados
+                            if (!data.pase_lista.confirmado) {
+                                // Pase de lista activo sin confirmar - activar todo
+                                socket.emit('pase-lista-activado', {
+                                    activo: true,
+                                    sesion_id: data.pase_lista.sesion_id,
+                                    solo_pantalla: false
+                                });
+                                console.log('Emitiendo evento pase-lista-activado para pantalla y diputados');
+                            } else {
+                                // Pase de lista confirmado - solo activar pantalla, no botones de diputados
+                                socket.emit('pase-lista-activado-pantalla', {
+                                    activo: true,
+                                    sesion_id: data.pase_lista.sesion_id,
+                                    solo_pantalla: true
+                                });
+                                console.log('Pase de lista confirmado - emitiendo solo para pantalla');
+                            }
                         }
                         
                         // Actualizar estadísticas
@@ -1544,8 +1563,10 @@
                             document.body.classList.add('readonly-mode');
                             document.getElementById('attendanceStatus').textContent = 'Sesión no activa';
                         }
+                    } else {
+                        // Si no hay pase de lista, cargar diputados normalmente
+                        loadDeputies();
                     }
-                    loadDeputies();
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -1910,7 +1931,7 @@
                 console.log('loadCurrentAttendance completado');
                 
                 // Solo cargar diputados si no se cargaron ya con loadCurrentAttendance
-                if (window.allDeputies && window.allDeputies.length === 0) {
+                if (!window.allDeputies || window.allDeputies.length === 0) {
                     await loadDeputies();  // Cargar el grid de diputados
                     console.log('loadDeputies completado');
                 }

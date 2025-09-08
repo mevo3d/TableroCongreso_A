@@ -574,15 +574,15 @@
             { id: 6, nombre_completo: 'Gordillo Vega Andrea Valentina Guadalupe', partido: 'PAN', orden: 4 },
             { id: 7, nombre_completo: 'Livera Chavarría Sergio Omar', partido: 'MORENA', orden: 5 },
             { id: 22, nombre_completo: 'Martínez Gómez Eleonor', partido: 'PRI', orden: 6 },
-            { id: 5, nombre_completo: 'Martínez Terrazas Óscar Daniel', partido: 'PAN', orden: 7 },
+            { id: 5, nombre_completo: 'Martínez Terrazas Daniel', partido: 'PAN', orden: 7 },
             { id: 8, nombre_completo: 'Maya Rendón Guillermina', partido: 'MORENA', orden: 8 },
-            { id: 15, nombre_completo: 'Montes de Oca Montoya Martha Melissa', partido: 'MORENA', orden: 9 },
+            { id: 15, nombre_completo: 'Montes de Oca Montoya Melissa', partido: 'MORENA', orden: 9 },
             { id: 21, nombre_completo: 'Pedrero González Luis Eduardo', partido: 'PVEM', orden: 10 },
             { id: 16, nombre_completo: 'Pimentel Mejía Isaac', partido: 'MORENA', orden: 11 },
             { id: 19, nombre_completo: 'Quevedo Maldonado Luz Dary', partido: 'MC', orden: 12 },
             { id: 10, nombre_completo: 'Reyes Reyes Rafael', partido: 'MORENA', orden: 13 },
             { id: 23, nombre_completo: 'Rodríguez López Ruth Cleotilde', partido: 'NUEVA ALIANZA', orden: 14 },
-            { id: 20, nombre_completo: 'Rodríguez Ruiz Tania Valentina', partido: 'PT', orden: 15 },
+            { id: 20, nombre_completo: 'Rodríguez Ruíz Tania Valentina', partido: 'PT', orden: 15 },
             { id: 11, nombre_completo: 'Ruíz Rodríguez Nayla Carolina', partido: 'MORENA', orden: 16 },
             { id: 24, nombre_completo: 'Sánchez Ortega Alberto', partido: 'PT', orden: 17 },
             { id: 13, nombre_completo: 'Sánchez Zavala Francisco Erik', partido: 'PAN', orden: 18 },
@@ -649,16 +649,24 @@
             // Mostrar el contenedor de estadísticas
             document.getElementById('statsContainer').style.display = 'flex';
             
-            // NO limpiar asistenciaData - mantener datos persistentes
-            // Solo cargar datos nuevos si no existen
-            cargarDiputados().then(() => {
-                console.log('✅ Pantalla de asistencia activada correctamente');
-            }).catch(error => {
-                console.error('Error al cargar diputados:', error);
-                // Renderizar con datos por defecto
+            // IMPORTANTE: Verificar si ya hay datos de asistencia
+            if (Object.keys(asistenciaData).length > 0) {
+                console.log('📋 Manteniendo estados existentes:', Object.keys(asistenciaData).length, 'diputados con asistencia');
+                // Renderizar directamente con los datos existentes
                 renderizarDiputados();
                 actualizarEstadisticas();
-            });
+            } else {
+                // Solo cargar datos nuevos si no existen
+                console.log('📥 Cargando datos de asistencia por primera vez...');
+                cargarDiputados().then(() => {
+                    console.log('✅ Pantalla de asistencia activada correctamente');
+                }).catch(error => {
+                    console.error('Error al cargar diputados:', error);
+                    // Renderizar con datos por defecto
+                    renderizarDiputados();
+                    actualizarEstadisticas();
+                });
+            }
         });
         
         // Escuchar actualizaciones de asistencia
@@ -685,18 +693,102 @@
             }
         });
         
+        // Escuchar cuando se modifica asistencia sin necesidad de confirmar
+        socket.on('asistencia-modificada-sin-confirmar', (data) => {
+            console.log('Asistencia modificada sin reconfirmar:', data);
+            
+            // Actualizar el estado del diputado SIEMPRE
+            if (data.diputado_id && data.asistencia_nueva) {
+                actualizarAsistencia(data.diputado_id, data.asistencia_nueva);
+            }
+            
+            // Si estamos en la vista de resumen final, volver a la lista para ver los cambios
+            const container = document.getElementById('deputiesContent');
+            if (container && container.querySelector('.no-attendance')) {
+                console.log('Regresando a la vista de lista para mostrar cambios');
+                renderizarDiputados();
+                actualizarEstadisticas();
+            }
+            
+            // Solo mostrar notificación si NO es silencioso (llegadas tardías no muestran notificación)
+            if (!data.silencioso) {
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-success position-fixed';
+                notification.style.cssText = 'top: 80px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 400px; text-align: center;';
+                notification.innerHTML = `
+                    <i class="fas fa-check-circle"></i> <strong>Asistencia Actualizada</strong>
+                    <br>${data.mensaje || 'Cambio aplicado sin necesidad de confirmar'}
+                `;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 4000);
+            } else {
+                // Si es silencioso (llegada tardía), solo actualizar sin notificar
+                console.log('🔇 Actualización silenciosa de llegada tardía:', data.nombre_diputado);
+            }
+        });
+        
         // Escuchar cuando se confirma el pase de lista
         socket.on('pase-lista-confirmado', (data) => {
             console.log('Pase de lista confirmado:', data);
             mostrarResumenFinal(data);
         });
         
+        // Escuchar activación solo para pantalla (cuando el pase ya está confirmado)
+        socket.on('pase-lista-activado-pantalla', (data) => {
+            console.log('🔔 Evento pase-lista-activado-pantalla recibido (solo pantalla):', data);
+            // Activar la pantalla pero sin afectar a los diputados
+            paseListaActivo = true;
+            
+            // Usar el mapeo fijo de diputados
+            diputadosData = DIPUTADOS_DEFAULT;
+            console.log('Activando pantalla con pase de lista confirmado');
+            
+            // Mostrar el contenedor de estadísticas
+            document.getElementById('statsContainer').style.display = 'flex';
+            
+            // Cargar los datos actuales y renderizar
+            cargarDiputados().then(() => {
+                console.log('✅ Pantalla de asistencia activada (modo confirmado)');
+            }).catch(error => {
+                console.error('Error al cargar diputados:', error);
+                renderizarDiputados();
+                actualizarEstadisticas();
+            });
+        });
+        
         // Escuchar cuando se reabre el pase de lista (sin borrar asistencias)
         socket.on('pase-lista-reabierto', (data) => {
             console.log('Pase de lista reabierto:', data);
-            // Mantener el pase de lista activo y recargar datos
+            // Mantener el pase de lista activo
             paseListaActivo = true;
-            cargarDiputados();
+            
+            // IMPORTANTE: NO borrar asistenciaData
+            console.log('Manteniendo estados existentes:', Object.keys(asistenciaData).length);
+            
+            // Si ya estamos mostrando el resumen, volver a la lista
+            const deputiesContent = document.getElementById('deputiesContent');
+            if (deputiesContent && deputiesContent.querySelector('.no-attendance')) {
+                // Renderizar la lista manteniendo los estados
+                renderizarDiputados();
+                actualizarEstadisticas();
+            }
+            
+            // Mostrar notificación de reapertura
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-info position-fixed';
+            notification.style.cssText = 'top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 400px; text-align: center;';
+            notification.innerHTML = `
+                <i class="fas fa-unlock"></i> <strong>Pase de Lista Reabierto</strong>
+                <br>Puede modificar asistencias sin necesidad de confirmar nuevamente
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
         });
         
         // Escuchar cuando se reinicia el pase de lista
@@ -850,15 +942,21 @@
                         diputadosData = DIPUTADOS_DEFAULT;
                         console.log('Usando mapeo fijo de diputados con IDs correctos');
                         
-                        // NO reiniciar asistenciaData si ya tiene datos - mantener persistencia
-                        if (Object.keys(asistenciaData).length === 0) {
-                            // Solo cargar si no hay datos previos
-                            asistenciaData = {};
-                        }
+                        // SIEMPRE cargar datos del servidor si existen (para mantener persistencia)
                         let totalCargadas = 0;
                         
+                        // Cargar asistencias del servidor si existen
                         if (paseListaData.asistencias && paseListaData.asistencias.length > 0) {
-                            console.log('Cargando asistencias persistentes:', paseListaData.asistencias.length);
+                            console.log('');
+                            console.log('╔════════════════════════════════════════════════╗');
+                            console.log('║  📋 CARGANDO ASISTENCIAS ACUMULADAS EN BACKGROUND  ║');
+                            console.log('╚════════════════════════════════════════════════╝');
+                            console.log(`Total de registros acumulados: ${paseListaData.asistencias.length}`);
+                            console.log('');
+                            
+                            // Limpiar asistenciaData para cargar datos frescos del servidor
+                            asistenciaData = {};
+                            
                             paseListaData.asistencias.forEach(asistencia => {
                                 // Mapear el estado de asistencia correctamente
                                 let estado = 'sin_marcar';
@@ -884,7 +982,16 @@
                                     console.log(`Diputado ID ${asistencia.diputado_id}: ${estado}`);
                                 }
                             });
-                            console.log(`Total asistencias procesadas: ${totalCargadas} (Presentes, Ausentes y Justificados)`);
+                            console.log(`✅ Total asistencias procesadas: ${totalCargadas} (Presentes, Ausentes y Justificados)`);
+                            console.log('Todas las asistencias registradas mientras la pantalla estaba cerrada han sido cargadas.');
+                        } else {
+                            console.log('');
+                            console.log('╔════════════════════════════════════════════════╗');
+                            console.log('║  ⏳ ESPERANDO ASISTENCIAS EN BACKGROUND        ║');
+                            console.log('╚════════════════════════════════════════════════╝');
+                            console.log('No hay asistencias registradas aún.');
+                            console.log('Los diputados pueden marcar asistencia desde sus paneles.');
+                            console.log('Esta pantalla se actualizará automáticamente.');
                         }
                         
                         document.getElementById('statsContainer').style.display = 'flex';
@@ -1082,8 +1189,9 @@
         
         // Renderizar columnas de asistencia
         function renderAttendanceColumns(diputados) {
-            const column1 = diputados.slice(0, 10);
-            const column2 = diputados.slice(10, 20);
+            // Dividir en dos columnas y revertir para mostrar de abajo hacia arriba
+            const column1 = diputados.slice(0, 10).reverse(); // Del 10 al 1 (de abajo hacia arriba)
+            const column2 = diputados.slice(10, 20).reverse(); // Del 20 al 11 (de abajo hacia arriba)
             
             const renderTable = (diputadosColumn) => {
                 return `
@@ -1329,20 +1437,23 @@
                             </div>
                         </div>
                         
-                        <!-- Indicador de Quórum Mejorado -->
-                        <div style="margin-top: 25px;">
-                            <div style="background: ${hayQuorum ? '#28a745' : '#dc3545'}; 
-                                        padding: 18px 35px; border-radius: 50px; display: inline-block;
-                                        box-shadow: 0 4px 15px rgba(0,0,0,0.4);">
-                                <h3 style="color: white; margin: 0; display: flex; align-items: center; gap: 12px;">
-                                    <i class="fas ${hayQuorum ? 'fa-check-circle' : 'fa-times-circle'}" style="color: white; font-size: 1.4em;"></i>
+                        <!-- Indicador de Quórum en la parte inferior centrado -->
+                        <div style="position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 1000;">
+                            <div style="background: ${hayQuorum ? 
+                                        'linear-gradient(135deg, #28a745 0%, #20c997 100%)' : 
+                                        'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'}; 
+                                        padding: 20px 40px; border-radius: 15px;
+                                        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+                                        border: 2px solid ${hayQuorum ? '#1e7e34' : '#bd2130'};">
+                                <h2 style="color: white; margin: 0; display: flex; align-items: center; gap: 15px; font-size: 2em;">
+                                    <i class="fas ${hayQuorum ? 'fa-check-circle' : 'fa-times-circle'}" style="color: white; font-size: 1em;"></i>
                                     ${hayQuorum ? 
-                                        `¡HAY QUÓRUM!` : 
+                                        `HAY QUÓRUM` : 
                                         `NO HAY QUÓRUM`
                                     }
-                                </h3>
-                                <p style="color: white; margin: 4px 0 0 0; opacity: 0.95; font-size: 0.95em;">
-                                    ${presentes} de 20 diputados • Mínimo requerido: ${quorumMinimo}
+                                </h2>
+                                <p style="color: white; margin: 10px 0 0 0; opacity: 0.95; font-size: 1.1em; text-align: center;">
+                                    <strong>${presentes}</strong> de 20 diputados • Mínimo requerido: <strong>${quorumMinimo}</strong>
                                 </p>
                             </div>
                         </div>
@@ -1352,6 +1463,40 @@
             
             // Mantener el indicador de quórum en la parte inferior actualizado
             actualizarEstadisticas();
+            
+            // Agregar temporizador para regresar a la lista después de 5 segundos (temporal para pruebas)
+            console.log('⏰ Iniciando temporizador de 5 segundos para retorno automático...');
+            const timerReturn = setTimeout(() => {
+                console.log('⏱️ Tiempo cumplido - Regresando a la lista de asistencia...');
+                
+                try {
+                    // Verificar que tengamos los datos necesarios
+                    if (!diputadosData || diputadosData.length === 0) {
+                        diputadosData = DIPUTADOS_DEFAULT;
+                        console.log('Restaurando datos de diputados por defecto');
+                    }
+                    
+                    // Renderizar la lista de diputados directamente
+                    const deputiesContainer = document.getElementById('deputiesContent');
+                    if (deputiesContainer) {
+                        deputiesContainer.innerHTML = renderAttendanceColumns(diputadosData);
+                        console.log('✅ Lista de diputados renderizada correctamente');
+                        console.log('📋 Estados de asistencia preservados:', Object.keys(asistenciaData).length);
+                        
+                        // Actualizar estadísticas también
+                        actualizarEstadisticas();
+                    } else {
+                        console.error('❌ No se encontró el contenedor deputiesContent');
+                    }
+                } catch (error) {
+                    console.error('❌ Error al regresar a la lista:', error);
+                    // Como fallback, recargar la página
+                    location.reload();
+                }
+            }, 5000); // 5000 ms = 5 segundos (TEMPORAL PARA PRUEBAS - cambiar a 60000 para producción)
+            
+            // Guardar referencia del timer por si necesitamos cancelarlo
+            window.currentReturnTimer = timerReturn;
         }
     </script>
 </body>

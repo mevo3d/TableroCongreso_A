@@ -55,32 +55,50 @@ router.post('/votar', (req, res) => {
         return res.status(400).json({ error: 'Voto inválido' });
     }
     
-    // PRIMERO: Verificar que el diputado está marcado como presente en el pase de lista
+    // PRIMERO: Verificar si el diputado está fuera del recinto
     db.get(`
-        SELECT ad.presente, ad.asistencia
-        FROM asistencia_diputados ad
-        INNER JOIN pase_lista pl ON ad.pase_lista_id = pl.id
-        INNER JOIN sesiones s ON pl.sesion_id = s.id
-        WHERE s.activa = 1 AND ad.diputado_id = ?
-        ORDER BY pl.id DESC
-        LIMIT 1
-    `, [userId], (err, asistenciaData) => {
+        SELECT fuera_del_recinto, genero
+        FROM usuarios
+        WHERE id = ?
+    `, [userId], (err, usuarioData) => {
         if (err) {
-            console.error('Error verificando asistencia:', err);
-            // Si hay error con la tabla, intentar sin validación por ahora
-            console.log('Permitiendo voto sin validación de asistencia debido a error');
-        } else if (asistenciaData) {
-            // Verificar si tiene el campo 'asistencia' (nueva columna) o 'presente' (columna antigua)
-            const estaPresente = asistenciaData.asistencia === 'presente' || asistenciaData.presente === 1;
-            if (!estaPresente) {
-                // Solo bloquear si existe registro y NO está presente
-                return res.status(403).json({ 
-                    error: 'No puede votar sin estar presente',
-                    mensaje: 'Debe estar marcado como PRESENTE en el pase de lista para poder votar.',
-                    estado_asistencia: asistenciaData.asistencia || (asistenciaData.presente ? 'presente' : 'ausente')
-                });
-            }
+            console.error('Error verificando ubicación:', err);
+        } else if (usuarioData && usuarioData.fuera_del_recinto === 1) {
+            // Si está fuera del recinto, no puede votar
+            return res.status(403).json({
+                error: 'No puede votar desde fuera del recinto',
+                mensaje: 'Debe estar presente dentro del pleno para habilitar su votación.',
+                fuera_del_recinto: true,
+                genero: usuarioData.genero
+            });
         }
+        
+        // SEGUNDO: Verificar que el diputado está marcado como presente en el pase de lista
+        db.get(`
+            SELECT ad.presente, ad.asistencia
+            FROM asistencia_diputados ad
+            INNER JOIN pase_lista pl ON ad.pase_lista_id = pl.id
+            INNER JOIN sesiones s ON pl.sesion_id = s.id
+            WHERE s.activa = 1 AND ad.diputado_id = ?
+            ORDER BY pl.id DESC
+            LIMIT 1
+        `, [userId], (err, asistenciaData) => {
+            if (err) {
+                console.error('Error verificando asistencia:', err);
+                // Si hay error con la tabla, intentar sin validación por ahora
+                console.log('Permitiendo voto sin validación de asistencia debido a error');
+            } else if (asistenciaData) {
+                // Verificar si tiene el campo 'asistencia' (nueva columna) o 'presente' (columna antigua)
+                const estaPresente = asistenciaData.asistencia === 'presente' || asistenciaData.presente === 1;
+                if (!estaPresente) {
+                    // Solo bloquear si existe registro y NO está presente
+                    return res.status(403).json({ 
+                        error: 'No puede votar sin estar presente',
+                        mensaje: 'Debe estar marcado como PRESENTE en el pase de lista para poder votar.',
+                        estado_asistencia: asistenciaData.asistencia || (asistenciaData.presente ? 'presente' : 'ausente')
+                    });
+                }
+            }
         
         // Verificar que la iniciativa está activa
         db.get(
@@ -129,6 +147,7 @@ router.post('/votar', (req, res) => {
                 );
             }
         );
+        });
     });
 });
 
@@ -1597,6 +1616,32 @@ router.get('/sesion/estado-auto-asistencia', (req, res) => {
             auto_asistencia_habilitada: sesion.auto_asistencia_habilitada === 1,
             auto_asistencia_iniciada_por: sesion.auto_asistencia_iniciada_por,
             auto_asistencia_tipo_usuario: sesion.auto_asistencia_tipo_usuario
+        });
+    });
+});
+
+// Endpoint para verificar si el diputado está fuera del recinto
+router.get('/mi-ubicacion', (req, res) => {
+    const db = req.db;
+    const userId = req.user.id;
+    
+    db.get(`
+        SELECT fuera_del_recinto, genero
+        FROM usuarios
+        WHERE id = ?
+    `, [userId], (err, usuario) => {
+        if (err) {
+            console.error('Error obteniendo ubicación:', err);
+            return res.status(500).json({ error: 'Error obteniendo ubicación' });
+        }
+        
+        if (!usuario) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        
+        res.json({
+            fuera_del_recinto: usuario.fuera_del_recinto === 1,
+            genero: usuario.genero
         });
     });
 });

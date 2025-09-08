@@ -147,7 +147,7 @@ app.get('/autologin/:username', (req, res) => {
         const jwt = require('jsonwebtoken');
         const token = jwt.sign(
             { id: user.id, username: user.username, role: user.role },
-            process.env.JWT_SECRET || 'tu_clave_secreta_aqui',
+            process.env.JWT_SECRET || 'sistema_votacion_secret_2024',
             { expiresIn: '24h' }
         );
         

@@ -3208,7 +3208,7 @@
                 if (response.ok) {
                     loadActiveSession();
                 } else {
-                    alert(data.error);
+                    alert(data.error || 'Error al activar iniciativa');
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -3235,7 +3235,7 @@
                     alert(`Votación cerrada. Resultado: ${data.resultado.toUpperCase()}`);
                     loadActiveSession();
                 } else {
-                    alert(data.error);
+                    alert(data.error || 'Error al cerrar votación');
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -3262,7 +3262,7 @@
                     alert('Votación reabierta exitosamente');
                     loadActiveSession();
                 } else {
-                    alert(data.error);
+                    alert(data.error || 'Error al reabrir votación');
                 }
             } catch (error) {
                 console.error('Error:', error);

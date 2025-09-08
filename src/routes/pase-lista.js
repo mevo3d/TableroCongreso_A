@@ -313,34 +313,59 @@ router.post('/marcar', (req, res) => {
                     // Si se marca como ausente, deshabilitar votación
                     const puedeVotar = (asistencia === 'presente' || asistencia === 'justificado') ? 1 : 0;
                     
-                    db.run(`
-                        UPDATE usuarios 
-                        SET puede_votar = ? 
-                        WHERE id = ? AND role = 'diputado'
-                    `, [puedeVotar, diputado_id], (err) => {
-                        if (err) {
-                            console.error('Error actualizando puede_votar:', err);
-                        }
+                    // Verificar si el pase de lista ya fue confirmado
+                    db.get('SELECT finalizado FROM pase_lista WHERE id = ?', [paseListaId], (err, paseInfo) => {
+                        const yaConfirmado = paseInfo && paseInfo.finalizado === 1;
                         
-                        // Obtener nombre del diputado para la notificación
-                        db.get('SELECT nombre_completo FROM usuarios WHERE id = ?', [diputado_id], (err, diputado) => {
-                            // Emitir evento con nombre del diputado
-                            io.emit('asistencia-marcada', {
-                                diputado_id,
-                                asistencia,
-                                puede_votar: puedeVotar,
-                                llegada_tardia: esLlegadaTardia,
-                                nombre_diputado: diputado ? diputado.nombre_completo : `Diputado ${diputado_id}`,
-                                marcado_por: 'secretario'
+                        db.run(`
+                            UPDATE usuarios 
+                            SET puede_votar = ? 
+                            WHERE id = ? AND role = 'diputado'
+                        `, [puedeVotar, diputado_id], (err) => {
+                            if (err) {
+                                console.error('Error actualizando puede_votar:', err);
+                            }
+                            
+                            // Obtener nombre del diputado para la notificación
+                            db.get('SELECT nombre_completo FROM usuarios WHERE id = ?', [diputado_id], (err, diputado) => {
+                                // Emitir evento con nombre del diputado
+                                io.emit('asistencia-marcada', {
+                                    diputado_id,
+                                    asistencia,
+                                    puede_votar: puedeVotar,
+                                    llegada_tardia: esLlegadaTardia,
+                                    nombre_diputado: diputado ? diputado.nombre_completo : `Diputado ${diputado_id}`,
+                                    marcado_por: 'secretario',
+                                    ya_confirmado: yaConfirmado
+                                });
+                                
+                                // Si ya está confirmado, emitir notificación especial
+                                if (yaConfirmado) {
+                                    // Verificar si es una llegada tardía real (de ausente a presente)
+                                    const esLlegadaTardiaReal = registroPrevio && 
+                                                                registroPrevio.asistencia === 'ausente' && 
+                                                                asistencia === 'presente';
+                                    
+                                    io.emit('asistencia-modificada-sin-confirmar', {
+                                        diputado_id,
+                                        nombre_diputado: diputado ? diputado.nombre_completo : `Diputado ${diputado_id}`,
+                                        asistencia_anterior: registroPrevio ? registroPrevio.asistencia : 'sin_marcar',
+                                        asistencia_nueva: asistencia,
+                                        mensaje: `Asistencia de ${diputado ? diputado.nombre_completo : 'diputado'} actualizada. No es necesario confirmar nuevamente.`,
+                                        es_llegada_tardia: esLlegadaTardiaReal,
+                                        silencioso: esLlegadaTardiaReal  // Si es llegada tardía, ser silencioso
+                                    });
+                                }
                             });
-                        });
-                        
-                        res.json({ 
-                            message: esLlegadaTardia ? 
-                                    'Asistencia marcada como retardo' : 
-                                    'Asistencia marcada correctamente',
-                            llegada_tardia: esLlegadaTardia,
-                            puede_votar: puedeVotar
+                            
+                            res.json({ 
+                                message: yaConfirmado ? 
+                                        `Asistencia actualizada. No es necesario confirmar nuevamente` :
+                                        (esLlegadaTardia ? 'Asistencia marcada como retardo' : 'Asistencia marcada correctamente'),
+                                llegada_tardia: esLlegadaTardia,
+                                puede_votar: puedeVotar,
+                                ya_confirmado: yaConfirmado
+                            });
                         });
                     });
                 }
@@ -466,12 +491,29 @@ router.post('/confirmar', (req, res) => {
                             detalle: listaDetallada
                         });
                     
+                        // Separar diputados por estado para enviar a los secretarios
+                        const presentes = listaDetallada.filter(d => d.estado === 'presente').map(d => ({
+                            id: d.id,
+                            nombre: d.nombre_completo
+                        }));
+                        const ausentes = listaDetallada.filter(d => d.estado === 'ausente').map(d => ({
+                            id: d.id,
+                            nombre: d.nombre_completo
+                        }));
+                        const justificados = listaDetallada.filter(d => d.estado === 'justificado').map(d => ({
+                            id: d.id,
+                            nombre: d.nombre_completo
+                        }));
+                        
                         // Notificar a los secretarios con información completa
                         io.emit('notificar-secretarios-asistencia-final', {
                             totalPresentes: conteo.presentes,
                             totalAusentes: conteo.ausentes,
                             totalJustificados: conteo.justificados,
                             total: conteo.total,
+                            presentes: presentes,
+                            ausentes: ausentes,
+                            justificados: justificados,
                             confirmadoPor: req.user.nombre_completo,
                             cargo: userData.cargo_mesa_directiva || userData.role,
                             detalle: listaDetallada
@@ -601,12 +643,29 @@ router.post('/auto-iniciar', (req, res) => {
                 const activarPaseLista = (paseListaId) => {
                     console.log('Activando pase de lista:', paseListaId);
                     
-                    // Emitir evento para activar el pase de lista en los paneles de diputados
+                    // Actualizar la base de datos para marcar como visible en pantalla
+                    db.run(`
+                        UPDATE pase_lista 
+                        SET visible_pantalla = 1
+                        WHERE id = ?
+                    `, [paseListaId], (err) => {
+                        if (err) {
+                            console.error('Error actualizando visible_pantalla:', err);
+                        } else {
+                            console.log('✅ Pase de lista marcado como visible en pantalla');
+                        }
+                    });
+                    
+                    // Emitir evento para activar el pase de lista en los paneles de diputados y pantalla
                     io.emit('pase-lista-activado', {
+                        activo: true,  // Importante para la pantalla de asistencia
                         pase_lista_id: paseListaId,
+                        sesion_id: sesion.id,  // Usar la sesión que ya verificamos
                         activado_por: userId,
                         mensaje: 'Pase de lista activado. Los diputados pueden confirmar su asistencia.'
                     });
+                    
+                    console.log('📡 Evento pase-lista-activado emitido a todas las pantallas');
                     
                     res.json({
                         success: true,
@@ -717,19 +776,16 @@ router.post('/reabrir', (req, res) => {
                     
                     console.log('Pase de lista reabierto exitosamente');
                     
-                    // Emitir actualización
+                    // Emitir actualización - solo el evento de reabierto
                     io.emit('pase-lista-reabierto', {
                         pase_lista_id: paseListaActual.id,
                         reabierto_por: userData.nombre_completo,
-                        mensaje: 'El pase de lista ha sido reabierto para modificaciones'
+                        mensaje: 'El pase de lista ha sido reabierto para modificaciones',
+                        es_reapertura: true
                     });
                     
-                    // También reactivar el pase de lista para los diputados
-                    io.emit('pase-lista-activado', {
-                        pase_lista_id: paseListaActual.id,
-                        activado_por: userId,
-                        mensaje: 'Pase de lista reactivado para ajustes'
-                    });
+                    // NO emitir pase-lista-activado aquí porque hace que vuelvan a aparecer los botones
+                    // Los diputados que ya pasaron lista no deben ver el botón de nuevo
                     
                     res.json({
                         success: true,
@@ -880,7 +936,9 @@ router.post('/reiniciar', (req, res) => {
                                     
                                     // También activar el pase de lista para que aparezca el botón
                                     io.emit('pase-lista-activado', {
+                                        activo: true,
                                         pase_lista_id: nuevoPaseListaId,
+                                        sesion_id: sesionActual.id,
                                         activado_por: userId,
                                         mensaje: 'Pase de lista reactivado después del reinicio'
                                     });
@@ -1675,21 +1733,13 @@ router.post('/auto-registro', (req, res) => {
                 }
                 
                 if (!paseLista) {
-                    // Si no hay pase de lista activo, crear uno automático
-                    db.run(
-                        `INSERT INTO pase_lista (sesion_id, fecha, realizado_por, visible_pantalla) 
-                         VALUES (?, CURRENT_TIMESTAMP, ?, 1)`,
-                        [sesion.id, diputado_id],
-                        function(err) {
-                            if (err) {
-                                console.error('Error creando pase de lista automático:', err);
-                                return res.status(500).json({ error: 'Error creando pase de lista' });
-                            }
-                            
-                            const paseId = this.lastID;
-                            registrarAsistencia(paseId);
-                        }
-                    );
+                    // NO permitir auto-creación por diputados regulares
+                    console.log('❌ No hay pase de lista activo. El diputado debe esperar.');
+                    return res.status(400).json({ 
+                        error: 'Pase de lista no activo',
+                        message: 'El pase de lista debe ser iniciado por el Secretario Legislativo o un Diputado-Secretario',
+                        code: 'PASE_LISTA_NO_ACTIVO'
+                    });
                 } else {
                     registrarAsistencia(paseLista.id);
                 }
@@ -1790,6 +1840,223 @@ router.post('/auto-registro', (req, res) => {
                 }
             }
         );
+    });
+});
+
+// Endpoint para marcar si un diputado está fuera del recinto
+router.post('/marcar-ubicacion', (req, res) => {
+    const db = req.db;
+    const io = req.io;
+    const userId = req.user.id;
+    const { diputado_id, fuera_del_recinto } = req.body;
+    
+    console.log('Marcar ubicación solicitado:', { diputado_id, fuera_del_recinto, por: userId });
+    
+    // Verificar permisos - Solo secretarios pueden marcar ubicación
+    db.get('SELECT cargo_mesa_directiva, role, nombre_completo FROM usuarios WHERE id = ?', [userId], (err, userData) => {
+        if (err) {
+            console.error('Error verificando permisos:', err);
+            return res.status(500).json({ error: 'Error verificando permisos' });
+        }
+        
+        // Verificar que sea secretario1, secretario2 o secretario legislativo
+        const esSecretarioMesa = userData.cargo_mesa_directiva === 'secretario1' || 
+                                  userData.cargo_mesa_directiva === 'secretario2' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 1' ||
+                                  userData.cargo_mesa_directiva === 'Secretario 2';
+        const esSecretarioLegislativo = userData.role === 'secretario';
+        
+        if (!esSecretarioMesa && !esSecretarioLegislativo) {
+            return res.status(403).json({ error: 'No tienes permisos para marcar ubicación' });
+        }
+        
+        // Verificar que haya sesión activa
+        db.get('SELECT * FROM sesiones WHERE activa = 1', (err, sesion) => {
+            if (err) {
+                console.error('Error verificando sesión:', err);
+                return res.status(500).json({ error: 'Error verificando sesión' });
+            }
+            
+            if (!sesion) {
+                return res.status(400).json({ error: 'No hay sesión activa' });
+            }
+            
+            // Actualizar el estado de ubicación del diputado
+            db.run(`
+                UPDATE usuarios 
+                SET fuera_del_recinto = ?
+                WHERE id = ? AND role = 'diputado'
+            `, [fuera_del_recinto ? 1 : 0, diputado_id], function(err) {
+                if (err) {
+                    console.error('Error actualizando ubicación:', err);
+                    return res.status(500).json({ error: 'Error actualizando ubicación' });
+                }
+                
+                if (this.changes === 0) {
+                    return res.status(404).json({ error: 'Diputado no encontrado' });
+                }
+                
+                // Obtener información del diputado
+                db.get('SELECT nombre_completo, genero FROM usuarios WHERE id = ?', [diputado_id], (err, diputado) => {
+                    if (err) {
+                        console.error('Error obteniendo info del diputado:', err);
+                        return res.status(500).json({ error: 'Error obteniendo información' });
+                    }
+                    
+                    // Calcular quórum actual - incluye tanto pase de lista manual como confirmaciones de diputados
+                    db.all(`
+                        SELECT 
+                            u.id,
+                            u.nombre_completo,
+                            u.fuera_del_recinto,
+                            COALESCE(ad.presente, a.estado = 'presente', 0) as presente,
+                            COALESCE(ad.justificado, a.estado = 'justificado', 0) as justificado,
+                            COALESCE(ad.asistencia, a.estado, 'sin_marcar') as estado_asistencia
+                        FROM usuarios u
+                        LEFT JOIN (
+                            SELECT diputado_id, MAX(pase_lista_id) as ultimo_pase 
+                            FROM asistencia_diputados 
+                            GROUP BY diputado_id
+                        ) ultimo ON u.id = ultimo.diputado_id
+                        LEFT JOIN asistencia_diputados ad ON ad.diputado_id = ultimo.diputado_id 
+                            AND ad.pase_lista_id = ultimo.ultimo_pase
+                        LEFT JOIN pase_lista pl ON ad.pase_lista_id = pl.id
+                        LEFT JOIN asistencias a ON a.diputado_id = u.id 
+                            AND a.pase_lista_id = (SELECT MAX(id) FROM pase_lista WHERE sesion_id = ?)
+                        WHERE u.role = 'diputado'
+                    `, [sesion.id, sesion.id], (err, diputados) => {
+                        if (err) {
+                            console.error('Error calculando quórum:', err);
+                        }
+                        
+                        // Calcular manualmente los totales
+                        let presentes_en_recinto = 0;
+                        let total_sin_justificados = 0;
+                        
+                        if (diputados) {
+                            diputados.forEach(dip => {
+                                // Si no está justificado, cuenta para el total
+                                if (!dip.justificado || dip.justificado === 0) {
+                                    total_sin_justificados++;
+                                    // Si está presente Y no está fuera del recinto, cuenta para el quórum
+                                    if (dip.presente === 1 && (!dip.fuera_del_recinto || dip.fuera_del_recinto === 0)) {
+                                        presentes_en_recinto++;
+                                    }
+                                }
+                            });
+                        }
+                        
+                        const quorumData = { 
+                            presentes_en_recinto: presentes_en_recinto, 
+                            total_sin_justificados: total_sin_justificados || 20,
+                            hay_quorum: presentes_en_recinto >= Math.ceil((total_sin_justificados || 20) / 2)
+                        };
+                        
+                        console.log('Quórum actualizado:', quorumData);
+                        
+                        // Emitir actualización de ubicación con información completa de quórum
+                        io.emit('ubicacion-actualizada', {
+                            diputado_id: diputado_id,
+                            diputado_nombre: diputado.nombre_completo,
+                            fuera_del_recinto: fuera_del_recinto,
+                            actualizado_por: userData.nombre_completo,
+                            quorum: {
+                                presentes_en_recinto: quorumData.presentes_en_recinto,
+                                total_sin_justificados: quorumData.total_sin_justificados,
+                                hay_quorum: quorumData.hay_quorum,
+                                presentes: quorumData.presentes_en_recinto, // Alias para compatibilidad
+                                total: quorumData.total_sin_justificados // Alias para compatibilidad
+                            }
+                        });
+                        
+                        res.json({
+                            success: true,
+                            message: fuera_del_recinto ? 
+                                `${diputado.nombre_completo} marcado como fuera del recinto` :
+                                `${diputado.nombre_completo} marcado como presente en el recinto`,
+                            quorum: {
+                                presentes: quorumData.presentes_en_recinto,
+                                total: quorumData.total_sin_justificados
+                            }
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
+// Endpoint para obtener estado de quórum actual
+router.get('/quorum', (req, res) => {
+    const db = req.db;
+    
+    db.get('SELECT id FROM sesiones WHERE activa = 1', (err, sesion) => {
+        if (err) {
+            console.error('Error obteniendo sesión:', err);
+            return res.status(500).json({ error: 'Error obteniendo sesión' });
+        }
+        
+        if (!sesion) {
+            return res.json({ 
+                presentes_en_recinto: 0, 
+                total_sin_justificados: 0,
+                hay_quorum: false 
+            });
+        }
+        
+        db.all(`
+            SELECT 
+                u.id,
+                u.nombre_completo,
+                u.fuera_del_recinto,
+                COALESCE(ad.presente, a.estado = 'presente', 0) as presente,
+                COALESCE(ad.justificado, a.estado = 'justificado', 0) as justificado,
+                COALESCE(ad.asistencia, a.estado, 'sin_marcar') as estado_asistencia
+            FROM usuarios u
+            LEFT JOIN (
+                SELECT diputado_id, MAX(pase_lista_id) as ultimo_pase 
+                FROM asistencia_diputados 
+                GROUP BY diputado_id
+            ) ultimo ON u.id = ultimo.diputado_id
+            LEFT JOIN asistencia_diputados ad ON ad.diputado_id = ultimo.diputado_id 
+                AND ad.pase_lista_id = ultimo.ultimo_pase
+            LEFT JOIN pase_lista pl ON ad.pase_lista_id = pl.id
+            LEFT JOIN asistencias a ON a.diputado_id = u.id 
+                AND a.pase_lista_id = (SELECT MAX(id) FROM pase_lista WHERE sesion_id = ?)
+            WHERE u.role = 'diputado'
+        `, [sesion.id], (err, diputados) => {
+            if (err) {
+                console.error('Error obteniendo diputados:', err);
+                return res.status(500).json({ error: 'Error obteniendo diputados' });
+            }
+            
+            let presentes_en_recinto = 0;
+            let total_sin_justificados = 0;
+            
+            diputados.forEach(dip => {
+                if (!dip.justificado) {
+                    total_sin_justificados++;
+                    if (dip.presente && !dip.fuera_del_recinto) {
+                        presentes_en_recinto++;
+                    }
+                }
+            });
+            
+            const hay_quorum = presentes_en_recinto >= Math.ceil(total_sin_justificados / 2);
+            
+            res.json({
+                presentes_en_recinto,
+                total_sin_justificados,
+                hay_quorum,
+                detalles: diputados.map(d => ({
+                    id: d.id,
+                    nombre: d.nombre_completo,
+                    presente: d.presente,
+                    fuera_del_recinto: d.fuera_del_recinto,
+                    justificado: d.justificado
+                }))
+            });
+        });
     });
 });
 
