@@ -1924,7 +1924,7 @@ router.post('/marcar-ubicacion', (req, res) => {
                         LEFT JOIN asistencias a ON a.diputado_id = u.id 
                             AND a.pase_lista_id = (SELECT MAX(id) FROM pase_lista WHERE sesion_id = ?)
                         WHERE u.role = 'diputado'
-                    `, [sesion.id, sesion.id], (err, diputados) => {
+                    `, [sesion.id], (err, diputados) => {
                         if (err) {
                             console.error('Error calculando quórum:', err);
                         }

@@ -74,28 +74,38 @@ router.post('/votar', (req, res) => {
         }
         
         // SEGUNDO: Verificar que el diputado está marcado como presente en el pase de lista
+        // Verificar AMBAS tablas: asistencia_diputados (secretario) y asistencias (auto-confirmación)
         db.get(`
-            SELECT ad.presente, ad.asistencia
-            FROM asistencia_diputados ad
-            INNER JOIN pase_lista pl ON ad.pase_lista_id = pl.id
+            SELECT 
+                COALESCE(a.asistencia, 
+                    CASE 
+                        WHEN ad.asistencia = 'presente' THEN 'presente'
+                        WHEN ad.presente = 1 THEN 'presente'
+                        WHEN ad.asistencia = 'justificado' OR ad.justificado = 1 THEN 'justificado'
+                        ELSE 'ausente'
+                    END
+                ) as estado_final
+            FROM pase_lista pl
             INNER JOIN sesiones s ON pl.sesion_id = s.id
-            WHERE s.activa = 1 AND ad.diputado_id = ?
+            LEFT JOIN asistencia_diputados ad ON ad.pase_lista_id = pl.id AND ad.diputado_id = ?
+            LEFT JOIN asistencias a ON a.pase_lista_id = pl.id AND a.diputado_id = ?
+            WHERE s.activa = 1
             ORDER BY pl.id DESC
             LIMIT 1
-        `, [userId], (err, asistenciaData) => {
+        `, [userId, userId], (err, asistenciaData) => {
             if (err) {
                 console.error('Error verificando asistencia:', err);
                 // Si hay error con la tabla, intentar sin validación por ahora
                 console.log('Permitiendo voto sin validación de asistencia debido a error');
             } else if (asistenciaData) {
-                // Verificar si tiene el campo 'asistencia' (nueva columna) o 'presente' (columna antigua)
-                const estaPresente = asistenciaData.asistencia === 'presente' || asistenciaData.presente === 1;
+                // Verificar el estado final de asistencia
+                const estaPresente = asistenciaData.estado_final === 'presente';
                 if (!estaPresente) {
                     // Solo bloquear si existe registro y NO está presente
                     return res.status(403).json({ 
                         error: 'No puede votar sin estar presente',
                         mensaje: 'Debe estar marcado como PRESENTE en el pase de lista para poder votar.',
-                        estado_asistencia: asistenciaData.asistencia || (asistenciaData.presente ? 'presente' : 'ausente')
+                        estado_asistencia: asistenciaData.estado_final
                     });
                 }
             }

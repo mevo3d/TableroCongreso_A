@@ -1723,8 +1723,28 @@
         // Nota: La función toggleMenu está definida más abajo después de inicializar los elementos del DOM
         
         // Inicializar menú al cargar la página
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             console.log('Inicializando menú hamburguesa azul');
+            
+            // Verificar estado inicial de ubicación del diputado
+            try {
+                const response = await fetch('/api/diputado/mi-ubicacion', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    estoyFueraDelRecinto = data.fuera_del_recinto || false;
+                    console.log(`Estado inicial de ubicación: ${estoyFueraDelRecinto ? 'FUERA del recinto' : 'DENTRO del recinto'}`);
+                    
+                    // Actualizar el estado de los botones según la ubicación inicial
+                    actualizarEstadoBotonesVotacion();
+                }
+            } catch (error) {
+                console.error('Error verificando ubicación inicial:', error);
+            }
             
             // Verificar que los elementos existen
             const menuButton = document.getElementById('menuButton');
@@ -2313,6 +2333,37 @@
             document.getElementById('votedMessage').style.display = 'none';
             document.querySelectorAll('.vote-btn').forEach(btn => btn.disabled = false);
             hasVoted = false;
+        }
+        
+        // Función para actualizar silenciosamente el estado de los botones de votación
+        function actualizarEstadoBotonesVotacion() {
+            const botonesVoto = document.querySelectorAll('.vote-btn');
+            
+            if (estoyFueraDelRecinto) {
+                // Deshabilitar visualmente los botones sin mostrar alertas
+                botonesVoto.forEach(btn => {
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                    btn.setAttribute('data-fuera-recinto', 'true');
+                    // Cambiar el título del botón para indicar por qué está deshabilitado
+                    btn.title = 'No puede votar desde fuera del recinto';
+                });
+            } else {
+                // Rehabilitar los botones
+                botonesVoto.forEach(btn => {
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                    btn.removeAttribute('data-fuera-recinto');
+                    // Restaurar títulos originales
+                    if (btn.classList.contains('btn-favor')) {
+                        btn.title = 'Presiona 1 para votar A Favor';
+                    } else if (btn.classList.contains('btn-contra')) {
+                        btn.title = 'Presiona 2 para votar En Contra';
+                    } else if (btn.classList.contains('btn-abstencion')) {
+                        btn.title = 'Presiona 3 para Abstención';
+                    }
+                });
+            }
         }
         
         // ================ FUNCIONES DE PASE DE LISTA ================
@@ -3008,14 +3059,23 @@
             }
         }
         
+        // Variable para el timeout de ocultar estado de asistencia
+        let timeoutEstadoAsistencia = null;
+        
         // Función para mostrar estado de asistencia
-        function mostrarEstadoAsistencia(estado) {
+        function mostrarEstadoAsistencia(estado, permanente = false) {
             const statusDiv = document.getElementById('asistenciaStatus');
             const icono = document.getElementById('iconoAsistencia');
             const texto = document.getElementById('estadoAsistenciaTexto');
             const mensaje = document.getElementById('mensajeAsistencia');
             
             if (!statusDiv) return;
+            
+            // Limpiar timeout anterior si existe
+            if (timeoutEstadoAsistencia) {
+                clearTimeout(timeoutEstadoAsistencia);
+                timeoutEstadoAsistencia = null;
+            }
             
             statusDiv.style.display = 'block';
             
@@ -3034,10 +3094,11 @@
                     mensaje.innerHTML = '<i class="fas fa-ban"></i> No puede votar (marcado como ausente)';
                     break;
                     
+                case 'justificado':
                 case 'permiso':
                     statusDiv.className = 'alert alert-info m-3';
                     icono.className = 'fas fa-user-clock text-info';
-                    texto.textContent = 'CON PERMISO';
+                    texto.textContent = 'JUSTIFICADO';
                     mensaje.innerHTML = '<i class="fas fa-info-circle"></i> Ausente con justificación';
                     break;
                     
@@ -3047,11 +3108,25 @@
                     texto.textContent = 'NO REGISTRADO';
                     mensaje.innerHTML = '<i class="fas fa-exclamation"></i> Esperando pase de lista';
             }
+            
+            // Solo ocultar automáticamente si no es permanente y si el estado es "presente"
+            if (!permanente && estado === 'presente') {
+                timeoutEstadoAsistencia = setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                    console.log('Estado de asistencia ocultado después de 10 segundos');
+                }, 10000); // 10 segundos
+            }
         }
         
         // Emitir voto
         async function vote(voto) {
             if (!currentInitiative) return;
+            
+            // Verificar silenciosamente si está fuera del recinto
+            if (estoyFueraDelRecinto) {
+                console.log('Intento de voto bloqueado: diputado fuera del recinto');
+                return; // Simplemente no hacer nada, sin mostrar alertas
+            }
             
             // Si ya votó, no permitir votar de nuevo (a menos que haya cambiado de opinión)
             if (hasVoted && document.getElementById('votedMessage').style.display === 'block') {
@@ -3705,8 +3780,34 @@
         });
         
         socket.on('votacion-cerrada', (data) => {
-            // Mostrar notificación de resultados
+            // Mostrar notificación de resultados general
             mostrarNotificacionResultado(data);
+            
+            // Si es secretario, mostrar el modal especial
+            if (user.cargo_mesa_directiva === 'secretario1' || user.cargo_mesa_directiva === 'secretario2') {
+                // Obtener los detalles de la votación para el modal
+                fetch('/api/diputado/ultima-votacion-resultado', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => response.json())
+                .then(resultado => {
+                    if (resultado && resultado.conteo) {
+                        mostrarPopupResultadosSecretarios({
+                            favor: resultado.conteo.favor || 0,
+                            contra: resultado.conteo.contra || 0,
+                            abstencion: resultado.conteo.abstencion || 0,
+                            titulo: resultado.descripcion || data.titulo || 'Iniciativa votada',
+                            aprobada: resultado.aprobada
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error obteniendo resultados:', error);
+                });
+            }
+            
             showNoVoting();
             loadHistory();
         });
@@ -3844,6 +3945,11 @@
         
         socket.on('sesion-iniciada', (data) => {
             console.log('Sesión iniciada:', data);
+            // Resetear variables de control cuando se inicia una nueva sesión
+            paseListaConfirmadoMostrado = false;
+            estoyFueraDelRecinto = false; // Resetear estado de ubicación
+            actualizarEstadoBotonesVotacion(); // Actualizar botones
+            
             if (user.cargo_mesa_directiva) {
                 alert(`Sesión iniciada por ${data.iniciada_por}: ${data.nombre}`);
                 checkSessionStatus();
@@ -4041,9 +4147,21 @@
             mostrarNotificacionPersonalizada('Pase de lista finalizado', 'info');
         });
         
-        // Escuchar cambios de ubicación para actualizar quórum
+        // Variable global para controlar si el diputado está fuera del recinto
+        let estoyFueraDelRecinto = false;
+        
+        // Escuchar cambios de ubicación para actualizar quórum y estado de votación
         socket.on('ubicacion-actualizada', (data) => {
             console.log('Ubicación actualizada:', data);
+            
+            // Verificar si la actualización es sobre mí mismo
+            if (data.diputado_id === user.id) {
+                estoyFueraDelRecinto = data.fuera_del_recinto;
+                console.log(`Mi estado de ubicación actualizado: ${estoyFueraDelRecinto ? 'FUERA del recinto' : 'DENTRO del recinto'}`);
+                
+                // Actualizar silenciosamente el estado de los botones de votación
+                actualizarEstadoBotonesVotacion();
+            }
             
             // Verificar si es el presidente con diferentes variaciones
             const esPresidente = user && (
@@ -7402,10 +7520,14 @@
             }
         });
         
+        // Variable para controlar que el popup de confirmación solo se muestre una vez por sesión
+        let paseListaConfirmadoMostrado = false;
+        
         // Escuchar notificaciones finales cuando se confirma el pase de lista
         socket.on('notificar-secretarios-asistencia-final', (data) => {
-            // Solo mostrar a secretarios de mesa directiva
-            if (user.cargo_mesa_directiva === 'secretario1' || user.cargo_mesa_directiva === 'secretario2') {
+            // Solo mostrar a secretarios de mesa directiva y solo una vez por sesión
+            if ((user.cargo_mesa_directiva === 'secretario1' || user.cargo_mesa_directiva === 'secretario2') && !paseListaConfirmadoMostrado) {
+                paseListaConfirmadoMostrado = true;
                 mostrarPopupAsistenciaSecretarios(data);
             }
         });
@@ -7429,32 +7551,32 @@
                             <div class="modal-body">
                                 <p class="mb-3 text-center fw-bold" style="color: #333; font-size: 1.1em;">Diputado presidente, le informo que el registro de asistencia es:</p>
                                 
-                                <!-- Estadísticas de asistencia con gradientes vibrantes -->
+                                <!-- Estadísticas de asistencia con colores sólidos y texto legible -->
                                 <div class="row mb-4">
                                     <div class="col-md-4">
-                                        <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
-                                            <div class="card-body text-center text-white py-3">
-                                                <i class="fas fa-user-check fa-2x mb-2" style="opacity: 0.9;"></i>
-                                                <h2 class="fw-bold mb-1" id="numeroPresentes" style="font-size: 2.5em;">0</h2>
-                                                <h6 class="text-uppercase fw-bold mb-0" style="font-size: 0.9em;">PRESENTES</h6>
+                                        <div class="card border-0 shadow-lg" style="background-color: #28a745 !important; background-image: none !important;">
+                                            <div class="card-body text-center py-3">
+                                                <i class="fas fa-user-check fa-2x mb-2" style="color: white !important;"></i>
+                                                <h2 class="fw-bold mb-1" id="numeroPresentes" style="font-size: 2.5em; color: white !important;">0</h2>
+                                                <h6 class="text-uppercase fw-bold mb-0" style="font-size: 0.9em; color: white !important;">PRESENTES</h6>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
-                                            <div class="card-body text-center text-white py-3">
-                                                <i class="fas fa-user-times fa-2x mb-2" style="opacity: 0.9;"></i>
-                                                <h2 class="fw-bold mb-1" id="numeroAusentes" style="font-size: 2.5em;">0</h2>
-                                                <h6 class="text-uppercase fw-bold mb-0" style="font-size: 0.9em;">AUSENTES</h6>
+                                        <div class="card border-0 shadow-lg" style="background-color: #dc3545 !important; background-image: none !important;">
+                                            <div class="card-body text-center py-3">
+                                                <i class="fas fa-user-times fa-2x mb-2" style="color: white !important;"></i>
+                                                <h2 class="fw-bold mb-1" id="numeroAusentes" style="font-size: 2.5em; color: white !important;">0</h2>
+                                                <h6 class="text-uppercase fw-bold mb-0" style="font-size: 0.9em; color: white !important;">INASISTENCIAS</h6>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">
-                                            <div class="card-body text-center py-3" style="color: #333;">
-                                                <i class="fas fa-file-medical fa-2x mb-2" style="opacity: 0.9;"></i>
-                                                <h2 class="fw-bold mb-1" id="numeroJustificados" style="font-size: 2.5em;">0</h2>
-                                                <h6 class="text-uppercase fw-bold mb-0" style="font-size: 0.9em;">JUSTIFICADOS</h6>
+                                        <div class="card border-0 shadow-lg" style="background-color: #ffc107 !important; background-image: none !important;">
+                                            <div class="card-body text-center py-3">
+                                                <i class="fas fa-file-medical fa-2x mb-2" style="color: #333 !important;"></i>
+                                                <h2 class="fw-bold mb-1" id="numeroJustificados" style="font-size: 2.5em; color: #333 !important;">0</h2>
+                                                <h6 class="text-uppercase fw-bold mb-0" style="font-size: 0.9em; color: #333 !important;">JUSTIFICADOS</h6>
                                             </div>
                                         </div>
                                     </div>
@@ -7491,20 +7613,20 @@
             const quorumDiv = document.getElementById('quorumSecretarios');
             if (quorumDiv) {
                 quorumDiv.innerHTML = `
-                    <div class="card border-0 shadow-lg" style="background: ${hayQuorum ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)' : 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'};">
-                        <div class="card-body text-center text-white py-3">
-                            <h4 class="mb-2">
+                    <div class="card border-0 shadow-lg" style="background-color: ${hayQuorum ? '#28a745' : '#dc3545'} !important; background-image: none !important;">
+                        <div class="card-body text-center py-3">
+                            <h4 class="mb-2" style="color: white !important;">
                                 <i class="fas ${hayQuorum ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2"></i>
                                 ${hayQuorum ? '¡HAY QUÓRUM!' : 'NO HAY QUÓRUM'}
                             </h4>
                             <div class="row">
                                 <div class="col-6">
-                                    <h5 class="fw-bold mb-0">${presentes.length}/${totalSinJustificados}</h5>
-                                    <small style="font-size: 0.85em;">Presentes / Total</small>
+                                    <h5 class="fw-bold mb-0" style="color: white !important;">${presentes.length}/${totalSinJustificados}</h5>
+                                    <small style="font-size: 0.85em; color: white !important;">Presentes / Total</small>
                                 </div>
                                 <div class="col-6">
-                                    <h5 class="fw-bold mb-0">${Math.ceil(totalSinJustificados / 2)}</h5>
-                                    <small style="font-size: 0.85em;">Mínimo Requerido</small>
+                                    <h5 class="fw-bold mb-0" style="color: white !important;">${Math.ceil(totalSinJustificados / 2)}</h5>
+                                    <small style="font-size: 0.85em; color: white !important;">Mínimo Requerido</small>
                                 </div>
                             </div>
                         </div>
@@ -7520,6 +7642,123 @@
         // Función para volver al panel de votación
         function volverPanelVotacion() {
             const modal = document.getElementById('modalAsistenciaSecretarios');
+            if (modal) {
+                const bsModal = bootstrap.Modal.getInstance(modal);
+                if (bsModal) {
+                    bsModal.hide();
+                }
+            }
+        }
+        
+        // Función para mostrar popup de resultados de votación a los secretarios
+        function mostrarPopupResultadosSecretarios(data) {
+            // Solo mostrar a secretarios de mesa directiva
+            if (user.cargo_mesa_directiva !== 'secretario1' && user.cargo_mesa_directiva !== 'secretario2') {
+                return;
+            }
+            
+            // Crear el modal si no existe
+            let modal = document.getElementById('modalResultadosSecretarios');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.className = 'modal fade';
+                modal.id = 'modalResultadosSecretarios';
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-poll"></i> Resultado de Votación
+                                </h5>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-3 text-center fw-bold" style="color: #333; font-size: 1.1em;">
+                                    Diputado presidente, le informo que el resultado de la votación es el siguiente:
+                                </p>
+                                
+                                <!-- Estadísticas de votación con colores sólidos -->
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <div class="card border-0 shadow-lg" style="background-color: #28a745 !important; background-image: none !important;">
+                                            <div class="card-body text-center py-3">
+                                                <i class="fas fa-thumbs-up fa-2x mb-2" style="color: white !important;"></i>
+                                                <h2 class="fw-bold mb-1" id="votosFavor" style="font-size: 2.5em; color: white !important;">0</h2>
+                                                <h6 class="text-uppercase fw-bold mb-0" style="font-size: 0.9em; color: white !important;">A FAVOR</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card border-0 shadow-lg" style="background-color: #dc3545 !important; background-image: none !important;">
+                                            <div class="card-body text-center py-3">
+                                                <i class="fas fa-thumbs-down fa-2x mb-2" style="color: white !important;"></i>
+                                                <h2 class="fw-bold mb-1" id="votosContra" style="font-size: 2.5em; color: white !important;">0</h2>
+                                                <h6 class="text-uppercase fw-bold mb-0" style="font-size: 0.9em; color: white !important;">EN CONTRA</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card border-0 shadow-lg" style="background-color: #ffc107 !important; background-image: none !important;">
+                                            <div class="card-body text-center py-3">
+                                                <i class="fas fa-minus-circle fa-2x mb-2" style="color: #333 !important;"></i>
+                                                <h2 class="fw-bold mb-1" id="votosAbstencion" style="font-size: 2.5em; color: #333 !important;">0</h2>
+                                                <h6 class="text-uppercase fw-bold mb-0" style="font-size: 0.9em; color: #333 !important;">ABSTENCIÓN</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Resultado final -->
+                                <div id="resultadoFinalSecretarios"></div>
+                                
+                                <!-- Título de la iniciativa -->
+                                <div class="mt-3 p-3 bg-light rounded">
+                                    <h6 class="text-muted mb-1">Iniciativa votada:</h6>
+                                    <p class="mb-0 fw-bold" id="tituloIniciativaResultado" style="color: #333;"></p>
+                                </div>
+                            </div>
+                            <div class="modal-footer justify-content-center">
+                                <button type="button" class="btn btn-primary btn-lg" onclick="cerrarModalResultados()">
+                                    <i class="fas fa-check"></i> Aceptar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            
+            // Actualizar los números
+            document.getElementById('votosFavor').textContent = data.favor || 0;
+            document.getElementById('votosContra').textContent = data.contra || 0;
+            document.getElementById('votosAbstencion').textContent = data.abstencion || 0;
+            document.getElementById('tituloIniciativaResultado').textContent = data.titulo || 'Iniciativa';
+            
+            // Mostrar resultado final
+            const resultadoDiv = document.getElementById('resultadoFinalSecretarios');
+            const esAprobada = (data.favor || 0) > (data.contra || 0);
+            
+            resultadoDiv.innerHTML = `
+                <div class="card border-0 shadow-lg" style="background-color: ${esAprobada ? '#28a745' : '#dc3545'} !important; background-image: none !important;">
+                    <div class="card-body text-center py-3">
+                        <h4 class="mb-2" style="color: white !important;">
+                            <i class="fas ${esAprobada ? 'fa-check-circle' : 'fa-times-circle'} me-2"></i>
+                            ${esAprobada ? 'APROBADA' : 'RECHAZADA'}
+                        </h4>
+                        <div class="text-white">
+                            <small>Total de votos emitidos: ${(data.favor || 0) + (data.contra || 0) + (data.abstencion || 0)}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Mostrar el modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
+        
+        // Función para cerrar el modal de resultados
+        function cerrarModalResultados() {
+            const modal = document.getElementById('modalResultadosSecretarios');
             if (modal) {
                 const bsModal = bootstrap.Modal.getInstance(modal);
                 if (bsModal) {

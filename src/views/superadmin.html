@@ -1018,8 +1018,16 @@
                             <small class="text-muted">Dejar en blanco para mantener la actual</small>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Nombre Completo</label>
-                            <input type="text" class="form-control" id="nombreCompleto" required>
+                            <label class="form-label">Apellidos</label>
+                            <input type="text" class="form-control" id="apellidos" placeholder="Ej: García López" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nombre(s)</label>
+                            <input type="text" class="form-control" id="nombres" placeholder="Ej: Juan Carlos" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nombre Completo (se genera automáticamente)</label>
+                            <input type="text" class="form-control" id="nombreCompleto" readonly style="background-color: #f0f0f0;">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Rol</label>
@@ -1434,6 +1442,11 @@
             document.getElementById('username').disabled = false;
             document.getElementById('password').required = true;
             
+            // Limpiar campos de nombres
+            document.getElementById('apellidos').value = '';
+            document.getElementById('nombres').value = '';
+            document.getElementById('nombreCompleto').value = '';
+            
             // Ocultar campos específicos de diputado inicialmente
             document.getElementById('cargoField').style.display = 'none';
             document.getElementById('coordinadorField').style.display = 'none';
@@ -1457,6 +1470,24 @@
             document.getElementById('password').value = userData.password_plain || '';
             document.getElementById('password').placeholder = userData.password_plain ? 'Contraseña actual' : 'Ingrese nueva contraseña';
             document.getElementById('password').required = false;
+            
+            // Manejar apellidos y nombres
+            if (userData.apellidos) {
+                document.getElementById('apellidos').value = userData.apellidos;
+                // Extraer nombres del nombre_completo quitando los apellidos
+                const nombres = userData.nombre_completo.replace(userData.apellidos, '').trim();
+                document.getElementById('nombres').value = nombres;
+            } else {
+                // Si no hay apellidos, intentar separar el nombre completo
+                const partes = userData.nombre_completo.split(' ');
+                if (partes.length >= 3) {
+                    document.getElementById('apellidos').value = partes.slice(0, 2).join(' ');
+                    document.getElementById('nombres').value = partes.slice(2).join(' ');
+                } else {
+                    document.getElementById('apellidos').value = partes[0] || '';
+                    document.getElementById('nombres').value = partes.slice(1).join(' ');
+                }
+            }
             document.getElementById('nombreCompleto').value = userData.nombre_completo;
             document.getElementById('role').value = userData.role;
             document.getElementById('cargoMesaDirectiva').value = userData.cargo_mesa_directiva;
@@ -1642,7 +1673,10 @@
             const userId = document.getElementById('userId').value;
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const nombre_completo = document.getElementById('nombreCompleto').value;
+            const apellidos = document.getElementById('apellidos').value;
+            const nombres = document.getElementById('nombres').value;
+            const nombre_completo = apellidos + ' ' + nombres;
+            document.getElementById('nombreCompleto').value = nombre_completo; // Actualizar el campo readonly
             const role = document.getElementById('role').value;
             const cargo_mesa_directiva = document.getElementById('cargoMesaDirectiva').value;
             // Construir el texto del cargo coordinador basado en la selección
@@ -1671,6 +1705,7 @@
             // Preparar FormData para manejar archivos
             const formData = new FormData();
             formData.append('nombre_completo', nombre_completo);
+            formData.append('apellidos', apellidos);
             formData.append('cargo_mesa_directiva', cargo_mesa_directiva);
             formData.append('cargo_coordinador', cargo_coordinador);
             formData.append('partido', partido);
@@ -2487,6 +2522,24 @@
                 updatePreview();
                 initThemePanel();
             }, 100);
+            
+            // Actualizar nombre completo automáticamente
+            const apellidosInput = document.getElementById('apellidos');
+            const nombresInput = document.getElementById('nombres');
+            const nombreCompletoInput = document.getElementById('nombreCompleto');
+            
+            function actualizarNombreCompleto() {
+                const apellidos = apellidosInput.value.trim();
+                const nombres = nombresInput.value.trim();
+                nombreCompletoInput.value = apellidos + ' ' + nombres;
+            }
+            
+            if (apellidosInput) {
+                apellidosInput.addEventListener('input', actualizarNombreCompleto);
+            }
+            if (nombresInput) {
+                nombresInput.addEventListener('input', actualizarNombreCompleto);
+            }
             
             // Configurar evento para el input de foto
             document.getElementById('fotoUsuario').addEventListener('change', function(e) {

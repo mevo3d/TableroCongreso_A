@@ -188,11 +188,11 @@ router.get('/usuarios', (req, res) => {
     const db = req.db;
     
     db.all(`
-        SELECT id, username, role, nombre_completo, cargo_mesa_directiva, 
+        SELECT id, username, role, nombre_completo, apellidos, cargo_mesa_directiva, 
                cargo_coordinador, partido, comision, cargo_legislativo, 
                foto_url, activo, password_plain 
         FROM usuarios 
-        ORDER BY role, id
+        ORDER BY role, apellidos, id
     `, (err, usuarios) => {
         if (err) {
             return res.status(500).json({ error: 'Error obteniendo usuarios' });
@@ -394,7 +394,7 @@ router.get('/votacion/:iniciativaId', (req, res) => {
 
 // Crear nuevo usuario
 router.post('/usuarios', upload.single('foto'), async (req, res) => {
-    const { username, password, role, nombre_completo, cargo_mesa_directiva, 
+    const { username, password, role, nombre_completo, apellidos, cargo_mesa_directiva, 
             cargo_coordinador, partido, comision, cargo_legislativo } = req.body;
     const db = req.db;
     
@@ -406,10 +406,10 @@ router.post('/usuarios', upload.single('foto'), async (req, res) => {
     const foto_url = req.file ? '/uploads/' + req.file.filename : '';
     
     db.run(
-        `INSERT INTO usuarios (username, password, password_plain, role, nombre_completo, cargo_mesa_directiva, 
+        `INSERT INTO usuarios (username, password, password_plain, role, nombre_completo, apellidos, cargo_mesa_directiva, 
                               cargo_coordinador, partido, comision, cargo_legislativo, foto_url) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [username, hashedPassword, password, role, nombre_completo, cargo_mesa_directiva || '', 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [username, hashedPassword, password, role, nombre_completo, apellidos || '', cargo_mesa_directiva || '', 
          cargo_coordinador || '', partido || '', comision || '', cargo_legislativo || '', foto_url],
         function(err) {
             if (err) {
@@ -427,13 +427,13 @@ router.post('/usuarios', upload.single('foto'), async (req, res) => {
 // Actualizar usuario
 router.put('/usuarios/:id', upload.single('foto'), async (req, res) => {
     const { id } = req.params;
-    const { nombre_completo, cargo_mesa_directiva, cargo_coordinador, 
+    const { nombre_completo, apellidos, cargo_mesa_directiva, cargo_coordinador, 
             partido, comision, cargo_legislativo, password } = req.body;
     const db = req.db;
     
-    let query = 'UPDATE usuarios SET nombre_completo = ?, cargo_mesa_directiva = ?, ' +
+    let query = 'UPDATE usuarios SET nombre_completo = ?, apellidos = ?, cargo_mesa_directiva = ?, ' +
                 'cargo_coordinador = ?, partido = ?, comision = ?, cargo_legislativo = ?';
-    let params = [nombre_completo, cargo_mesa_directiva || '', cargo_coordinador || '', 
+    let params = [nombre_completo, apellidos || '', cargo_mesa_directiva || '', cargo_coordinador || '', 
                   partido || '', comision || '', cargo_legislativo || ''];
     
     if (password) {

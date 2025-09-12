@@ -137,7 +137,7 @@ app.get('/autologin/:username', (req, res) => {
     const db = req.db;
     
     // Buscar el usuario
-    db.get('SELECT id, username, role, nombre_completo FROM usuarios WHERE username = ?', 
+    db.get('SELECT id, username, role, nombre_completo, cargo_mesa_directiva FROM usuarios WHERE username = ?', 
         [username], (err, user) => {
         if (err || !user) {
             return res.redirect('/');
@@ -211,7 +211,8 @@ app.get('/autologin/:username', (req, res) => {
                         id: user.id,
                         username: user.username,
                         nombre: user.nombre_completo,
-                        role: user.role
+                        role: user.role,
+                        cargo_mesa_directiva: user.cargo_mesa_directiva
                     }).replace(/'/g, "\\'")}');
                     setTimeout(() => {
                         window.location.href = '${redirectPath}';

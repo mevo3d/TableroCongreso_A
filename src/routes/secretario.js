@@ -267,10 +267,13 @@ router.post('/activar-iniciativa/:id', (req, res) => {
         
         // Verificar que se haya realizado el pase de lista
         db.get(`
-            SELECT pl.id, pl.finalizado,
-                   COUNT(a.id) as asistencias_registradas 
+            SELECT pl.id, pl.finalizado, pl.confirmado,
+                   COUNT(DISTINCT a.id) as asistencias_autoconfirmadas,
+                   COUNT(DISTINCT ad.id) as asistencias_secretario,
+                   (COUNT(DISTINCT a.id) + COUNT(DISTINCT ad.id)) as total_asistencias
             FROM pase_lista pl
             LEFT JOIN asistencias a ON a.pase_lista_id = pl.id
+            LEFT JOIN asistencia_diputados ad ON ad.pase_lista_id = pl.id AND ad.presente = 1
             WHERE pl.sesion_id = ? AND pl.finalizado = 0
             GROUP BY pl.id
             ORDER BY pl.fecha DESC
@@ -282,7 +285,7 @@ router.post('/activar-iniciativa/:id', (req, res) => {
             }
             
             // Si no hay pase de lista o no tiene asistencias registradas
-            if (!paseListaActual || paseListaActual.asistencias_registradas === 0) {
+            if (!paseListaActual || paseListaActual.total_asistencias === 0) {
                 return res.status(400).json({ 
                     error: 'Debe completarse el pase de lista antes de iniciar votaciones',
                     mensaje: 'Los Secretarios-Diputados deben realizar el pase de lista primero',
