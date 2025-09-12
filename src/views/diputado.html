@@ -2327,6 +2327,17 @@
         function mostrarBotonPresente() {
             const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
             if (containerAsistencia) {
+                console.log(`📋 Mostrando botón de asistencia confirmada para: ${user.nombre || user.username}`);
+                
+                // Limpiar cualquier temporizador anterior
+                if (window.hideAttendanceTimer) {
+                    clearTimeout(window.hideAttendanceTimer);
+                    console.log('🔄 Limpiando temporizador anterior');
+                }
+                if (window.hideAttendanceAnimTimer) {
+                    clearTimeout(window.hideAttendanceAnimTimer);
+                }
+                
                 // Agregar estilos de animación si no existen
                 if (!document.getElementById('fadeoutAnimation')) {
                     const style = document.createElement('style');
@@ -2353,6 +2364,9 @@
                     document.head.appendChild(style);
                 }
                 
+                // Limpiar clases anteriores
+                containerAsistencia.classList.remove('fade-out-animation');
+                
                 containerAsistencia.innerHTML = `
                     <h4 class="text-center mb-4">
                         <i class="fas fa-check-circle text-success"></i> Asistencia Registrada
@@ -2366,31 +2380,31 @@
                     </div>
                 `;
                 
-                // Ocultar el botón después de 5 segundos con animación de fadeout
-                setTimeout(() => {
-                    containerAsistencia.classList.add('fade-out-animation');
-                    
-                    // Después de la animación, ocultar completamente el contenedor
-                    setTimeout(() => {
-                        containerAsistencia.style.display = 'none';
-                        containerAsistencia.classList.remove('fade-out-animation');
-                        console.log('✅ Botón de PRESENTE ocultado después de confirmación');
-                    }, 500); // Duración de la animación
-                }, 5000); // Esperar 5 segundos antes de ocultar
+                // Mostrar el contenedor
                 containerAsistencia.style.display = 'block';
                 containerAsistencia.style.opacity = '1';
                 containerAsistencia.style.transition = 'none';
                 
-                // Aplicar fadeout después de 5 segundos
-                setTimeout(() => {
-                    containerAsistencia.classList.add('fade-out-animation');
-                    
-                    // Ocultar completamente después de la animación
-                    setTimeout(() => {
-                        containerAsistencia.style.display = 'none';
-                        containerAsistencia.classList.remove('fade-out-animation');
-                    }, 500); // Duración de la animación
-                }, 5000);
+                // Guardar temporizadores globalmente para poder cancelarlos
+                window.hideAttendanceTimer = setTimeout(() => {
+                    console.log(`⏱️ Iniciando fadeout del botón para: ${user.nombre || user.username}`);
+                    if (containerAsistencia && containerAsistencia.style.display !== 'none') {
+                        containerAsistencia.classList.add('fade-out-animation');
+                        
+                        // Después de la animación, ocultar completamente el contenedor
+                        window.hideAttendanceAnimTimer = setTimeout(() => {
+                            if (containerAsistencia) {
+                                containerAsistencia.style.display = 'none';
+                                containerAsistencia.classList.remove('fade-out-animation');
+                                console.log(`✅ Botón ocultado para: ${user.nombre || user.username}`);
+                            }
+                        }, 500); // Duración de la animación
+                    }
+                }, 5000); // Esperar 5 segundos antes de ocultar
+                
+                console.log('⏰ Temporizador configurado - el botón se ocultará en 5 segundos');
+            } else {
+                console.warn('⚠️ No se encontró el contenedor btnConfirmarAsistenciaContainer');
             }
         }
         
@@ -5205,14 +5219,10 @@
         
         // Conectar al servidor de streaming
         function connectStreamingServer() {
-            streamSocket = io('http://localhost:3333', {
-                transports: ['websocket'],
-                reconnection: true
-            });
+            // Usar la conexión socket existente en lugar de crear una nueva
+            streamSocket = socket;
             
-            streamSocket.on('connect', () => {
-                console.log('Conectado al servidor de streaming');
-            });
+            console.log('Usando conexión existente para streaming');
             
             // Escuchar cuando hay stream disponible
             streamSocket.on('stream-live', (data) => {
@@ -7217,26 +7227,31 @@
         
         // Escuchar cuando se confirma el pase de lista
         socket.on('pase-lista-confirmado', async (data) => {
-            console.log('Pase de lista confirmado:', data);
+            console.log('Pase de lista confirmado por secretario:', data);
             paseListaConfirmado = true;
             
-            // IMPORTANTE: Si ya confirmé asistencia, ocultar cualquier botón visible
+            // IMPORTANTE: NUNCA mostrar el botón de asistencia cuando el secretario confirma
+            // Solo ocultar botones, no mostrar nuevos
+            console.log('Secretario confirmó pase de lista - ocultando todos los botones de asistencia');
+            const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
+            if (containerAsistencia) {
+                containerAsistencia.style.display = 'none';
+            }
+            
+            // También ocultar el botón del menú lateral
+            const btnRegistrar = document.getElementById('btnRegistrarAsistencia');
+            const divider = document.getElementById('dividerAsistencia');
+            if (btnRegistrar) {
+                btnRegistrar.style.display = 'none';
+            }
+            if (divider) {
+                divider.style.display = 'none';
+            }
+            
+            // Si ya confirmé asistencia, mantener ese estado
             if (yaConfirmeAsistencia) {
-                console.log('Pase confirmado - ocultando botones de asistencia');
-                const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
-                if (containerAsistencia) {
-                    containerAsistencia.style.display = 'none';
-                }
-                
-                // También ocultar el botón del menú lateral
-                const btnRegistrar = document.getElementById('btnRegistrarAsistencia');
-                const divider = document.getElementById('dividerAsistencia');
-                if (btnRegistrar) {
-                    btnRegistrar.style.display = 'none';
-                }
-                if (divider) {
-                    divider.style.display = 'none';
-                }
+                console.log('Ya confirmé asistencia anteriormente - manteniendo estado');
+                return; // No hacer nada más
             }
             
             // Verificar si el usuario actual ya marcó asistencia
@@ -7290,6 +7305,31 @@
                         if (divider) {
                             divider.style.display = 'none';
                         }
+                    } else if (miAsistencia.asistencia === 'presente') {
+                        // Si ya marcó presente, NO mostrar ningún botón - mantener todo oculto
+                        console.log('✅ Ya tengo asistencia PRESENTE - NO mostrar botones');
+                        yaConfirmeAsistencia = true;
+                        updateAttendanceStatus('presente');
+                        
+                        // IMPORTANTE: NO llamar a mostrarBotonPresente() aquí
+                        // Solo asegurarse de que el botón permanezca oculto
+                        const containerAsistencia = document.getElementById('btnConfirmarAsistenciaContainer');
+                        if (containerAsistencia) {
+                            containerAsistencia.style.display = 'none';
+                            // Limpiar cualquier temporizador que pueda estar activo
+                            if (window.hideAttendanceTimer) {
+                                clearTimeout(window.hideAttendanceTimer);
+                            }
+                            if (window.hideAttendanceAnimTimer) {
+                                clearTimeout(window.hideAttendanceAnimTimer);
+                            }
+                        }
+                        
+                        // También ocultar botón del menú
+                        const btnRegistrar = document.getElementById('btnRegistrarAsistencia');
+                        const divider = document.getElementById('dividerAsistencia');
+                        if (btnRegistrar) btnRegistrar.style.display = 'none';
+                        if (divider) divider.style.display = 'none';
                     } else if (miAsistencia.asistencia === 'justificado') {
                         // Si la inasistencia está justificada, NO mostrar botones
                         // Solo actualizar el badge de estado

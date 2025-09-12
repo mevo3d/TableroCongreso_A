@@ -300,19 +300,36 @@ const usuariosConectados = new Map();
 
 // Socket.IO
 io.on('connection', (socket) => {
-    console.log('🔌 Nueva conexión - Socket ID:', socket.id);
+    // Solo mostrar log si no es una reconexión inmediata
+    const userAgent = socket.handshake.headers['user-agent'] || '';
+    const isReconnection = socket.handshake.query.reconnection === 'true';
+    
+    if (!isReconnection) {
+        console.log('🔌 Nueva conexión - Socket ID:', socket.id);
+    }
     
     // Registrar usuario cuando se identifica
     socket.on('identificar-usuario', (userData) => {
         if (userData && userData.nombre) {
+            // Verificar si el usuario ya está conectado con otro socket
+            const existingUser = Array.from(usuariosConectados.entries()).find(
+                ([id, user]) => user.nombre === userData.nombre && user.rol === userData.rol
+            );
+            
+            if (existingUser) {
+                // Usuario ya conectado, actualizar socket ID
+                usuariosConectados.delete(existingUser[0]);
+                console.log(`🔄 Reconexión: ${userData.nombre} (${userData.rol}) - Nuevo Socket: ${socket.id}`);
+            } else {
+                console.log(`✅ Usuario conectado: ${userData.nombre} (${userData.rol}) - Socket: ${socket.id}`);
+            }
+            
             usuariosConectados.set(socket.id, {
                 nombre: userData.nombre,
                 rol: userData.rol || 'Usuario',
                 conectadoEn: new Date(),
                 socketId: socket.id
             });
-            
-            console.log(`✅ Usuario conectado: ${userData.nombre} (${userData.rol}) - Socket: ${socket.id}`);
             
             // Emitir lista actualizada a superadmin
             io.emit('usuarios-conectados-actualizado', Array.from(usuariosConectados.values()));

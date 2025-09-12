@@ -1909,9 +1909,9 @@ router.post('/marcar-ubicacion', (req, res) => {
                             u.id,
                             u.nombre_completo,
                             u.fuera_del_recinto,
-                            COALESCE(ad.presente, a.estado = 'presente', 0) as presente,
-                            COALESCE(ad.justificado, a.estado = 'justificado', 0) as justificado,
-                            COALESCE(ad.asistencia, a.estado, 'sin_marcar') as estado_asistencia
+                            COALESCE(ad.presente, a.asistencia = 'presente', 0) as presente,
+                            COALESCE(ad.justificado, a.asistencia = 'justificado', 0) as justificado,
+                            COALESCE(ad.asistencia, a.asistencia, 'sin_marcar') as estado_asistencia
                         FROM usuarios u
                         LEFT JOIN (
                             SELECT diputado_id, MAX(pase_lista_id) as ultimo_pase 
@@ -2009,9 +2009,9 @@ router.get('/quorum', (req, res) => {
                 u.id,
                 u.nombre_completo,
                 u.fuera_del_recinto,
-                COALESCE(ad.presente, a.estado = 'presente', 0) as presente,
-                COALESCE(ad.justificado, a.estado = 'justificado', 0) as justificado,
-                COALESCE(ad.asistencia, a.estado, 'sin_marcar') as estado_asistencia
+                COALESCE(ad.presente, a.asistencia = 'presente', 0) as presente,
+                COALESCE(ad.justificado, a.asistencia = 'justificado', 0) as justificado,
+                COALESCE(ad.asistencia, a.asistencia, 'sin_marcar') as estado_asistencia
             FROM usuarios u
             LEFT JOIN (
                 SELECT diputado_id, MAX(pase_lista_id) as ultimo_pase 

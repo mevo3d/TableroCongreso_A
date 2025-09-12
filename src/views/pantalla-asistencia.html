@@ -525,6 +525,19 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+        
+        // Verificar conexión socket
+        socket.on('connect', () => {
+            console.log('✅ Pantalla de asistencia conectada al servidor - Socket ID:', socket.id);
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('❌ Pantalla de asistencia desconectada del servidor');
+        });
+        
+        socket.on('reconnect', () => {
+            console.log('🔄 Pantalla de asistencia reconectada al servidor');
+        });
         let paseListaActivo = false;
         let diputadosData = [];
         let asistenciaData = {};
@@ -639,8 +652,12 @@
         // Escuchar activación del pase de lista
         socket.on('pase-lista-activado', (data) => {
             console.log('🔔 Evento pase-lista-activado recibido:', data);
+            console.log('📊 Estado actual - paseListaActivo:', paseListaActivo);
+            console.log('📊 Datos recibidos:', JSON.stringify(data, null, 2));
+            
             // Activar siempre que se reciba este evento
             paseListaActivo = true;
+            console.log('✅ Pase de lista activado en pantalla de asistencia');
             
             // Usar el mapeo fijo de diputados
             diputadosData = DIPUTADOS_DEFAULT;
